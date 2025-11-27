@@ -23,6 +23,7 @@
 	let marketingLevel = game.marketingLevel;
 	let demand = game.demand;
 	let marketingCost = game.marketingCost;
+	let rubberbandPrice = game.rubberbandPrice;
 
 	onMount(() => {
 		// Load game state if available (mock for now, would use cookies/localStorage)
@@ -82,6 +83,11 @@
 		}
 	}
 
+	function updateRubberbandPrice() {
+		game.setRubberbandPrice(rubberbandPrice);
+		tick++;
+	}
+
 	function getCost(machine: (typeof machine_types)[0]) {
 		const count = game.machines[machine.name] || 0;
 		return Math.floor(machine.initial_cost * Math.pow(machine.cost_factor, count));
@@ -102,6 +108,13 @@
 		marketingLevel = game.marketingLevel;
 		demand = game.demand;
 		marketingCost = game.marketingCost;
+		// Only update price from game if we are not currently editing (handled by bind)
+		// But we need to sync on load.
+		// For now, let's just sync it. If it causes issues with typing we can check.
+		// Actually, since game doesn't change it automatically, it's safe.
+		// if (rubberbandPrice !== game.rubberbandPrice) {
+		// 	rubberbandPrice = game.rubberbandPrice;
+		// }
 		// buyerThreshold is bound to input, so we don't overwrite it from game unless we want to sync back on load
 		// But for now let's just sync it one way or ensure it's consistent
 		if (buyerThreshold !== game.buyerThreshold) {
@@ -170,9 +183,30 @@
 				>
 					Buy Rubber (100 for ${(100 * rubberPrice).toFixed(2)})
 				</button>
-				<button class="action-btn secondary" on:click={sellRubberbands} disabled={rubberbands < 1}>
+				<!--button class="action-btn secondary" on:click={sellRubberbands} disabled={rubberbands < 1}>
 					Sell All Rubberbands
-				</button>
+				</button>-->
+			</div>
+		</section>
+
+		<section class="sales">
+			<h2>Sales Strategy</h2>
+			<div class="sales-card">
+				<div class="info">
+					<h3>Price Setting</h3>
+					<p>Lower price increases demand.</p>
+				</div>
+				<div class="controls">
+					<label for="price">Price per Rubberband ($):</label>
+					<input
+						id="price"
+						type="number"
+						bind:value={rubberbandPrice}
+						on:input={updateRubberbandPrice}
+						min="0.01"
+						step="0.01"
+					/>
+				</div>
 			</div>
 		</section>
 
@@ -452,5 +486,15 @@
 		color: #fff;
 		padding: 0.5rem;
 		border-radius: 4px;
+	}
+
+	.sales-card {
+		background: #252525;
+		padding: 1rem;
+		border-radius: 8px;
+		border: 1px solid #333;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
 	}
 </style>

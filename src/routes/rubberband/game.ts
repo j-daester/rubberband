@@ -9,6 +9,7 @@ export class Game {
 	buyerHired: boolean;
 	buyerThreshold: number;
 	rubberPrice: number;
+	rubberbandPrice: number;
 	tickCount: number;
 	marketingLevel: number;
 
@@ -55,6 +56,13 @@ export class Game {
 				} else {
 					this.marketingLevel = 1;
 				}
+
+				// Check for rubberband price data
+				if (parts.length > 7 + machine_types.length) {
+					this.rubberbandPrice = +parts[7 + machine_types.length] || 1.0;
+				} else {
+					this.rubberbandPrice = 1.0;
+				}
 			} else {
 				// Old save
 				this.totalRubberbandsSold = 0;
@@ -67,6 +75,7 @@ export class Game {
 				this.buyerThreshold = 0;
 				this.rubberPrice = 0.1;
 				this.marketingLevel = 1;
+				this.rubberbandPrice = 1.0;
 			}
 			this.rubber = 0;
 			this.tickCount = 0;
@@ -83,6 +92,7 @@ export class Game {
 			this.buyerHired = false;
 			this.buyerThreshold = 0;
 			this.rubberPrice = 0.1;
+			this.rubberbandPrice = 1.0;
 			this.marketingLevel = 1;
 			this.tickCount = 0;
 		}
@@ -101,7 +111,7 @@ export class Game {
 	}
 
 	get demand() {
-		return Math.floor(this.marketingLevel * 1.1);
+		return Math.floor(Math.pow(3, this.marketingLevel) / this.rubberbandPrice * 10);
 	}
 
 	get marketingCost() {
@@ -209,7 +219,7 @@ export class Game {
 	sellRubberbands(amount: number) {
 		if (this.rubberbands >= amount) {
 			this.rubberbands -= amount;
-			this.money += amount * 1; // Assuming 1$ per rubberband for now
+			this.money += amount * this.rubberbandPrice;
 			this.totalRubberbandsSold += amount;
 			return true;
 		}
@@ -239,12 +249,17 @@ export class Game {
 		return false;
 	}
 
+	setRubberbandPrice(price: number) {
+		this.rubberbandPrice = price;
+		if (this.rubberbandPrice < 0.01) this.rubberbandPrice = 0.01;
+	}
+
 	/**
 	 * Serialize game state so it can be set as a cookie
 	 */
 	toString() {
 		const machineCounts = machine_types.map(m => this.machines[m.name] || 0);
-		// New format: money-rubberbands-totalSold-m1-m2...-buyerHired-buyerThreshold-rubberPrice-marketingLevel
-		return `${this.money}-${this.rubberbands}-${this.totalRubberbandsSold}-${machineCounts.join('-')}-${this.buyerHired ? 1 : 0}-${this.buyerThreshold}-${this.rubberPrice}-${this.marketingLevel}`;
+		// New format: money-rubberbands-totalSold-m1-m2...-buyerHired-buyerThreshold-rubberPrice-marketingLevel-rubberbandPrice
+		return `${this.money}-${this.rubberbands}-${this.totalRubberbandsSold}-${machineCounts.join('-')}-${this.buyerHired ? 1 : 0}-${this.buyerThreshold}-${this.rubberPrice}-${this.marketingLevel}-${this.rubberbandPrice}`;
 	}
 }
