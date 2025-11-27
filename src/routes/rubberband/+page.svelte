@@ -19,6 +19,10 @@
 	let level = game.level;
 	let buyerHired = game.buyerHired;
 	let buyerThreshold = game.buyerThreshold;
+	let rubberPrice = game.rubberPrice;
+	let marketingLevel = game.marketingLevel;
+	let demand = game.demand;
+	let marketingCost = game.marketingCost;
 
 	onMount(() => {
 		// Load game state if available (mock for now, would use cookies/localStorage)
@@ -56,7 +60,7 @@
 	}
 
 	function buyRubber() {
-		if (game.buyRubber(100, 10)) {
+		if (game.buyRubber(100)) {
 			tick++;
 		}
 	}
@@ -70,6 +74,12 @@
 	function updateBuyerThreshold() {
 		game.setBuyerThreshold(buyerThreshold);
 		tick++;
+	}
+
+	function buyMarketing() {
+		if (game.buyMarketing()) {
+			tick++;
+		}
 	}
 
 	function getCost(machine: (typeof machine_types)[0]) {
@@ -88,6 +98,10 @@
 		totalSold = game.totalRubberbandsSold;
 		level = game.level;
 		buyerHired = game.buyerHired;
+		rubberPrice = game.rubberPrice;
+		marketingLevel = game.marketingLevel;
+		demand = game.demand;
+		marketingCost = game.marketingCost;
 		// buyerThreshold is bound to input, so we don't overwrite it from game unless we want to sync back on load
 		// But for now let's just sync it one way or ensure it's consistent
 		if (buyerThreshold !== game.buyerThreshold) {
@@ -135,6 +149,10 @@
 				<span class="label">Production</span>
 				<span class="value">{productionRate.toLocaleString()} / sec</span>
 			</div>
+			<div class="stat">
+				<span class="label">Demand</span>
+				<span class="value">{demand.toLocaleString()} / tick</span>
+			</div>
 		</div>
 	</header>
 
@@ -145,11 +163,29 @@
 				<button class="action-btn primary" on:click={makeRubberband} disabled={rubber < 1}>
 					Make Rubberband
 				</button>
-				<button class="action-btn secondary" on:click={buyRubber} disabled={money < 10}>
-					Buy Rubber (100 for $10)
+				<button
+					class="action-btn secondary"
+					on:click={buyRubber}
+					disabled={money < 100 * rubberPrice}
+				>
+					Buy Rubber (100 for ${(100 * rubberPrice).toFixed(2)})
 				</button>
 				<button class="action-btn secondary" on:click={sellRubberbands} disabled={rubberbands < 1}>
 					Sell All Rubberbands
+				</button>
+			</div>
+		</section>
+
+		<section class="marketing">
+			<h2>Marketing</h2>
+			<div class="marketing-card">
+				<div class="info">
+					<h3>Marketing Campaign (Lvl {marketingLevel})</h3>
+					<p>Increases demand for rubberbands.</p>
+					<p class="price">Cost: ${marketingCost.toLocaleString()}</p>
+				</div>
+				<button class="buy-btn" disabled={money < marketingCost} on:click={buyMarketing}>
+					Buy Campaign
 				</button>
 			</div>
 		</section>
@@ -193,10 +229,10 @@
 			<h2>Machine Shop</h2>
 			<div class="machine-list">
 				{#each machine_types as machine}
-					{@const max = game.getMaxAffordable(machine.name)}
-					{@const amount = buyAmount === -1 ? Math.max(1, max) : buyAmount}
-					{@const cost = game.getMachineCost(machine.name, amount)}
 					{@const owned = machines[machine.name] || 0}
+					{@const max = game.getMaxAffordable(machine.name, money, owned)}
+					{@const amount = buyAmount === -1 ? Math.max(1, max) : buyAmount}
+					{@const cost = game.getMachineCost(machine.name, amount, owned)}
 					{@const canAfford = money >= cost}
 
 					<div class="machine-card">

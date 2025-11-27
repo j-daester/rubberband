@@ -26,4 +26,10 @@ export const machine_types = [
 		initial_cost: 1000,
 		cost_factor: 1.2
 	},
+	{
+		name: "MEGA-Bander 10000",
+		output: 1000,
+		initial_cost: 10000,
+		cost_factor: 1.3
+	},
 ];

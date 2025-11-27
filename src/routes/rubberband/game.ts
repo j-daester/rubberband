@@ -8,39 +8,14 @@ export class Game {
 	totalRubberbandsSold: number;
 	buyerHired: boolean;
 	buyerThreshold: number;
+	rubberPrice: number;
+	tickCount: number;
+	marketingLevel: number;
 
 	/**
 	 * Create a game object from the player's cookie, or initialise a new game
 	 */
 	constructor(serialized: string | undefined = undefined) {
-		if (serialized) {
-			const [money, rubberbands, totalSold, ...machineCounts] = serialized.split('-');
-
-			this.money = +money;
-			this.rubberbands = +rubberbands;
-			this.totalRubberbandsSold = +totalSold || 0; // Handle old saves where this might be a machine count or undefined
-
-			// If it's an old save, the split might be different. 
-			// Old format: money-rubberbands-m1-m2...
-			// New format: money-rubberbands-totalSold-m1-m2...
-			// We need to be careful. 
-			// Let's actually append it at the END to be safer for backward compat if we cared strictly, 
-			// but since I'm rewriting the parsing logic, let's stick to the plan but be robust.
-			// Actually, if I change the order, I break old saves if I don't detect version. 
-			// Let's assume for this task we can just try to parse. 
-			// If machineCounts is empty, it might be an old save where we consumed machine counts as totalSold.
-			// Let's use a safer parsing strategy or just append to end.
-			// Appending to end is safer: money-rubberbands-m1-m2...-totalSold
-
-			// Re-evaluating strategy:
-			// The current split is `serialized.split('-')`.
-			// Old: [money, rubberbands, ...machines]
-			// If I add totalSold at the end: [money, rubberbands, ...machines, totalSold]
-			// But machines is variable length? No, `machine_types` is fixed.
-			// So we know how many machines there are.
-		}
-
-		// Let's restart the constructor logic to be robust.
 		if (serialized) {
 			const parts = serialized.split('-');
 			this.money = +parts[0];
@@ -66,6 +41,20 @@ export class Game {
 					this.buyerHired = false;
 					this.buyerThreshold = 0;
 				}
+
+				// Check for price data
+				if (parts.length > 5 + machine_types.length) {
+					this.rubberPrice = +parts[5 + machine_types.length] || 0.1;
+				} else {
+					this.rubberPrice = 0.1;
+				}
+
+				// Check for marketing data
+				if (parts.length > 6 + machine_types.length) {
+					this.marketingLevel = +parts[6 + machine_types.length] || 1;
+				} else {
+					this.marketingLevel = 1;
+				}
 			} else {
 				// Old save
 				this.totalRubberbandsSold = 0;
@@ -76,8 +65,11 @@ export class Game {
 				});
 				this.buyerHired = false;
 				this.buyerThreshold = 0;
+				this.rubberPrice = 0.1;
+				this.marketingLevel = 1;
 			}
 			this.rubber = 0;
+			this.tickCount = 0;
 		} else {
 			this.money = 100;
 			this.rubberbands = 0;
@@ -90,6 +82,9 @@ export class Game {
 			}
 			this.buyerHired = false;
 			this.buyerThreshold = 0;
+			this.rubberPrice = 0.1;
+			this.marketingLevel = 1;
+			this.tickCount = 0;
 		}
 	}
 
@@ -105,7 +100,24 @@ export class Game {
 		return 1 + Math.floor(Math.sqrt(this.totalRubberbandsSold / 100));
 	}
 
+	get demand() {
+		return Math.floor(this.marketingLevel * 1.1);
+	}
+
+	get marketingCost() {
+		return 100 * Math.pow(2, this.marketingLevel);
+	}
+
 	tick() {
+		this.tickCount++;
+		if (this.tickCount % 10 === 0) {
+			// Fluctuate price +/- 5%
+			this.rubberPrice *= 0.95 + Math.random() * 0.1;
+			// Clamp price
+			if (this.rubberPrice < 0.01) this.rubberPrice = 0.01;
+			if (this.rubberPrice > 10.0) this.rubberPrice = 10.0;
+		}
+
 		const production = this.productionRate;
 		if (this.rubber >= production) {
 			this.rubber -= production;
@@ -117,7 +129,13 @@ export class Game {
 		}
 
 		if (this.buyerHired && this.rubber < this.buyerThreshold) {
-			this.buyRubber(this.buyerThreshold, 10);
+			this.buyRubber(this.buyerThreshold);
+		}
+
+		// Auto sell based on demand
+		const sellAmount = Math.min(this.rubberbands, this.demand);
+		if (sellAmount > 0) {
+			this.sellRubberbands(sellAmount);
 		}
 	}
 
@@ -128,7 +146,8 @@ export class Game {
 		}
 	}
 
-	buyRubber(amount: number, cost: number) {
+	buyRubber(amount: number) {
+		const cost = amount * this.rubberPrice;
 		if (this.money >= cost) {
 			this.money -= cost;
 			this.rubber += amount;
@@ -137,11 +156,11 @@ export class Game {
 		return false;
 	}
 
-	getMachineCost(machineName: string, amount: number) {
+	getMachineCost(machineName: string, amount: number, currentCount?: number) {
 		const machine = machine_types.find(m => m.name === machineName);
 		if (!machine) return Infinity;
 
-		const count = this.machines[machineName] || 0;
+		const count = currentCount !== undefined ? currentCount : (this.machines[machineName] || 0);
 		const r = machine.cost_factor;
 		const a = Math.floor(machine.initial_cost * Math.pow(r, count));
 
@@ -152,15 +171,17 @@ export class Game {
 		return Math.floor(a * (Math.pow(r, amount) - 1) / (r - 1));
 	}
 
-	getMaxAffordable(machineName: string) {
+	getMaxAffordable(machineName: string, currentMoney?: number, currentCount?: number) {
 		const machine = machine_types.find(m => m.name === machineName);
 		if (!machine) return 0;
 
-		const count = this.machines[machineName] || 0;
+		const count = currentCount !== undefined ? currentCount : (this.machines[machineName] || 0);
 		const r = machine.cost_factor;
 		const a = Math.floor(machine.initial_cost * Math.pow(r, count));
 
-		if (this.money < a) return 0;
+		const money = currentMoney !== undefined ? currentMoney : this.money;
+
+		if (money < a) return 0;
 
 		if (r === 1) {
 			return Math.floor(this.money / a);
@@ -208,12 +229,22 @@ export class Game {
 		this.buyerThreshold = amount;
 	}
 
+	buyMarketing() {
+		const cost = this.marketingCost;
+		if (this.money >= cost) {
+			this.money -= cost;
+			this.marketingLevel++;
+			return true;
+		}
+		return false;
+	}
+
 	/**
 	 * Serialize game state so it can be set as a cookie
 	 */
 	toString() {
 		const machineCounts = machine_types.map(m => this.machines[m.name] || 0);
-		// New format: money-rubberbands-totalSold-m1-m2...-buyerHired-buyerThreshold
-		return `${this.money}-${this.rubberbands}-${this.totalRubberbandsSold}-${machineCounts.join('-')}-${this.buyerHired ? 1 : 0}-${this.buyerThreshold}`;
+		// New format: money-rubberbands-totalSold-m1-m2...-buyerHired-buyerThreshold-rubberPrice-marketingLevel
+		return `${this.money}-${this.rubberbands}-${this.totalRubberbandsSold}-${machineCounts.join('-')}-${this.buyerHired ? 1 : 0}-${this.buyerThreshold}-${this.rubberPrice}-${this.marketingLevel}`;
 	}
 }
