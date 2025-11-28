@@ -2,6 +2,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { Game } from './game';
 	import { machine_types } from './parameters';
+	import { formatNumber } from './utils';
 
 	let game = new Game();
 	let interval: ReturnType<typeof setInterval>;
@@ -154,27 +155,27 @@
 			</div>
 			<div class="stat">
 				<span class="label">Total Sold</span>
-				<span class="value">{totalSold.toLocaleString()}</span>
+				<span class="value">{formatNumber(totalSold)}</span>
 			</div>
 			<div class="stat">
 				<span class="label">Money</span>
-				<span class="value">${money.toLocaleString()}</span>
+				<span class="value">${formatNumber(money)}</span>
 			</div>
 			<div class="stat">
 				<span class="label">Rubber</span>
-				<span class="value">{Math.floor(rubber).toLocaleString()}</span>
+				<span class="value">{formatNumber(Math.floor(rubber))}</span>
 			</div>
 			<div class="stat">
 				<span class="label">Rubberbands</span>
-				<span class="value">{Math.floor(rubberbands).toLocaleString()}</span>
+				<span class="value">{formatNumber(Math.floor(rubberbands))}</span>
 			</div>
 			<div class="stat">
 				<span class="label">Production</span>
-				<span class="value">{productionRate.toLocaleString()} / sec</span>
+				<span class="value">{formatNumber(productionRate)} / sec</span>
 			</div>
 			<div class="stat">
 				<span class="label">Demand</span>
-				<span class="value">{demand.toLocaleString()} / tick</span>
+				<span class="value">{formatNumber(demand)} / tick</span>
 			</div>
 		</div>
 	</header>
