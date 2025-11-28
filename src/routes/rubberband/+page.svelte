@@ -26,13 +26,23 @@
 	let rubberbandPrice = game.rubberbandPrice;
 
 	onMount(() => {
-		// Load game state if available (mock for now, would use cookies/localStorage)
-		// const saved = localStorage.getItem('rubberband_save');
-		// if (saved) game = new Game(saved);
+		// Load game state if available
+		const saved = localStorage.getItem('rubberband_save');
+		if (saved) {
+			game = new Game(saved);
+			// Sync bound variables
+			rubberbandPrice = game.rubberbandPrice;
+			buyerThreshold = game.buyerThreshold;
+			tick++;
+		}
 
 		interval = setInterval(() => {
 			game.tick();
 			tick++; // Trigger Svelte reactivity
+
+			if (game.tickCount % 10 === 0) {
+				localStorage.setItem('rubberband_save', game.toString());
+			}
 		}, 1000);
 	});
 

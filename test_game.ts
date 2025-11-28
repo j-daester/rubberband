@@ -1,19 +1,25 @@
 import { Game } from './src/routes/rubberband/game';
 
-const game = new Game();
-game.money = 10000; // Give lots of money
+console.log('Testing Game class JSON serialization...');
 
-console.log('Initial money:', game.money);
-console.log('Initial Bander 100:', game.machines['Bander 100']);
+// 1. Test default initialization
+const game1 = new Game();
+console.log('Default Game initialized.');
+if (game1.money !== 100) console.error('FAIL: Initial money should be 100');
 
-const bought1 = game.buyMachine('Bander 100');
-console.log('Bought 1:', bought1);
-console.log('Bander 100 count:', game.machines['Bander 100']);
+// 2. Test JSON serialization
+game1.money = 500;
+game1.rubberbands = 200;
+const jsonString = game1.toString();
+console.log('Serialized JSON:', jsonString);
 
-const bought2 = game.buyMachine('Bander 100');
-console.log('Bought 2:', bought2);
-console.log('Bander 100 count:', game.machines['Bander 100']);
+if (!jsonString.startsWith('{')) console.error('FAIL: Serialized string should start with {');
 
-const bought3 = game.buyMachine('Bander 100');
-console.log('Bought 3:', bought3);
-console.log('Bander 100 count:', game.machines['Bander 100']);
+// 3. Test JSON deserialization
+const game2 = new Game(jsonString);
+console.log('Deserialized Game initialized.');
+
+if (game2.money !== 500) console.error(`FAIL: Money should be 500, got ${game2.money}`);
+if (game2.rubberbands !== 200) console.error(`FAIL: Rubberbands should be 200, got ${game2.rubberbands}`);
+
+console.log('Tests completed.');

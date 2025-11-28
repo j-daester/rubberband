@@ -1,101 +1,61 @@
 import { machine_types } from './parameters';
 
 export class Game {
-	money: number;
-	rubberbands: number;
-	rubber: number;
-	machines: Record<string, number>;
-	totalRubberbandsSold: number;
-	buyerHired: boolean;
-	buyerThreshold: number;
-	rubberPrice: number;
-	rubberbandPrice: number;
-	tickCount: number;
-	marketingLevel: number;
+	money!: number;
+	rubberbands!: number;
+	rubber!: number;
+	machines!: Record<string, number>;
+	totalRubberbandsSold!: number;
+	buyerHired!: boolean;
+	buyerThreshold!: number;
+	rubberPrice!: number;
+	rubberbandPrice!: number;
+	tickCount!: number;
+	marketingLevel!: number;
 
 	/**
 	 * Create a game object from the player's cookie, or initialise a new game
 	 */
 	constructor(serialized: string | undefined = undefined) {
 		if (serialized) {
-			const parts = serialized.split('-');
-			this.money = +parts[0];
-			this.rubberbands = +parts[1];
-
-			// Check if we have the new field. 
-			// Old length = 2 + machine_types.length
-			// New length = 3 + machine_types.length
-
-			if (parts.length > 2 + machine_types.length) {
-				this.totalRubberbandsSold = +parts[2];
-				const machineCounts = parts.slice(3, 3 + machine_types.length);
-				this.machines = {};
-				machine_types.forEach((machine, index) => {
-					this.machines[machine.name] = +machineCounts[index] || 0;
-				});
-
-				// Check for buyer data (new format extension)
-				if (parts.length > 3 + machine_types.length) {
-					this.buyerHired = parts[3 + machine_types.length] === '1';
-					this.buyerThreshold = +parts[4 + machine_types.length] || 0;
-				} else {
-					this.buyerHired = false;
-					this.buyerThreshold = 0;
-				}
-
-				// Check for price data
-				if (parts.length > 5 + machine_types.length) {
-					this.rubberPrice = +parts[5 + machine_types.length] || 0.1;
-				} else {
-					this.rubberPrice = 0.1;
-				}
-
-				// Check for marketing data
-				if (parts.length > 6 + machine_types.length) {
-					this.marketingLevel = +parts[6 + machine_types.length] || 1;
-				} else {
-					this.marketingLevel = 1;
-				}
-
-				// Check for rubberband price data
-				if (parts.length > 7 + machine_types.length) {
-					this.rubberbandPrice = +parts[7 + machine_types.length] || 1.0;
-				} else {
-					this.rubberbandPrice = 1.0;
-				}
-			} else {
-				// Old save
-				this.totalRubberbandsSold = 0;
-				const machineCounts = parts.slice(2);
-				this.machines = {};
-				machine_types.forEach((machine, index) => {
-					this.machines[machine.name] = +machineCounts[index] || 0;
-				});
-				this.buyerHired = false;
-				this.buyerThreshold = 0;
-				this.rubberPrice = 0.1;
-				this.marketingLevel = 1;
-				this.rubberbandPrice = 1.0;
+			try {
+				const data = JSON.parse(serialized);
+				this.money = data.money;
+				this.rubberbands = data.rubberbands;
+				this.rubber = data.rubber;
+				this.machines = data.machines;
+				this.totalRubberbandsSold = data.totalRubberbandsSold;
+				this.buyerHired = data.buyerHired;
+				this.buyerThreshold = data.buyerThreshold;
+				this.rubberPrice = data.rubberPrice;
+				this.rubberbandPrice = data.rubberbandPrice;
+				this.tickCount = data.tickCount;
+				this.marketingLevel = data.marketingLevel;
+			} catch (e) {
+				console.error('Failed to parse save game', e);
+				this.reset();
 			}
-			this.rubber = 0;
-			this.tickCount = 0;
 		} else {
-			this.money = 100;
-			this.rubberbands = 0;
-			this.rubber = 0;
-			this.totalRubberbandsSold = 0;
-			this.machines = {};
-
-			for (const machine of machine_types) {
-				this.machines[machine.name] = 0;
-			}
-			this.buyerHired = false;
-			this.buyerThreshold = 0;
-			this.rubberPrice = 0.1;
-			this.rubberbandPrice = 1.0;
-			this.marketingLevel = 1;
-			this.tickCount = 0;
+			this.reset();
 		}
+	}
+
+	reset() {
+		this.money = 100;
+		this.rubberbands = 0;
+		this.rubber = 0;
+		this.totalRubberbandsSold = 0;
+		this.machines = {};
+
+		for (const machine of machine_types) {
+			this.machines[machine.name] = 0;
+		}
+		this.buyerHired = false;
+		this.buyerThreshold = 0;
+		this.rubberPrice = 0.1;
+		this.rubberbandPrice = 1.0;
+		this.marketingLevel = 1;
+		this.tickCount = 0;
 	}
 
 	get productionRate() {
@@ -254,12 +214,26 @@ export class Game {
 		if (this.rubberbandPrice < 0.01) this.rubberbandPrice = 0.01;
 	}
 
+	toJSON() {
+		return {
+			money: this.money,
+			rubberbands: this.rubberbands,
+			rubber: this.rubber,
+			machines: this.machines,
+			totalRubberbandsSold: this.totalRubberbandsSold,
+			buyerHired: this.buyerHired,
+			buyerThreshold: this.buyerThreshold,
+			rubberPrice: this.rubberPrice,
+			rubberbandPrice: this.rubberbandPrice,
+			tickCount: this.tickCount,
+			marketingLevel: this.marketingLevel
+		};
+	}
+
 	/**
-	 * Serialize game state so it can be set as a cookie
+	 * Serialize game state
 	 */
 	toString() {
-		const machineCounts = machine_types.map(m => this.machines[m.name] || 0);
-		// New format: money-rubberbands-totalSold-m1-m2...-buyerHired-buyerThreshold-rubberPrice-marketingLevel-rubberbandPrice
-		return `${this.money}-${this.rubberbands}-${this.totalRubberbandsSold}-${machineCounts.join('-')}-${this.buyerHired ? 1 : 0}-${this.buyerThreshold}-${this.rubberPrice}-${this.marketingLevel}-${this.rubberbandPrice}`;
+		return JSON.stringify(this.toJSON());
 	}
 }
