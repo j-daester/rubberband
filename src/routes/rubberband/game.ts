@@ -1,6 +1,6 @@
-import { machine_types, production_lines, GAME_CONSTANTS } from './parameters';
+import { machineTypes, productionLines, GAME_CONSTANTS } from './parameters';
 
-export type MachineName = typeof machine_types[number]['name'];
+export type MachineName = typeof machineTypes[number]['name'];
 
 export interface GameState {
 	money: number;
@@ -58,7 +58,7 @@ export class Game {
 					this.machineProductionLines["Bander 100 Line"] = (data as any).machineProductionLineCount;
 				}
 				// Migration from previous refactor (machine name keys to production line name keys)
-				for (const line of production_lines) {
+				for (const line of productionLines) {
 					if (this.machineProductionLines[line.machine] && !this.machineProductionLines[line.name]) {
 						this.machineProductionLines[line.name] = this.machineProductionLines[line.machine];
 						delete this.machineProductionLines[line.machine];
@@ -80,7 +80,7 @@ export class Game {
 		this.totalRubberbandsSold = 0;
 		this.machines = {};
 
-		for (const machine of machine_types) {
+		for (const machine of machineTypes) {
 			this.machines[machine.name] = 0;
 		}
 		this.buyerHired = false;
@@ -96,14 +96,19 @@ export class Game {
 
 	get productionRate() {
 		let rate = 0;
-		for (const machine of machine_types) {
+		for (const machine of machineTypes) {
 			rate += (this.machines[machine.name] || 0) * machine.output;
 		}
 		return rate;
 	}
 
 	get level() {
-		return 1 + Math.floor(Math.pow(this.totalRubberbandsSold / 100, 1 / 3));
+		if (this.totalRubberbandsSold < 100) return 1;
+		return 2 + Math.floor(Math.log(this.totalRubberbandsSold / 100) / Math.log(GAME_CONSTANTS.LEVEL_DIFFICULTY_FACTOR));
+	}
+
+	get nextLevelRequirement() {
+		return Math.floor(100 * Math.pow(GAME_CONSTANTS.LEVEL_DIFFICULTY_FACTOR, this.level - 1));
 	}
 
 	get demand() {
@@ -132,7 +137,7 @@ export class Game {
 	}
 
 	private produceMachines() {
-		for (const line of production_lines) {
+		for (const line of productionLines) {
 			const count = this.machineProductionLines[line.name] || 0;
 			if (count > 0) {
 				const amount = count * line.output;
@@ -197,7 +202,7 @@ export class Game {
 	}
 
 	getMachineCost(machineName: string, amount: number, currentCount?: number) {
-		const machine = machine_types.find(m => m.name === machineName);
+		const machine = machineTypes.find(m => m.name === machineName);
 		if (!machine) return Infinity;
 
 		const count = currentCount !== undefined ? currentCount : (this.machines[machineName] || 0);
@@ -212,7 +217,7 @@ export class Game {
 	}
 
 	getMaxAffordable(machineName: string, currentMoney?: number, currentCount?: number) {
-		const machine = machine_types.find(m => m.name === machineName);
+		const machine = machineTypes.find(m => m.name === machineName);
 		if (!machine) return 0;
 
 		const count = currentCount !== undefined ? currentCount : (this.machines[machineName] || 0);
@@ -233,7 +238,7 @@ export class Game {
 
 	buyMachine(machineName: string, amount: number = 1) {
 		if (this.gameOver) return false;
-		const machine = machine_types.find(m => m.name === machineName);
+		const machine = machineTypes.find(m => m.name === machineName);
 		if (!machine) return false;
 
 		if (this.level < machine.unlock_level) return false;
@@ -286,7 +291,7 @@ export class Game {
 	}
 
 	getMachineProductionLineCost(lineName: string, currentCount?: number) {
-		const line = production_lines.find(l => l.name === lineName);
+		const line = productionLines.find(l => l.name === lineName);
 		if (!line) return Infinity;
 
 		const count = currentCount !== undefined ? currentCount : (this.machineProductionLines[lineName] || 0);
@@ -295,7 +300,7 @@ export class Game {
 
 	buyMachineProductionLine(lineName: string) {
 		if (this.gameOver) return false;
-		const line = production_lines.find(l => l.name === lineName);
+		const line = productionLines.find(l => l.name === lineName);
 		if (!line) return false;
 
 		if (this.level < line.unlock_level) return false;

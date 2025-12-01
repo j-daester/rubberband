@@ -1,19 +1,12 @@
-export const levels = [
-	{
-		level: 1,
-		requirements: {
-			rubberbands_sold: 100
-		}
-	},
-	{
-		level: 2,
-		requirements: {
-			rubberbands_sold: 200
-		}
-	},
-]
+export interface MachineType {
+	name: string;
+	output: number;
+	initial_cost: number;
+	cost_factor: number;
+	unlock_level: number;
+}
 
-export const machine_types = [
+export const machineTypes: MachineType[] = [
 	{
 		name: "Bander 100",
 		output: 100,
@@ -43,7 +36,7 @@ export const GAME_CONSTANTS = {
 	INITIAL_RUBBERBAND_PRICE: 1.0,
 	INITIAL_MARKETING_LEVEL: 1,
 	BUYER_COST: 1000,
-	BUYER_UNLOCK_LEVEL: 10,
+	BUYER_UNLOCK_LEVEL: 7,
 	MARKETING_BASE_COST: 1000,
 	PRICE_FLUCTUATION_INTERVAL: 10,
 	MIN_RUBBER_PRICE: 0.01,
@@ -51,9 +44,19 @@ export const GAME_CONSTANTS = {
 	MIN_RUBBERBAND_PRICE: 0.01,
 	MACHINES_UNLOCK_LEVEL: 2,
 	MARKETING_UNLOCK_LEVEL: 5,
+	LEVEL_DIFFICULTY_FACTOR: 1.2,
 };
 
-export const production_lines = [
+export interface ProductionLine {
+	name: string;
+	machine: string;
+	output: number;
+	initial_cost: number;
+	cost_factor: number;
+	unlock_level: number;
+}
+
+export const productionLines: ProductionLine[] = [
 	{
 		name: "Bander 100 Line",
 		machine: "Bander 100",
@@ -68,7 +71,7 @@ export const production_lines = [
 		output: 1,
 		initial_cost: 10000000,
 		cost_factor: 1.5,
-		unlock_level: 40
+		unlock_level: 30
 	},
 	{
 		name: "MEGA-Bander 10000 Line",

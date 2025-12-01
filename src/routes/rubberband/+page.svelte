@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { Game } from './game';
-	import { machine_types, production_lines, GAME_CONSTANTS } from './parameters';
+	import { machineTypes, productionLines, GAME_CONSTANTS } from './parameters';
 	import { formatNumber } from './utils';
 
 	let game = new Game();
@@ -28,6 +28,7 @@
 	let tickCount = game.tickCount;
 	let machineProductionLines = game.machineProductionLines;
 	let gameOver = game.gameOver;
+	let nextLevelRequirement = game.nextLevelRequirement;
 
 	onMount(() => {
 		// Load game state if available
@@ -108,7 +109,7 @@
 		}
 	}
 
-	function getCost(machine: (typeof machine_types)[0]) {
+	function getCost(machine: (typeof machineTypes)[0]) {
 		const count = game.machines[machine.name] || 0;
 		return Math.floor(machine.initial_cost * Math.pow(machine.cost_factor, count));
 	}
@@ -137,6 +138,7 @@
 		tickCount = game.tickCount;
 		machineProductionLines = { ...game.machineProductionLines };
 		gameOver = game.gameOver;
+		nextLevelRequirement = game.nextLevelRequirement;
 		// Only update price from game if we are not currently editing (handled by bind)
 		// But we need to sync on load.
 		// For now, let's just sync it. If it causes issues with typing we can check.
@@ -173,7 +175,7 @@
 			</div>
 			<div class="stat">
 				<span class="label">Total Sold</span>
-				<span class="value">{formatNumber(totalSold)}</span>
+				<span class="value">{formatNumber(totalSold)} / {formatNumber(nextLevelRequirement)}</span>
 			</div>
 			<div class="stat">
 				<span class="label">Ticks</span>
@@ -301,7 +303,7 @@
 			<section class="shop">
 				<h2>Machine Shop</h2>
 				<div class="machine-list">
-					{#each machine_types as machine}
+					{#each machineTypes as machine}
 						{#if level >= machine.unlock_level}
 							{@const owned = machines[machine.name] || 0}
 							{@const max = game.getMaxAffordable(machine.name, money, owned)}
@@ -334,7 +336,7 @@
 			<section class="heavy-industry">
 				<h2>Heavy Industry</h2>
 				<div class="machine-list">
-					{#each production_lines as line}
+					{#each productionLines as line}
 						{#if level >= line.unlock_level}
 							{@const count = machineProductionLines[line.name] || 0}
 							{@const cost = game.getMachineProductionLineCost(line.name, count)}
