@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { Game } from './game';
-	import { machine_types } from './parameters';
+	import { machine_types, production_lines, GAME_CONSTANTS } from './parameters';
 	import { formatNumber } from './utils';
 
 	let game = new Game();
@@ -25,6 +25,8 @@
 	let demand = game.demand;
 	let marketingCost = game.marketingCost;
 	let rubberbandPrice = game.rubberbandPrice;
+	let tickCount = game.tickCount;
+	let machineProductionLines = game.machineProductionLines;
 
 	onMount(() => {
 		// Load game state if available
@@ -99,6 +101,12 @@
 		tick++;
 	}
 
+	function buyMachineProductionLine(machineName: string) {
+		if (game.buyMachineProductionLine(machineName)) {
+			tick++;
+		}
+	}
+
 	function getCost(machine: (typeof machine_types)[0]) {
 		const count = game.machines[machine.name] || 0;
 		return Math.floor(machine.initial_cost * Math.pow(machine.cost_factor, count));
@@ -118,7 +126,10 @@
 		rubberPrice = game.rubberPrice;
 		marketingLevel = game.marketingLevel;
 		demand = game.demand;
+		demand = game.demand;
 		marketingCost = game.marketingCost;
+		tickCount = game.tickCount;
+		machineProductionLines = { ...game.machineProductionLines };
 		// Only update price from game if we are not currently editing (handled by bind)
 		// But we need to sync on load.
 		// For now, let's just sync it. If it causes issues with typing we can check.
@@ -177,6 +188,10 @@
 				<span class="label">Demand</span>
 				<span class="value">{formatNumber(demand)} / tick</span>
 			</div>
+			<div class="stat">
+				<span class="label">Ticks</span>
+				<span class="value">{formatNumber(tickCount)}</span>
+			</div>
 		</div>
 	</header>
 
@@ -221,21 +236,23 @@
 			</div>
 		</section>
 
-		<section class="marketing">
-			<h2>Marketing</h2>
-			<div class="marketing-card">
-				<div class="info">
-					<h3>Marketing Campaign (Lvl {marketingLevel})</h3>
-					<p>Increases demand for rubberbands.</p>
-					<p class="price">Cost: ${formatNumber(marketingCost)}</p>
+		{#if level >= GAME_CONSTANTS.MARKETING_UNLOCK_LEVEL}
+			<section class="marketing">
+				<h2>Marketing</h2>
+				<div class="marketing-card">
+					<div class="info">
+						<h3>Marketing Campaign (Lvl {marketingLevel})</h3>
+						<p>Increases demand for rubberbands.</p>
+						<p class="price">Cost: ${formatNumber(marketingCost)}</p>
+					</div>
+					<button class="buy-btn" disabled={money < marketingCost} on:click={buyMarketing}>
+						Buy Campaign
+					</button>
 				</div>
-				<button class="buy-btn" disabled={money < marketingCost} on:click={buyMarketing}>
-					Buy Campaign
-				</button>
-			</div>
-		</section>
+			</section>
+		{/if}
 
-		{#if level >= 10}
+		{#if level >= GAME_CONSTANTS.BUYER_UNLOCK_LEVEL}
 			<section class="management">
 				<h2>Management</h2>
 				{#if !buyerHired}
@@ -270,34 +287,71 @@
 			</section>
 		{/if}
 
-		<section class="shop">
-			<h2>Machine Shop</h2>
-			<div class="machine-list">
-				{#each machine_types as machine}
-					{@const owned = machines[machine.name] || 0}
-					{@const max = game.getMaxAffordable(machine.name, money, owned)}
-					{@const amount = buyAmount === -1 ? Math.max(1, max) : buyAmount}
-					{@const cost = game.getMachineCost(machine.name, amount, owned)}
-					{@const canAfford = money >= cost}
+		{#if level >= GAME_CONSTANTS.MACHINES_UNLOCK_LEVEL}
+			<section class="shop">
+				<h2>Machine Shop</h2>
+				<div class="machine-list">
+					{#each machine_types as machine}
+						{#if level >= machine.unlock_level}
+							{@const owned = machines[machine.name] || 0}
+							{@const max = game.getMaxAffordable(machine.name, money, owned)}
+							{@const amount = buyAmount === -1 ? Math.max(1, max) : buyAmount}
+							{@const cost = game.getMachineCost(machine.name, amount, owned)}
+							{@const canAfford = money >= cost}
 
-					<div class="machine-card">
-						<div class="machine-info">
-							<h3>{machine.name}</h3>
-							<p class="details">Output: {formatNumber(machine.output)}/tick</p>
-							<p class="owned">Owned: {formatNumber(owned)}</p>
-							<p class="price">Price: ${formatNumber(cost)}</p>
-						</div>
-						<button
-							class="buy-btn"
-							disabled={(!canAfford && buyAmount !== -1) || (buyAmount === -1 && max === 0)}
-							on:click={() => buyMachine(machine.name)}
-						>
-							Buy {amount}
-						</button>
-					</div>
-				{/each}
-			</div>
-		</section>
+							<div class="machine-card">
+								<div class="machine-info">
+									<h3>{machine.name}</h3>
+									<p class="details">Output: {formatNumber(machine.output)}/tick</p>
+									<p class="owned">Owned: {formatNumber(owned)}</p>
+									<p class="price">Price: ${formatNumber(cost)}</p>
+								</div>
+								<button
+									class="buy-btn"
+									disabled={(!canAfford && buyAmount !== -1) || (buyAmount === -1 && max === 0)}
+									on:click={() => buyMachine(machine.name)}
+								>
+									Buy {amount}
+								</button>
+							</div>
+						{/if}
+					{/each}
+				</div>
+			</section>
+		{/if}
+
+		{#if level >= 20}
+			<section class="heavy-industry">
+				<h2>Heavy Industry</h2>
+				<div class="machine-list">
+					{#each production_lines as line}
+						{#if level >= line.unlock_level}
+							{@const count = machineProductionLines[line.name] || 0}
+							{@const cost = game.getMachineProductionLineCost(line.name, count)}
+
+							<div class="industry-card">
+								<div class="info">
+									<h3>{line.name}</h3>
+									<p>Automatically produces {line.machine}.</p>
+									<p class="details">
+										Production: {formatNumber(line.output)} machines/tick per line
+									</p>
+									<p class="owned">Owned: {formatNumber(count)}</p>
+									<p class="price">Cost: ${formatNumber(cost)}</p>
+								</div>
+								<button
+									class="buy-btn"
+									disabled={money < cost}
+									on:click={() => buyMachineProductionLine(line.name)}
+								>
+									Buy Line
+								</button>
+							</div>
+						{/if}
+					{/each}
+				</div>
+			</section>
+		{/if}
 	</main>
 </div>
 
@@ -499,13 +553,13 @@
 		border-radius: 4px;
 	}
 
-	.sales-card {
+	.industry-card {
 		background: #252525;
 		padding: 1rem;
 		border-radius: 8px;
 		border: 1px solid #333;
 		display: flex;
+		flex-direction: column;
 		justify-content: space-between;
-		align-items: center;
 	}
 </style>
