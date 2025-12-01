@@ -76,6 +76,6 @@ export const production_lines = [
 		output: 1,
 		initial_cost: 100000000,
 		cost_factor: 1.5,
-		unlock_level: 100
+		unlock_level: 60
 	}
 ];

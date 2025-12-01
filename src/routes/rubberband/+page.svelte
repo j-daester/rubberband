@@ -27,6 +27,7 @@
 	let rubberbandPrice = game.rubberbandPrice;
 	let tickCount = game.tickCount;
 	let machineProductionLines = game.machineProductionLines;
+	let gameOver = game.gameOver;
 
 	onMount(() => {
 		// Load game state if available
@@ -112,6 +113,11 @@
 		return Math.floor(machine.initial_cost * Math.pow(machine.cost_factor, count));
 	}
 
+	function restartGame() {
+		localStorage.removeItem('rubberband_save');
+		location.reload();
+	}
+
 	// Reactive declarations for UI updates
 	$: {
 		tick;
@@ -130,6 +136,7 @@
 		marketingCost = game.marketingCost;
 		tickCount = game.tickCount;
 		machineProductionLines = { ...game.machineProductionLines };
+		gameOver = game.gameOver;
 		// Only update price from game if we are not currently editing (handled by bind)
 		// But we need to sync on load.
 		// For now, let's just sync it. If it causes issues with typing we can check.
@@ -159,7 +166,7 @@
 <div class="game-container">
 	<header>
 		<h1>Rubberband Inc.</h1>
-		<div class="stats-bar">
+		<div class="progress-bar">
 			<div class="stat">
 				<span class="label">Level</span>
 				<span class="value">{formatNumber(level)}</span>
@@ -168,6 +175,13 @@
 				<span class="label">Total Sold</span>
 				<span class="value">{formatNumber(totalSold)}</span>
 			</div>
+			<div class="stat">
+				<span class="label">Ticks</span>
+				<span class="value">{formatNumber(tickCount)}</span>
+			</div>
+		</div>
+
+		<div class="resources-bar">
 			<div class="stat">
 				<span class="label">Money</span>
 				<span class="value">${formatNumber(money)}</span>
@@ -187,10 +201,6 @@
 			<div class="stat">
 				<span class="label">Demand</span>
 				<span class="value">{formatNumber(demand)} / tick</span>
-			</div>
-			<div class="stat">
-				<span class="label">Ticks</span>
-				<span class="value">{formatNumber(tickCount)}</span>
 			</div>
 		</div>
 	</header>
@@ -353,6 +363,21 @@
 			</section>
 		{/if}
 	</main>
+
+	{#if gameOver}
+		<div class="modal-overlay">
+			<div class="modal">
+				<h2>Game Over</h2>
+				<p>Congratulations! You have reached level 100 and beaten the game.</p>
+				<div class="stats-grid">
+					<p>Total Rubberbands Sold: {formatNumber(totalSold)}</p>
+					<p>Money: ${formatNumber(money)}</p>
+					<p>Ticks: {formatNumber(tickCount)}</p>
+				</div>
+				<button class="restart-btn" on:click={restartGame}>Restart Game</button>
+			</div>
+		</div>
+	{/if}
 </div>
 
 <style>
@@ -363,7 +388,7 @@
 	}
 
 	.game-container {
-		max-width: 800px;
+		width: 90%;
 		margin: 0 auto;
 		padding: 2rem;
 	}
@@ -383,13 +408,15 @@
 		-webkit-text-fill-color: transparent;
 	}
 
-	.stats-bar {
+	.progress-bar,
+	.resources-bar {
 		display: flex;
 		justify-content: space-around;
 		background: #2d2d2d;
 		padding: 1rem;
 		border-radius: 12px;
 		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+		margin-bottom: 1rem;
 	}
 
 	.stat {
@@ -561,5 +588,77 @@
 		display: flex;
 		flex-direction: column;
 		justify-content: space-between;
+	}
+
+	.modal-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		background: rgba(0, 0, 0, 0.8);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		z-index: 1000;
+	}
+
+	.modal {
+		background: #2d2d2d;
+		padding: 2rem;
+		border-radius: 12px;
+		text-align: center;
+		border: 1px solid #444;
+		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+	}
+
+	.modal h2 {
+		font-size: 2rem;
+		color: #fff;
+		margin-bottom: 1rem;
+	}
+
+	.modal p {
+		color: #ccc;
+		margin-bottom: 1.5rem;
+		font-size: 1.1rem;
+	}
+
+	.stats-grid {
+		display: grid;
+		gap: 0.5rem;
+		margin-bottom: 2rem;
+		text-align: left;
+		background: #252525;
+		padding: 1rem;
+		border-radius: 8px;
+	}
+
+	.stats-grid p {
+		margin: 0;
+		font-size: 1rem;
+		color: #e0e0e0;
+		display: flex;
+		justify-content: space-between;
+	}
+
+	.restart-btn {
+		background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
+		border: none;
+		padding: 1rem 2rem;
+		font-size: 1.2rem;
+		font-weight: bold;
+		color: #000;
+		border-radius: 8px;
+		cursor: pointer;
+		transition: transform 0.1s;
+	}
+
+	.restart-btn:hover {
+		transform: scale(1.05);
+	}
+
+	.restart-btn:active {
+		transform: scale(0.95);
 	}
 </style>
