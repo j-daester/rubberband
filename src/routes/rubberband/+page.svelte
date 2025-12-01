@@ -151,7 +151,7 @@
 		<div class="stats-bar">
 			<div class="stat">
 				<span class="label">Level</span>
-				<span class="value">{level}</span>
+				<span class="value">{formatNumber(level)}</span>
 			</div>
 			<div class="stat">
 				<span class="label">Total Sold</span>
@@ -171,7 +171,7 @@
 			</div>
 			<div class="stat">
 				<span class="label">Production</span>
-				<span class="value">{formatNumber(productionRate)} / sec</span>
+				<span class="value">{formatNumber(productionRate)} / tick</span>
 			</div>
 			<div class="stat">
 				<span class="label">Demand</span>
@@ -192,7 +192,7 @@
 					on:click={buyRubber}
 					disabled={money < 100 * rubberPrice}
 				>
-					Buy Rubber (100 for ${(100 * rubberPrice).toFixed(2)})
+					Buy Rubber (100 for ${formatNumber(100 * rubberPrice)})
 				</button>
 				<!--button class="action-btn secondary" on:click={sellRubberbands} disabled={rubberbands < 1}>
 					Sell All Rubberbands
@@ -227,7 +227,7 @@
 				<div class="info">
 					<h3>Marketing Campaign (Lvl {marketingLevel})</h3>
 					<p>Increases demand for rubberbands.</p>
-					<p class="price">Cost: ${marketingCost.toLocaleString()}</p>
+					<p class="price">Cost: ${formatNumber(marketingCost)}</p>
 				</div>
 				<button class="buy-btn" disabled={money < marketingCost} on:click={buyMarketing}>
 					Buy Campaign
@@ -243,7 +243,7 @@
 						<div class="info">
 							<h3>Auto-Buyer</h3>
 							<p>Automatically buys rubber when low.</p>
-							<p class="price">Cost: $1,000</p>
+							<p class="price">Cost: ${formatNumber(1000)}</p>
 						</div>
 						<button class="buy-btn" disabled={money < 1000} on:click={hireBuyer}>
 							Hire Buyer
@@ -253,7 +253,7 @@
 					<div class="worker-card">
 						<div class="info">
 							<h3>Auto-Buyer (Active)</h3>
-							<p>Buys 100 rubber for $10 when rubber drops below threshold.</p>
+							<p>Buys {formatNumber(buyerThreshold)} rubber when rubber drops below threshold.</p>
 						</div>
 						<div class="controls">
 							<label for="threshold">Threshold:</label>
@@ -283,9 +283,9 @@
 					<div class="machine-card">
 						<div class="machine-info">
 							<h3>{machine.name}</h3>
-							<p class="details">Output: {machine.output}/s</p>
-							<p class="owned">Owned: {owned}</p>
-							<p class="price">Price: ${cost.toLocaleString()}</p>
+							<p class="details">Output: {formatNumber(machine.output)}/tick</p>
+							<p class="owned">Owned: {formatNumber(owned)}</p>
+							<p class="price">Price: ${formatNumber(cost)}</p>
 						</div>
 						<button
 							class="buy-btn"
