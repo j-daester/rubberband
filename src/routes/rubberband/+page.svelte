@@ -1,32 +1,29 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { Game } from './game';
-	import { machineTypes, productionLines, GAME_CONSTANTS } from './parameters';
+	import { GAME_CONSTANTS } from './parameters';
 	import { formatNumber } from './utils';
+	import MachineShop from './components/MachineShop.svelte';
+	import Management from './components/Management.svelte';
+	import Marketing from './components/Marketing.svelte';
+	import HeavyIndustry from './components/HeavyIndustry.svelte';
 
 	let game = new Game();
 	let interval: ReturnType<typeof setInterval>;
 
 	// Reactivity trigger
 	let tick = 0;
-	let buyAmount = 1;
 
+	// Reactive variables for header stats
 	let money = game.money;
 	let rubberbands = game.rubberbands;
 	let rubber = game.rubber;
 	let productionRate = game.productionRate;
-	let machines = game.machines;
 	let totalSold = game.totalRubberbandsSold;
 	let level = game.level;
-	let buyerHired = game.buyerHired;
-	let buyerThreshold = game.buyerThreshold;
-	let rubberPrice = game.rubberPrice;
-	let marketingLevel = game.marketingLevel;
 	let demand = game.demand;
-	let marketingCost = game.marketingCost;
 	let rubberbandPrice = game.rubberbandPrice;
 	let tickCount = game.tickCount;
-	let machineProductionLines = game.machineProductionLines;
 	let gameOver = game.gameOver;
 	let nextLevelRequirement = game.nextLevelRequirement;
 
@@ -37,7 +34,6 @@
 			game = new Game(saved);
 			// Sync bound variables
 			rubberbandPrice = game.rubberbandPrice;
-			buyerThreshold = game.buyerThreshold;
 			tick++;
 		}
 
@@ -60,40 +56,8 @@
 		tick++;
 	}
 
-	function sellRubberbands() {
-		// Sell all for now, or chunks
-		const amount = game.rubberbands;
-		if (amount > 0) {
-			game.sellRubberbands(amount);
-			tick++;
-		}
-	}
-
-	function buyMachine(machineName: string) {
-		if (game.buyMachine(machineName)) {
-			tick++;
-		}
-	}
-
 	function buyRubber() {
 		if (game.buyRubber(100)) {
-			tick++;
-		}
-	}
-
-	function hireBuyer() {
-		if (game.hireBuyer()) {
-			tick++;
-		}
-	}
-
-	function updateBuyerThreshold() {
-		game.setBuyerThreshold(buyerThreshold);
-		tick++;
-	}
-
-	function buyMarketing() {
-		if (game.buyMarketing()) {
 			tick++;
 		}
 	}
@@ -103,20 +67,13 @@
 		tick++;
 	}
 
-	function buyMachineProductionLine(machineName: string) {
-		if (game.buyMachineProductionLine(machineName)) {
-			tick++;
-		}
-	}
-
-	function getCost(machine: (typeof machineTypes)[0]) {
-		const count = game.machines[machine.name] || 0;
-		return Math.floor(machine.initial_cost * Math.pow(machine.cost_factor, count));
-	}
-
 	function restartGame() {
 		localStorage.removeItem('rubberband_save');
 		location.reload();
+	}
+
+	function handleAction() {
+		tick++;
 	}
 
 	// Reactive declarations for UI updates
@@ -126,37 +83,17 @@
 		rubberbands = game.rubberbands;
 		rubber = game.rubber;
 		productionRate = game.productionRate;
-		machines = { ...game.machines }; // Clone to trigger reactivity
 		totalSold = game.totalRubberbandsSold;
 		level = game.level;
-		buyerHired = game.buyerHired;
-		rubberPrice = game.rubberPrice;
-		marketingLevel = game.marketingLevel;
 		demand = game.demand;
-		demand = game.demand;
-		marketingCost = game.marketingCost;
 		tickCount = game.tickCount;
-		machineProductionLines = { ...game.machineProductionLines };
 		gameOver = game.gameOver;
 		nextLevelRequirement = game.nextLevelRequirement;
-		// Only update price from game if we are not currently editing (handled by bind)
-		// But we need to sync on load.
-		// For now, let's just sync it. If it causes issues with typing we can check.
-		// Actually, since game doesn't change it automatically, it's safe.
+		
+		// Ensure price is synced if game updates it (unlikely but good practice)
 		// if (rubberbandPrice !== game.rubberbandPrice) {
 		// 	rubberbandPrice = game.rubberbandPrice;
 		// }
-		// buyerThreshold is bound to input, so we don't overwrite it from game unless we want to sync back on load
-		// But for now let's just sync it one way or ensure it's consistent
-		if (buyerThreshold !== game.buyerThreshold) {
-			// If game updated it (e.g. load), sync UI. But if UI updated it, we don't want to overwrite?
-			// Actually, game logic doesn't change it on its own except load.
-			// So we can sync it.
-			// However, if we bind:value, we need to be careful.
-			// Let's just update it if it's different and we are not editing?
-			// Simplest is to just let the bind handle it and update game on change.
-			// But for display purposes:
-		}
 	}
 </script>
 
@@ -217,13 +154,10 @@
 				<button
 					class="action-btn secondary"
 					on:click={buyRubber}
-					disabled={money < 100 * rubberPrice}
+					disabled={money < 100 * game.rubberPrice}
 				>
-					Buy Rubber (100 for ${formatNumber(100 * rubberPrice)})
+					Buy Rubber (100 for ${formatNumber(100 * game.rubberPrice)})
 				</button>
-				<!--button class="action-btn secondary" on:click={sellRubberbands} disabled={rubberbands < 1}>
-					Sell All Rubberbands
-				</button>-->
 			</div>
 		</section>
 
@@ -248,122 +182,13 @@
 			</div>
 		</section>
 
-		{#if level >= GAME_CONSTANTS.MARKETING_UNLOCK_LEVEL}
-			<section class="marketing">
-				<h2>Marketing</h2>
-				<div class="marketing-card">
-					<div class="info">
-						<h3>Marketing Campaign (Lvl {marketingLevel})</h3>
-						<p>Increases demand for rubberbands.</p>
-						<p class="price">Cost: ${formatNumber(marketingCost)}</p>
-					</div>
-					<button class="buy-btn" disabled={money < marketingCost} on:click={buyMarketing}>
-						Buy Campaign
-					</button>
-				</div>
-			</section>
-		{/if}
+		<Marketing {game} {tick} on:action={handleAction} />
 
-		{#if level >= GAME_CONSTANTS.BUYER_UNLOCK_LEVEL}
-			<section class="management">
-				<h2>Management</h2>
-				{#if !buyerHired}
-					<div class="hire-card">
-						<div class="info">
-							<h3>Auto-Buyer</h3>
-							<p>Automatically buys rubber when low.</p>
-							<p class="price">Cost: ${formatNumber(1000)}</p>
-						</div>
-						<button class="buy-btn" disabled={money < 1000} on:click={hireBuyer}>
-							Hire Buyer
-						</button>
-					</div>
-				{:else}
-					<div class="worker-card">
-						<div class="info">
-							<h3>Auto-Buyer (Active)</h3>
-							<p>Buys {formatNumber(buyerThreshold)} rubber when rubber drops below threshold.</p>
-						</div>
-						<div class="controls">
-							<label for="threshold">Threshold:</label>
-							<input
-								id="threshold"
-								type="number"
-								bind:value={buyerThreshold}
-								on:input={updateBuyerThreshold}
-								min="0"
-							/>
-						</div>
-					</div>
-				{/if}
-			</section>
-		{/if}
+		<Management {game} {tick} on:action={handleAction} />
 
-		{#if level >= GAME_CONSTANTS.MACHINES_UNLOCK_LEVEL}
-			<section class="shop">
-				<h2>Machine Shop</h2>
-				<div class="machine-list">
-					{#each machineTypes as machine}
-						{#if level >= machine.unlock_level}
-							{@const owned = machines[machine.name] || 0}
-							{@const max = game.getMaxAffordable(machine.name, money, owned)}
-							{@const amount = buyAmount === -1 ? Math.max(1, max) : buyAmount}
-							{@const cost = game.getMachineCost(machine.name, amount, owned)}
-							{@const canAfford = money >= cost}
+		<MachineShop {game} {tick} on:action={handleAction} />
 
-							<div class="machine-card">
-								<div class="machine-info">
-									<h3>{machine.name}</h3>
-									<p class="details">Output: {formatNumber(machine.output)}/tick</p>
-									<p class="owned">Owned: {formatNumber(owned)}</p>
-									<p class="price">Price: ${formatNumber(cost)}</p>
-								</div>
-								<button
-									class="buy-btn"
-									disabled={(!canAfford && buyAmount !== -1) || (buyAmount === -1 && max === 0)}
-									on:click={() => buyMachine(machine.name)}
-								>
-									Buy {amount}
-								</button>
-							</div>
-						{/if}
-					{/each}
-				</div>
-			</section>
-		{/if}
-
-		{#if level >= 20}
-			<section class="heavy-industry">
-				<h2>Heavy Industry</h2>
-				<div class="machine-list">
-					{#each productionLines as line}
-						{#if level >= line.unlock_level}
-							{@const count = machineProductionLines[line.name] || 0}
-							{@const cost = game.getMachineProductionLineCost(line.name, count)}
-
-							<div class="industry-card">
-								<div class="info">
-									<h3>{line.name}</h3>
-									<p>Automatically produces {line.machine}.</p>
-									<p class="details">
-										Production: {formatNumber(line.output)} machines/tick per line
-									</p>
-									<p class="owned">Owned: {formatNumber(count)}</p>
-									<p class="price">Cost: ${formatNumber(cost)}</p>
-								</div>
-								<button
-									class="buy-btn"
-									disabled={money < cost}
-									on:click={() => buyMachineProductionLine(line.name)}
-								>
-									Buy Line
-								</button>
-							</div>
-						{/if}
-					{/each}
-				</div>
-			</section>
-		{/if}
+		<HeavyIndustry {game} {tick} on:action={handleAction} />
 	</main>
 
 	{#if gameOver}
@@ -493,79 +318,26 @@
 		cursor: not-allowed;
 	}
 
-	.machine-list {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-		gap: 1rem;
-	}
-
-	.machine-card {
+	.sales-card {
 		background: #252525;
 		padding: 1rem;
 		border-radius: 8px;
 		border: 1px solid #333;
-		display: flex;
-		flex-direction: column;
-		justify-content: space-between;
-	}
-
-	.machine-info h3 {
-		margin: 0 0 0.5rem 0;
-		font-size: 1.1rem;
-	}
-
-	.details {
-		color: #888;
-		font-size: 0.9rem;
-		margin: 0;
-	}
-
-	.owned {
-		color: #4facfe;
-		font-weight: bold;
-		margin: 0.5rem 0 0.5rem 0;
-	}
-
-	.price {
-		color: #e0e0e0;
-		font-size: 0.9rem;
-		margin-bottom: 1rem;
-	}
-
-	.buy-btn {
-		width: 100%;
-		padding: 0.75rem;
-		border: none;
-		border-radius: 6px;
-		background: #444;
-		color: #fff;
-		cursor: pointer;
-		transition: background 0.2s;
-	}
-
-	.buy-btn:hover:not(:disabled) {
-		background: #555;
-	}
-
-	.buy-btn:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-		background: #333;
-		color: #666;
-	}
-
-	.management {
-		background: #252525;
-		padding: 1rem;
-		border-radius: 8px;
-		border: 1px solid #333;
-	}
-
-	.hire-card,
-	.worker-card {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
+	}
+
+	.info h3 {
+		margin: 0 0 0.5rem 0;
+		font-size: 1.1rem;
+		color: #fff;
+	}
+
+	.info p {
+		color: #888;
+		font-size: 0.9rem;
+		margin: 0;
 	}
 
 	.controls {
@@ -580,16 +352,6 @@
 		color: #fff;
 		padding: 0.5rem;
 		border-radius: 4px;
-	}
-
-	.industry-card {
-		background: #252525;
-		padding: 1rem;
-		border-radius: 8px;
-		border: 1px solid #333;
-		display: flex;
-		flex-direction: column;
-		justify-content: space-between;
 	}
 
 	.modal-overlay {
@@ -664,3 +426,5 @@
 		transform: scale(0.95);
 	}
 </style>
+
+

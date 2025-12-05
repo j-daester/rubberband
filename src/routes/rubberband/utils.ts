@@ -27,5 +27,7 @@ export function formatNumber(num: number): string {
         return num.toExponential(2);
     }
 
-    return shortValue.toFixed(2) + suffixes[suffixNum];
+    // Floor to 2 decimal places
+    const floored = Math.floor(shortValue * 100) / 100;
+    return floored.toFixed(2) + suffixes[suffixNum];
 }
