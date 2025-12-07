@@ -12,7 +12,7 @@
 	// Reactive trigger
 	$: {
 		tick;
-		game.machineProductionLines = { ...game.machineProductionLines };
+		game = game;
 	}
 
 	function buyMachineProductionLine(machineName: string) {

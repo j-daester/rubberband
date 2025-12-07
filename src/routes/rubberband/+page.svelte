@@ -27,6 +27,13 @@
 	let gameOver = game.gameOver;
 	let nextLevelRequirement = game.nextLevelRequirement;
 
+	$: score = 100000 / tickCount;
+	$: shareText = `I just scored ${formatNumber(
+		score
+	)} Points in Rubberband Inc.! Level ${level} reached with ${formatNumber(
+		totalSold
+	)} rubberbands sold in ${formatNumber(tickCount)} ticks!`;
+
 	onMount(() => {
 		// Load game state if available
 		const saved = localStorage.getItem('rubberband_save');
@@ -89,7 +96,7 @@
 		tickCount = game.tickCount;
 		gameOver = game.gameOver;
 		nextLevelRequirement = game.nextLevelRequirement;
-		
+
 		// Ensure price is synced if game updates it (unlikely but good practice)
 		// if (rubberbandPrice !== game.rubberbandPrice) {
 		// 	rubberbandPrice = game.rubberbandPrice;
@@ -197,10 +204,42 @@
 				<h2>Game Over</h2>
 				<p>Congratulations! You have reached level 100 and beaten the game.</p>
 				<div class="stats-grid">
+					<p>SCORE: {formatNumber(score)}</p>
 					<p>Total Rubberbands Sold: {formatNumber(totalSold)}</p>
 					<p>Money: ${formatNumber(money)}</p>
 					<p>Ticks: {formatNumber(tickCount)}</p>
 				</div>
+
+				<div class="share-section">
+					<h3>Share your success</h3>
+					<div class="share-buttons">
+						<a
+							href="https://twitter.com/intent/tweet?text={encodeURIComponent(shareText)}"
+							target="_blank"
+							rel="noopener noreferrer"
+							class="share-btn twitter"
+						>
+							Twitter
+						</a>
+						<a
+							href="https://wa.me/?text={encodeURIComponent(shareText)}"
+							target="_blank"
+							rel="noopener noreferrer"
+							class="share-btn whatsapp"
+						>
+							WhatsApp
+						</a>
+						<a
+							href="mailto:?subject=Rubberband%20Inc.%20Success&body={encodeURIComponent(
+								shareText
+							)}"
+							class="share-btn email"
+						>
+							Email
+						</a>
+					</div>
+				</div>
+
 				<button class="restart-btn" on:click={restartGame}>Restart Game</button>
 			</div>
 		</div>
@@ -425,6 +464,46 @@
 	.restart-btn:active {
 		transform: scale(0.95);
 	}
+
+	.share-section {
+		margin-bottom: 2rem;
+	}
+
+	.share-section h3 {
+		color: #e0e0e0;
+		font-size: 1.2rem;
+		margin-bottom: 1rem;
+	}
+
+	.share-buttons {
+		display: flex;
+		gap: 1rem;
+		justify-content: center;
+	}
+
+	.share-btn {
+		padding: 0.5rem 1rem;
+		border-radius: 4px;
+		color: white;
+		text-decoration: none;
+		font-weight: 500;
+		transition: opacity 0.2s;
+		display: inline-block;
+	}
+
+	.share-btn:hover {
+		opacity: 0.9;
+	}
+
+	.twitter {
+		background-color: #1da1f2;
+	}
+
+	.whatsapp {
+		background-color: #25d366;
+	}
+
+	.email {
+		background-color: #777;
+	}
 </style>
-
-

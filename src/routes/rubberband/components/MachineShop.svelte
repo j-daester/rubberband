@@ -12,7 +12,7 @@
 	$: {
 		tick;
 		// Trigger reactivity for machines
-		game.machines = { ...game.machines };
+		game = game;
 	}
 
 	function buyMachine(machineName: string) {
