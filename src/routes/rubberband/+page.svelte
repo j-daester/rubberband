@@ -32,7 +32,9 @@
 		score
 	)} Points in Rubberband Inc.! Level ${level} reached with ${formatNumber(
 		totalSold
-	)} rubberbands sold in ${formatNumber(tickCount)} ticks!`;
+	)} rubberbands sold in ${formatNumber(
+		tickCount
+	)} ticks! Try to beat my score! https://rubberband.realnet.ch`;
 
 	onMount(() => {
 		// Load game state if available
