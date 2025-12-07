@@ -1,13 +1,16 @@
 name: Deploy to Webspace
+
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
 
       - name: Install Node.js
         uses: actions/setup-node@v3
@@ -20,13 +23,41 @@ jobs:
       - name: Build
         run: npm run build
 
+      - id: detect
+        name: Detect build output directory
+        run: |
+          # Check common build output folders and set as job output for the deploy step
+          if [ -d build ]; then DIR=build
+          elif [ -d dist ]; then DIR=dist
+          elif [ -d public ]; then DIR=public
+          else
+            echo "No build output found (checked build/, dist/, public/)."
+            exit 1
+          fi
+          echo "Detected build dir: $DIR"
+          echo "dir=$DIR" >> $GITHUB_OUTPUT
+          ls -la $DIR
+
+      - name: Load SSH key
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          # make sure you have a repository secret named SSH_KEY
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+      - name: Test SSH connectivity
+        run: |
+          # Quick connectivity test — will fail the job if SSH isn't reachable/authenticated
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.USERNAME }}@${{ secrets.HOST }} 'echo "SSH OK"'
+
       - name: Deploy via Rsync
         uses: easingthemes/ssh-deploy@main
         with:
+          # The action will get the private key from the secret; webfactory/ssh-agent already loaded it.
           SSH_PRIVATE_KEY: ${{ secrets.SSH_KEY }}
-          ARGS: "-rlgoDzvc -i"
-          SOURCE: "build/"
+          ARGS: "-rlgoDzvc"
+          SOURCE: ${{ steps.detect.outputs.dir }}/
           REMOTE_HOST: ${{ secrets.HOST }}
           REMOTE_USER: ${{ secrets.USERNAME }}
           TARGET: ${{ secrets.TARGET_DIR }}
-          EXCLUDE: "/dist/, /node_modules/"
+          # no spaces after commas — use the action's expected format
+          EXCLUDE: "dist/,node_modules/"
