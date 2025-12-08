@@ -1,18 +1,15 @@
-# create-svelte
+# Rubberband
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/master/packages/create-svelte).
+Rubberband is an incremental clicker game built with SvelteKit. Start by manually making rubberbands and grow your empire into a massive industrial complex.
 
-## Creating a project
+## Features
 
-If you're seeing this, you've probably already done this step. Congrats!
-
-```bash
-# create a new project in the current directory
-npm create svelte@latest
-
-# create a new project in my-app
-npm create svelte@latest my-app
-```
+- **Manual Production**: Click to make rubberbands and earn your first dollars.
+- **Resource Management**: Buy raw rubber to keep production going.
+- **Machine Shop**: Automate your production with various machines, from simple Auto Winders to massive Industrial Plants.
+- **Marketing**: Launch marketing campaigns to increase demand and sell your rubberbands faster.
+- **Progression**: Level up to unlock new features like automated buyers and advanced machinery.
+- **Game Over**: Can you reach level 100? Or will the market crash?
 
 ## Developing
 
@@ -34,5 +31,3 @@ npm run build
 ```
 
 You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.

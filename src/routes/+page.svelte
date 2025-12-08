@@ -5,8 +5,8 @@
 </script>
 
 <svelte:head>
-	<title>Home</title>
-	<meta name="description" content="Svelte demo app" />
+	<title>Rubberband</title>
+	<meta name="description" content="Rubberband" />
 </svelte:head>
 
 <section>
@@ -14,18 +14,15 @@
 		<span class="welcome">
 			<picture>
 				<source srcset={welcome} type="image/webp" />
-				<img src={welcome_fallback} alt="Welcome" />
+				<img src={welcome_fallback} alt="Rubberband" />
 			</picture>
 		</span>
 
-		to your new<br />SvelteKit app
+		Rubberband
 	</h1>
 
-	<h2>
-		try editing <strong>src/routes/+page.svelte</strong>
-	</h2>
-
-	<Counter />
+	<h2>Click to make rubberbands and grow your empire into a massive industrial complex.</h2>
+	<a href="/rubberband">Play</a>
 </section>
 
 <style>
