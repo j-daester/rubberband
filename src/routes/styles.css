@@ -10,6 +10,34 @@
 	--color-theme-1: #ff3e00;
 	--color-theme-2: #4075a6;
 	--color-text: rgba(0, 0, 0, 0.7);
+
+	/* Font Sizes */
+	--font-size-xs: 0.8rem;
+	--font-size-sm: 0.9rem;
+	--font-size-base: 1rem;
+	--font-size-lg: 1.2rem;
+	/* Mobile H2, Buttons */
+	--font-size-xl: 1.5rem;
+	/* Desktop H2, Logic Values */
+	--font-size-2xl: 2rem;
+	/* Mobile H1 */
+	--font-size-3xl: 2.5rem;
+	/* Desktop H1 */
+
+	/* Font Weights */
+	--font-weight-regular: 400;
+	--font-weight-medium: 500;
+	--font-weight-bold: 600;
+	--font-weight-heavy: 700;
+
+	/* Text Colors */
+	--color-text-primary: #fff;
+	--color-text-secondary: #ccc;
+	--color-text-muted: #888;
+	--color-text-base: #e0e0e0;
+	--color-text-highlight: #4facfe;
+	--color-text-dark: #000;
+
 	--column-width: 42rem;
 	--column-margin-top: 4rem;
 	font-family: var(--font-body);
@@ -22,11 +50,9 @@ body {
 	background-attachment: fixed;
 	background-color: var(--color-bg-1);
 	background-size: 100vw 100vh;
-	background-image: radial-gradient(
-			50% 50% at 50% 50%,
+	background-image: radial-gradient(50% 50% at 50% 50%,
 			rgba(255, 255, 255, 0.75) 0%,
-			rgba(255, 255, 255, 0) 100%
-		),
+			rgba(255, 255, 255, 0) 100%),
 		linear-gradient(180deg, var(--color-bg-0) 0%, var(--color-bg-1) 15%, var(--color-bg-2) 50%);
 }
 
@@ -55,7 +81,17 @@ h1 {
 }
 
 h2 {
-	font-size: 1rem;
+	font-size: var(--font-size-xl);
+	margin-bottom: 1rem;
+	color: var(--color-text-secondary);
+	border-bottom: 1px solid #333;
+	padding-bottom: 0.5rem;
+}
+
+@media (max-width: 768px) {
+	h2 {
+		font-size: var(--font-size-lg);
+	}
 }
 
 pre {

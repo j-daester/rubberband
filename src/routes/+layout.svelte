@@ -11,7 +11,7 @@
 	</main>
 
 	<footer>
-		<p>visit <a href="https://kit.svelte.dev">kit.svelte.dev</a> to learn SvelteKit</p>
+		<p>&copy; 2025 Jonas Däster</p>
 	</footer>
 </div>
 
@@ -31,6 +31,12 @@
 		max-width: 64rem;
 		margin: 0 auto;
 		box-sizing: border-box;
+	}
+
+	@media (max-width: 480px) {
+		main {
+			padding: 0.5rem;
+		}
 	}
 
 	footer {

@@ -83,12 +83,8 @@
 		margin-bottom: 2rem;
 	}
 
-	h2 {
-		font-size: 1.5rem;
-		margin-bottom: 1rem;
-		color: #ccc;
-		border-bottom: 1px solid #333;
-		padding-bottom: 0.5rem;
+	section {
+		margin-bottom: 2rem;
 	}
 
 	.machine-list {
@@ -109,25 +105,25 @@
 
 	.machine-info h3 {
 		margin: 0 0 0.5rem 0;
-		font-size: 1.1rem;
-		color: #fff;
+		font-size: var(--font-size-lg);
+		color: var(--color-text-primary);
 	}
 
 	.details {
-		color: #888;
-		font-size: 0.9rem;
+		color: var(--color-text-muted);
+		font-size: var(--font-size-sm);
 		margin: 0;
 	}
 
 	.owned {
-		color: #4facfe;
-		font-weight: bold;
+		color: var(--color-text-highlight);
+		font-weight: var(--font-weight-bold);
 		margin: 0.5rem 0 0.5rem 0;
 	}
 
 	.price {
-		color: #e0e0e0;
-		font-size: 0.9rem;
+		color: var(--color-text-base);
+		font-size: var(--font-size-sm);
 		margin-bottom: 1rem;
 	}
 

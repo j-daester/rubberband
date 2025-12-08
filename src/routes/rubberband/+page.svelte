@@ -267,8 +267,8 @@
 	}
 
 	h1 {
-		font-size: 2.5rem;
-		font-weight: 700;
+		font-size: var(--font-size-3xl);
+		font-weight: var(--font-weight-heavy);
 		margin-bottom: 1.5rem;
 		background: linear-gradient(45deg, #ff6b6b, #feca57);
 		background-clip: text;
@@ -294,29 +294,21 @@
 	}
 
 	.label {
-		font-size: 0.8rem;
+		font-size: var(--font-size-xs);
 		text-transform: uppercase;
 		letter-spacing: 1px;
-		color: #888;
+		color: var(--color-text-muted);
 		margin-bottom: 0.25rem;
 	}
 
 	.value {
-		font-size: 1.5rem;
-		font-weight: 600;
-		color: #fff;
+		font-size: var(--font-size-xl);
+		font-weight: var(--font-weight-bold);
+		color: var(--color-text-primary);
 	}
 
 	section {
 		margin-bottom: 2rem;
-	}
-
-	h2 {
-		font-size: 1.5rem;
-		margin-bottom: 1rem;
-		color: #ccc;
-		border-bottom: 1px solid #333;
-		padding-bottom: 0.5rem;
 	}
 
 	.button-group {
@@ -327,12 +319,12 @@
 	.action-btn {
 		flex: 1;
 		padding: 1.5rem;
-		font-size: 1.2rem;
+		font-size: var(--font-size-lg);
 		border: none;
 		border-radius: 8px;
 		cursor: pointer;
 		transition: transform 0.1s, filter 0.2s;
-		font-weight: 600;
+		font-weight: var(--font-weight-bold);
 	}
 
 	.action-btn:active {
@@ -341,12 +333,12 @@
 
 	.primary {
 		background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-		color: #000;
+		color: var(--color-text-dark);
 	}
 
 	.secondary {
 		background: #333;
-		color: #fff;
+		color: var(--color-text-primary);
 		border: 1px solid #444;
 	}
 
@@ -371,13 +363,13 @@
 
 	.info h3 {
 		margin: 0 0 0.5rem 0;
-		font-size: 1.1rem;
-		color: #fff;
+		font-size: var(--font-size-lg);
+		color: var(--color-text-primary);
 	}
 
 	.info p {
-		color: #888;
-		font-size: 0.9rem;
+		color: var(--color-text-muted);
+		font-size: var(--font-size-sm);
 		margin: 0;
 	}
 
@@ -418,15 +410,15 @@
 	}
 
 	.modal h2 {
-		font-size: 2rem;
-		color: #fff;
+		font-size: var(--font-size-2xl);
+		color: var(--color-text-primary);
 		margin-bottom: 1rem;
 	}
 
 	.modal p {
-		color: #ccc;
+		color: var(--color-text-secondary);
 		margin-bottom: 1.5rem;
-		font-size: 1.1rem;
+		font-size: var(--font-size-lg);
 	}
 
 	.stats-grid {
@@ -441,8 +433,8 @@
 
 	.stats-grid p {
 		margin: 0;
-		font-size: 1rem;
-		color: #e0e0e0;
+		font-size: var(--font-size-base);
+		color: var(--color-text-base);
 		display: flex;
 		justify-content: space-between;
 	}
@@ -451,9 +443,9 @@
 		background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
 		border: none;
 		padding: 1rem 2rem;
-		font-size: 1.2rem;
-		font-weight: bold;
-		color: #000;
+		font-size: var(--font-size-lg);
+		font-weight: var(--font-weight-bold);
+		color: var(--color-text-dark);
 		border-radius: 8px;
 		cursor: pointer;
 		transition: transform 0.1s;
@@ -507,5 +499,73 @@
 
 	.email {
 		background-color: #777;
+	}
+
+	@media (max-width: 768px) {
+		.game-container {
+			padding: 1rem;
+			width: 95%;
+		}
+
+		h1 {
+			font-size: var(--font-size-2xl);
+			margin-bottom: 1.5rem;
+		}
+
+		header {
+			margin-bottom: 1.5rem;
+		}
+
+		.progress-bar,
+		.resources-bar {
+			padding: 0.5rem;
+			gap: 0.5rem;
+			flex-wrap: wrap;
+		}
+
+		.stat {
+			min-width: 80px;
+		}
+
+		.label {
+			font-size: 0.7rem;
+		}
+
+		.value {
+			font-size: 1.1rem;
+		}
+
+		.value {
+			font-size: 1.1rem;
+		}
+
+		.action-btn {
+			padding: 1rem;
+			font-size: var(--font-size-base);
+		}
+
+		.button-group {
+			flex-direction: column;
+		}
+
+		.sales-card {
+			flex-direction: column;
+			gap: 1rem;
+			align-items: stretch;
+		}
+
+		.controls {
+			justify-content: space-between;
+		}
+
+		.modal {
+			padding: 1.5rem;
+			width: 90%;
+		}
+
+		.modal {
+			padding: 1.5rem;
+			width: 90%;
+		}
 	}
 </style>

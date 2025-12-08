@@ -48,14 +48,6 @@
 		margin-bottom: 2rem;
 	}
 
-	h2 {
-		font-size: 1.5rem;
-		margin-bottom: 1rem;
-		color: #ccc;
-		border-bottom: 1px solid #333;
-		padding-bottom: 0.5rem;
-	}
-
 	.marketing-card {
 		background: #252525;
 		padding: 1rem;
@@ -68,18 +60,18 @@
 
 	.info h3 {
 		margin: 0 0 0.5rem 0;
-		font-size: 1.1rem;
-		color: #fff;
+		font-size: var(--font-size-lg);
+		color: var(--color-text-primary);
 	}
 
 	.info p {
-		color: #888;
-		font-size: 0.9rem;
+		color: var(--color-text-muted);
+		font-size: var(--font-size-sm);
 		margin: 0;
 	}
 
 	.price {
-		color: #e0e0e0;
+		color: var(--color-text-base);
 		margin-top: 0.5rem !important;
 	}
 
@@ -102,5 +94,17 @@
 		cursor: not-allowed;
 		background: #333;
 		color: #666;
+	}
+
+	@media (max-width: 480px) {
+		.marketing-card {
+			flex-direction: column;
+			gap: 1rem;
+			align-items: stretch;
+		}
+
+		.buy-btn {
+			width: 100%;
+		}
 	}
 </style>
