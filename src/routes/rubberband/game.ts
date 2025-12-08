@@ -119,6 +119,14 @@ export class Game {
 		return GAME_CONSTANTS.MARKETING_BASE_COST * Math.pow(2, this.marketingLevel);
 	}
 
+	get maintenanceCost() {
+		let cost = 0;
+		for (const machine of machineTypes) {
+			cost += (this.machines[machine.name] || 0) * machine.maintenance_cost;
+		}
+		return cost;
+	}
+
 	tick() {
 		if (this.gameOver) return;
 
@@ -134,6 +142,8 @@ export class Game {
 		this.produceMachines();
 		this.handleAutoBuy();
 		this.handleAutoSell();
+
+		this.money -= this.maintenanceCost;
 	}
 
 	private produceMachines() {
@@ -290,25 +300,52 @@ export class Game {
 		return false;
 	}
 
-	getMachineProductionLineCost(lineName: string, currentCount?: number) {
+	getMachineProductionLineCost(lineName: string, amount: number, currentCount?: number) {
 		const line = productionLines.find(l => l.name === lineName);
 		if (!line) return Infinity;
 
 		const count = currentCount !== undefined ? currentCount : (this.machineProductionLines[lineName] || 0);
-		return Math.floor(line.initial_cost * Math.pow(line.cost_factor, count));
+		const r = line.cost_factor;
+		const a = Math.floor(line.initial_cost * Math.pow(r, count));
+
+		if (r === 1) {
+			return a * amount;
+		}
+
+		return Math.floor(a * (Math.pow(r, amount) - 1) / (r - 1));
 	}
 
-	buyMachineProductionLine(lineName: string) {
+	getMaxAffordableProductionLine(lineName: string, currentMoney?: number, currentCount?: number) {
+		const line = productionLines.find(l => l.name === lineName);
+		if (!line) return 0;
+
+		const count = currentCount !== undefined ? currentCount : (this.machineProductionLines[lineName] || 0);
+		const r = line.cost_factor;
+		const a = Math.floor(line.initial_cost * Math.pow(r, count));
+
+		const money = currentMoney !== undefined ? currentMoney : this.money;
+
+		if (money < a) return 0;
+
+		if (r === 1) {
+			return Math.floor(money / a);
+		}
+
+		const n = Math.floor(Math.log(1 + money * (r - 1) / a) / Math.log(r));
+		return n;
+	}
+
+	buyMachineProductionLine(lineName: string, amount: number = 1) {
 		if (this.gameOver) return false;
 		const line = productionLines.find(l => l.name === lineName);
 		if (!line) return false;
 
 		if (this.level < line.unlock_level) return false;
 
-		const cost = this.getMachineProductionLineCost(lineName);
+		const cost = this.getMachineProductionLineCost(lineName, amount);
 		if (this.money >= cost) {
 			this.money -= cost;
-			this.machineProductionLines[lineName] = (this.machineProductionLines[lineName] || 0) + 1;
+			this.machineProductionLines[lineName] = (this.machineProductionLines[lineName] || 0) + amount;
 			return true;
 		}
 		return false;

@@ -38,8 +38,8 @@
 	import { createEventDispatcher } from 'svelte';
 	const dispatch = createEventDispatcher();
 
-	function handleBuy(machineName: string) {
-		if (game.buyMachine(machineName)) {
+	function handleBuy(machineName: string, amount: number = 1) {
+		if (game.buyMachine(machineName, amount)) {
 			dispatch('action');
 		}
 	}
@@ -62,16 +62,30 @@
 					<div class="machine-info">
 						<h3>{machine.name}</h3>
 						<p class="details">Output: {formatNumber(machine.output)}/tick</p>
+						<p class="details">Maint: ${formatNumber(machine.maintenance_cost)}/tick</p>
 						<p class="owned">Owned: {formatNumber(owned)}</p>
+						<p class="details">
+							Total Maint: ${formatNumber(owned * machine.maintenance_cost)}/tick
+						</p>
 						<p class="price">Price: ${formatNumber(cost)}</p>
 					</div>
-					<button
-						class="buy-btn"
-						disabled={(!canAfford && buyAmount !== -1) || (buyAmount === -1 && max === 0)}
-						on:click={() => handleBuy(machine.name)}
-					>
-						Buy {amount}
-					</button>
+					<div class="actions">
+						<button
+							class="buy-btn"
+							disabled={(!canAfford && buyAmount !== -1) || (buyAmount === -1 && max === 0)}
+							on:click={() => handleBuy(machine.name)}
+						>
+							Buy
+						</button>
+						<button
+							class="buy-btn max-btn"
+							disabled={max <= 0}
+							on:click={() => handleBuy(machine.name, max)}
+							title="Buy Max"
+						>
+							Buy ({formatNumber(max)})
+						</button>
+					</div>
 				</div>
 			{/if}
 		{/each}
@@ -127,8 +141,12 @@
 		margin-bottom: 1rem;
 	}
 
+	.actions {
+		display: flex;
+		gap: 0.5rem;
+	}
+
 	.buy-btn {
-		width: 100%;
 		padding: 0.75rem;
 		border: none;
 		border-radius: 6px;
@@ -147,5 +165,15 @@
 		cursor: not-allowed;
 		background: #333;
 		color: #666;
+	}
+
+	.buy-btn:not(.max-btn) {
+		flex: 2;
+	}
+
+	.max-btn {
+		flex: 1;
+		font-size: 0.85em;
+		padding: 0.75rem 0.5rem;
 	}
 </style>

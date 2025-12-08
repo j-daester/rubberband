@@ -15,8 +15,8 @@
 		game = game;
 	}
 
-	function buyMachineProductionLine(machineName: string) {
-		if (game.buyMachineProductionLine(machineName)) {
+	function buyMachineProductionLine(machineName: string, amount: number = 1) {
+		if (game.buyMachineProductionLine(machineName, amount)) {
 			dispatch('action');
 		}
 	}
@@ -29,7 +29,8 @@
 			{#each productionLines as line}
 				{#if game.level >= line.unlock_level}
 					{@const count = game.machineProductionLines[line.name] || 0}
-					{@const cost = game.getMachineProductionLineCost(line.name, count)}
+					{@const cost = game.getMachineProductionLineCost(line.name, 1, count)}
+					{@const max = game.getMaxAffordableProductionLine(line.name, game.money, count)}
 
 					<div class="industry-card">
 						<div class="info">
@@ -41,13 +42,22 @@
 							<p class="owned">Owned: {formatNumber(count)}</p>
 							<p class="price">Cost: ${formatNumber(cost)}</p>
 						</div>
-						<button
-							class="buy-btn"
-							disabled={game.money < cost}
-							on:click={() => buyMachineProductionLine(line.name)}
-						>
-							Buy Line
-						</button>
+						<div class="actions">
+							<button
+								class="buy-btn"
+								disabled={game.money < cost}
+								on:click={() => buyMachineProductionLine(line.name)}
+							>
+								Buy
+							</button>
+							<button
+								class="buy-btn max-btn"
+								disabled={max <= 0}
+								on:click={() => buyMachineProductionLine(line.name, max)}
+							>
+								Buy ({formatNumber(max)})
+							</button>
+						</div>
 					</div>
 				{/if}
 			{/each}
@@ -106,8 +116,12 @@
 		margin-bottom: 1rem;
 	}
 
+	.actions {
+		display: flex;
+		gap: 0.5rem;
+	}
+
 	.buy-btn {
-		width: 100%;
 		padding: 0.75rem;
 		border: none;
 		border-radius: 6px;
@@ -126,5 +140,15 @@
 		cursor: not-allowed;
 		background: #333;
 		color: #666;
+	}
+
+	.buy-btn:not(.max-btn) {
+		flex: 2;
+	}
+
+	.max-btn {
+		flex: 1;
+		font-size: 0.85em;
+		padding: 0.75rem 0.5rem;
 	}
 </style>

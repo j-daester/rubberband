@@ -21,8 +21,10 @@
 		Rubberband
 	</h1>
 
-	<h2>Click to make rubberbands and grow your empire into a massive industrial complex.</h2>
-	<a href="/rubberband">Play</a>
+	<strong
+		><p>Click to make rubberbands and grow your empire into a massive industrial complex.</p>
+		<a href="/rubberband">Play</a></strong
+	>
 </section>
 
 <style>
@@ -52,5 +54,13 @@
 		height: 100%;
 		top: 0;
 		display: block;
+	}
+
+	strong {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 1rem;
 	}
 </style>

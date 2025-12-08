@@ -4,6 +4,7 @@ export interface MachineType {
 	initial_cost: number;
 	cost_factor: number;
 	unlock_level: number;
+	maintenance_cost: number;
 }
 
 export const machineTypes: MachineType[] = [
@@ -12,21 +13,24 @@ export const machineTypes: MachineType[] = [
 		output: 100,
 		initial_cost: 100,
 		cost_factor: 1.1,
-		unlock_level: 2
+		unlock_level: 2,
+		maintenance_cost: 10
 	},
 	{
 		name: "MAX-Bander 1000",
 		output: 1000,
 		initial_cost: 1000,
 		cost_factor: 1.2,
-		unlock_level: 5
+		unlock_level: 5,
+		maintenance_cost: 15
 	},
 	{
 		name: "MEGA-Bander 10000",
 		output: 10000,
 		initial_cost: 10000,
 		cost_factor: 1.3,
-		unlock_level: 7
+		unlock_level: 7,
+		maintenance_cost: 22
 	},
 ];
 
