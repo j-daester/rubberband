@@ -77,6 +77,9 @@
 	}
 
 	function restartGame() {
+		if (!gameOver && !confirm('Are you sure you want to restart? All progress will be lost.')) {
+			return;
+		}
 		localStorage.removeItem('rubberband_save');
 		location.reload();
 	}
@@ -114,19 +117,38 @@
 <div class="game-container">
 	<header>
 		<h1>Rubberband Inc.</h1>
-		<div class="progress-bar">
-			<div class="stat">
-				<span class="label">Level</span>
-				<span class="value">{formatNumber(level)}</span>
+		<div class="header-row">
+			<div class="progress-bar">
+				<div class="stat">
+					<span class="label">Level</span>
+					<span class="value">{formatNumber(level)}</span>
+				</div>
+				<div class="stat">
+					<span class="label">Total Sold</span>
+					<span class="value">{formatNumber(totalSold)} / {formatNumber(nextLevelRequirement)}</span
+					>
+				</div>
+				<div class="stat">
+					<span class="label">Ticks</span>
+					<span class="value">{formatNumber(tickCount)}</span>
+				</div>
 			</div>
-			<div class="stat">
-				<span class="label">Total Sold</span>
-				<span class="value">{formatNumber(totalSold)} / {formatNumber(nextLevelRequirement)}</span>
-			</div>
-			<div class="stat">
-				<span class="label">Ticks</span>
-				<span class="value">{formatNumber(tickCount)}</span>
-			</div>
+			<button class="restart-btn-small" on:click={restartGame} title="Restart Game">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="24"
+					height="24"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+					<path d="M3 3v5h5" />
+				</svg>
+			</button>
 		</div>
 
 		<div class="resources-bar">
@@ -276,7 +298,45 @@
 		-webkit-text-fill-color: transparent;
 	}
 
-	.progress-bar,
+	.header-row {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		margin-bottom: 1rem;
+	}
+
+	.restart-btn-small {
+		background: #333;
+		border: 1px solid #444;
+		color: #e0e0e0;
+		padding: 0.75rem;
+		border-radius: 50%;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: all 0.2s;
+		height: 3rem;
+		width: 3rem;
+	}
+
+	.restart-btn-small:hover {
+		background: #444;
+		transform: rotate(180deg);
+		color: #ff6b6b;
+	}
+
+	.progress-bar {
+		flex: 1;
+		display: flex;
+		justify-content: space-around;
+		background: #2d2d2d;
+		padding: 1rem;
+		border-radius: 12px;
+		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+		margin-bottom: 0;
+	}
+
 	.resources-bar {
 		display: flex;
 		justify-content: space-around;
