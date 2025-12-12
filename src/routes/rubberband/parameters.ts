@@ -49,6 +49,7 @@ export const GAME_CONSTANTS = {
 	MACHINES_UNLOCK_LEVEL: 2,
 	MARKETING_UNLOCK_LEVEL: 5,
 	LEVEL_DIFFICULTY_FACTOR: 1.2,
+	MAX_RUBBER_NO_PRODUCTION: 200,
 };
 
 export interface ProductionLine {
@@ -84,5 +85,33 @@ export const productionLines: ProductionLine[] = [
 		initial_cost: 100000000,
 		cost_factor: 1.5,
 		unlock_level: 60
+	}
+];
+
+export interface PlantationType {
+	name: string;
+	output: number;
+	initial_cost: number;
+	cost_factor: number;
+	unlock_level: number;
+	maintenance_cost: number;
+}
+
+export const plantationTypes: PlantationType[] = [
+	{
+		name: "Rubbertree Plantation",
+		output: 1000,
+		initial_cost: 10000,
+		cost_factor: 1.2,
+		unlock_level: 5,
+		maintenance_cost: 50
+	},
+	{
+		name: "Syntetic Rubber Factory",
+		output: 100000,
+		initial_cost: 1000000,
+		cost_factor: 1.1,
+		unlock_level: 30,
+		maintenance_cost: 5000
 	}
 ];

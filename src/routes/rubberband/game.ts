@@ -1,4 +1,4 @@
-import { machineTypes, productionLines, GAME_CONSTANTS } from './parameters';
+import { machineTypes, productionLines, plantationTypes, GAME_CONSTANTS } from './parameters';
 
 export type MachineName = typeof machineTypes[number]['name'];
 
@@ -15,6 +15,7 @@ export interface GameState {
 	tickCount: number;
 	marketingLevel: number;
 	machineProductionLines: Record<string, number>;
+	plantations: Record<string, number>;
 	gameOver: boolean;
 }
 
@@ -31,6 +32,7 @@ export class Game {
 	tickCount!: number;
 	marketingLevel!: number;
 	machineProductionLines!: Record<string, number>;
+	plantations!: Record<string, number>;
 	gameOver!: boolean;
 
 	/**
@@ -52,6 +54,7 @@ export class Game {
 				this.tickCount = data.tickCount;
 				this.marketingLevel = data.marketingLevel;
 				this.machineProductionLines = data.machineProductionLines || {};
+				this.plantations = data.plantations || {};
 				this.gameOver = data.gameOver || false;
 				// Migration from old save if needed
 				if ((data as any).machineProductionLineCount && !this.machineProductionLines["Bander 100 Line"]) {
@@ -91,6 +94,7 @@ export class Game {
 		this.tickCount = 0;
 		this.tickCount = 0;
 		this.machineProductionLines = {};
+		this.plantations = {};
 		this.gameOver = false;
 	}
 
@@ -124,6 +128,9 @@ export class Game {
 		for (const machine of machineTypes) {
 			cost += (this.machines[machine.name] || 0) * machine.maintenance_cost;
 		}
+		for (const plantation of plantationTypes) {
+			cost += (this.plantations[plantation.name] || 0) * plantation.maintenance_cost;
+		}
 		return cost;
 	}
 
@@ -139,6 +146,7 @@ export class Game {
 
 		this.updateMarket();
 		this.produceResources();
+		this.produceRubberFromPlantations();
 		this.produceMachines();
 		this.handleAutoBuy();
 		this.handleAutoSell();
@@ -153,6 +161,25 @@ export class Game {
 				const amount = count * line.output;
 				this.machines[line.machine] = (this.machines[line.machine] || 0) + amount;
 			}
+		}
+	}
+
+	get plantationProductionRate() {
+		let rate = 0;
+		for (const plantation of plantationTypes) {
+			rate += (this.plantations[plantation.name] || 0) * plantation.output;
+		}
+		return rate;
+	}
+
+	get maxRubber() {
+		return GAME_CONSTANTS.MAX_RUBBER_NO_PRODUCTION + this.plantationProductionRate;
+	}
+
+	private produceRubberFromPlantations() {
+		const production = this.plantationProductionRate;
+		if (production > 0) {
+			this.rubber += production;
 		}
 	}
 
@@ -202,10 +229,22 @@ export class Game {
 
 	buyRubber(amount: number) {
 		if (this.gameOver) return false;
-		const cost = amount * this.rubberPrice;
+
+		const limit = this.maxRubber;
+		if (this.rubber >= limit) return false;
+
+		// Clamp amount to not exceed limit
+		let amountToBuy = amount;
+		if (this.rubber + amountToBuy > limit) {
+			amountToBuy = limit - this.rubber;
+		}
+
+		if (amountToBuy <= 0) return false;
+
+		const cost = amountToBuy * this.rubberPrice;
 		if (this.money >= cost) {
 			this.money -= cost;
-			this.rubber += amount;
+			this.rubber += amountToBuy;
 			return true;
 		}
 		return false;
@@ -351,6 +390,57 @@ export class Game {
 		return false;
 	}
 
+	getPlantationCost(plantationName: string, amount: number, currentCount?: number) {
+		const plantation = plantationTypes.find(p => p.name === plantationName);
+		if (!plantation) return Infinity;
+
+		const count = currentCount !== undefined ? currentCount : (this.plantations[plantationName] || 0);
+		const r = plantation.cost_factor;
+		const a = Math.floor(plantation.initial_cost * Math.pow(r, count));
+
+		if (r === 1) {
+			return a * amount;
+		}
+
+		return Math.floor(a * (Math.pow(r, amount) - 1) / (r - 1));
+	}
+
+	getMaxAffordablePlantation(plantationName: string, currentMoney?: number, currentCount?: number) {
+		const plantation = plantationTypes.find(p => p.name === plantationName);
+		if (!plantation) return 0;
+
+		const count = currentCount !== undefined ? currentCount : (this.plantations[plantationName] || 0);
+		const r = plantation.cost_factor;
+		const a = Math.floor(plantation.initial_cost * Math.pow(r, count));
+
+		const money = currentMoney !== undefined ? currentMoney : this.money;
+
+		if (money < a) return 0;
+
+		if (r === 1) {
+			return Math.floor(money / a);
+		}
+
+		const n = Math.floor(Math.log(1 + money * (r - 1) / a) / Math.log(r));
+		return n;
+	}
+
+	buyPlantation(plantationName: string, amount: number = 1) {
+		if (this.gameOver) return false;
+		const plantation = plantationTypes.find(p => p.name === plantationName);
+		if (!plantation) return false;
+
+		if (this.level < plantation.unlock_level) return false;
+
+		const cost = this.getPlantationCost(plantationName, amount);
+		if (this.money >= cost) {
+			this.money -= cost;
+			this.plantations[plantationName] = (this.plantations[plantationName] || 0) + amount;
+			return true;
+		}
+		return false;
+	}
+
 	setRubberbandPrice(price: number) {
 		this.rubberbandPrice = price;
 		if (this.rubberbandPrice < GAME_CONSTANTS.MIN_RUBBERBAND_PRICE) this.rubberbandPrice = GAME_CONSTANTS.MIN_RUBBERBAND_PRICE;
@@ -370,6 +460,7 @@ export class Game {
 			tickCount: this.tickCount,
 			marketingLevel: this.marketingLevel,
 			machineProductionLines: this.machineProductionLines,
+			plantations: this.plantations,
 			gameOver: this.gameOver
 		};
 	}

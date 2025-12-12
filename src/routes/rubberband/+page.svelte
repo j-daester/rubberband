@@ -7,6 +7,7 @@
 	import Management from './components/Management.svelte';
 	import Marketing from './components/Marketing.svelte';
 	import HeavyIndustry from './components/HeavyIndustry.svelte';
+	import SupplyChain from './components/SupplyChain.svelte';
 
 	let game = new Game();
 	let interval: ReturnType<typeof setInterval>;
@@ -19,6 +20,7 @@
 	let rubberbands = game.rubberbands;
 	let rubber = game.rubber;
 	let productionRate = game.productionRate;
+	let rubberProduction = game.plantationProductionRate;
 	let totalSold = game.totalRubberbandsSold;
 	let level = game.level;
 	let demand = game.demand;
@@ -85,6 +87,7 @@
 	}
 
 	function handleAction() {
+		game = game;
 		tick++;
 	}
 
@@ -95,6 +98,7 @@
 		rubberbands = game.rubberbands;
 		rubber = game.rubber;
 		productionRate = game.productionRate;
+		rubberProduction = game.plantationProductionRate;
 		totalSold = game.totalRubberbandsSold;
 		level = game.level;
 		demand = game.demand;
@@ -152,25 +156,37 @@
 		</div>
 
 		<div class="resources-bar">
-			<div class="stat">
-				<span class="label">Money</span>
-				<span class="value">${formatNumber(money)}</span>
+			<div class="resource-group">
+				<div class="stat">
+					<span class="label">Money</span>
+					<span class="value">${formatNumber(money)}</span>
+				</div>
 			</div>
-			<div class="stat">
-				<span class="label">Rubber</span>
-				<span class="value">{formatNumber(Math.floor(rubber))}</span>
+
+			<div class="resource-group">
+				<div class="stat">
+					<span class="label">Rubber</span>
+					<span class="value">{formatNumber(Math.floor(rubber))}</span>
+				</div>
+				<div class="stat">
+					<span class="label">Prod</span>
+					<span class="value">{formatNumber(rubberProduction)} / tick</span>
+				</div>
 			</div>
-			<div class="stat">
-				<span class="label">Rubberbands</span>
-				<span class="value">{formatNumber(Math.floor(rubberbands))}</span>
-			</div>
-			<div class="stat">
-				<span class="label">Production</span>
-				<span class="value">{formatNumber(productionRate)} / tick</span>
-			</div>
-			<div class="stat">
-				<span class="label">Demand</span>
-				<span class="value">{formatNumber(demand)} / tick</span>
+
+			<div class="resource-group">
+				<div class="stat">
+					<span class="label">Bands</span>
+					<span class="value">{formatNumber(Math.floor(rubberbands))}</span>
+				</div>
+				<div class="stat">
+					<span class="label">Prod</span>
+					<span class="value">{formatNumber(productionRate)} / tick</span>
+				</div>
+				<div class="stat">
+					<span class="label">Demand</span>
+					<span class="value">{formatNumber(demand)} / tick</span>
+				</div>
 			</div>
 		</div>
 	</header>
@@ -218,6 +234,8 @@
 		<Management {game} {tick} on:action={handleAction} />
 
 		<MachineShop {game} {tick} on:action={handleAction} />
+
+		<SupplyChain {game} {tick} on:action={handleAction} />
 
 		<HeavyIndustry {game} {tick} on:action={handleAction} />
 	</main>
@@ -339,12 +357,20 @@
 
 	.resources-bar {
 		display: flex;
+		justify-content: space-between;
+		gap: 1rem;
+		margin-bottom: 1rem;
+	}
+
+	.resource-group {
+		flex: 1;
+		display: flex;
 		justify-content: space-around;
 		background: #2d2d2d;
 		padding: 1rem;
 		border-radius: 12px;
 		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-		margin-bottom: 1rem;
+		align-items: center;
 	}
 
 	.stat {
