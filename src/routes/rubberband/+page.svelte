@@ -4,7 +4,6 @@
 	import { GAME_CONSTANTS } from './parameters';
 	import { formatNumber } from './utils';
 	import MachineShop from './components/MachineShop.svelte';
-	import Management from './components/Management.svelte';
 	import Marketing from './components/Marketing.svelte';
 	import HeavyIndustry from './components/HeavyIndustry.svelte';
 	import SupplyChain from './components/SupplyChain.svelte';
@@ -230,8 +229,6 @@
 		</section>
 
 		<Marketing {game} {tick} on:action={handleAction} />
-
-		<Management {game} {tick} on:action={handleAction} />
 
 		<MachineShop {game} {tick} on:action={handleAction} />
 

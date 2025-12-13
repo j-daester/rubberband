@@ -8,16 +8,28 @@
 	export let tick: number;
 
 	let buyAmount = 1;
+	let buyerThreshold = game.buyerThreshold;
 
 	// Reactive declarations to keep UI in sync with game state
 	$: {
 		tick;
 		// Trigger reactivity for plantations
 		game = game;
+		// Sync local threshold if game updates it externally (optional, but good for consistency)
+		if (
+			game.buyerThreshold !== buyerThreshold &&
+			!document.activeElement?.id?.includes('threshold')
+		) {
+			buyerThreshold = game.buyerThreshold;
+		}
 	}
 
+	$: money = game.money;
+	$: buyerHired = game.buyerHired;
+	$: currentBuyerThreshold = game.buyerThreshold;
+
 	$: warningMessage = (() => {
-		const suggestions = ['Build more plantations'];
+		const suggestions = ['Increase your rubber production'];
 		if (!game.buyerHired) {
 			suggestions.push('hire a buyer');
 		} else if (game.buyerThreshold < GAME_CONSTANTS.MAX_RUBBER_NO_PRODUCTION) {
@@ -37,62 +49,116 @@
 			dispatch('action');
 		}
 	}
+
+	function hireBuyer() {
+		if (game.hireBuyer()) {
+			dispatch('action');
+		}
+	}
+
+	function updateBuyerThreshold() {
+		game.setBuyerThreshold(buyerThreshold);
+		dispatch('action');
+	}
+
+	const minUnlockLevel = Math.min(
+		...plantationTypes.map((p) => p.unlock_level),
+		GAME_CONSTANTS.BUYER_UNLOCK_LEVEL
+	);
 </script>
 
-<section class="supply-chain">
-	<h2>Supply Chain</h2>
+{#if game.level >= minUnlockLevel}
+	<section class="supply-chain">
+		<h2>Supply Chain</h2>
 
-	{#if game.rubberShortage}
-		<div class="warning">
-			<p>
-				⚠️ <strong>Warning:</strong>
-				{warningMessage}
-			</p>
+		{#if game.rubberShortage}
+			<div class="warning">
+				<p>
+					⚠️ <strong>Warning:</strong>
+					{warningMessage}
+				</p>
+			</div>
+		{/if}
+
+		{#if game.level >= GAME_CONSTANTS.BUYER_UNLOCK_LEVEL}
+			<div class="auto-buyer-section">
+				{#if !buyerHired}
+					<div class="hire-card">
+						<div class="info">
+							<h3>Auto-Buyer</h3>
+							<p>Automatically buys rubber when low.</p>
+							<p class="price">Cost: ${formatNumber(1000)}</p>
+						</div>
+						<button class="buy-btn" disabled={money < 1000} on:click={hireBuyer}>
+							Hire Buyer
+						</button>
+					</div>
+				{:else}
+					<div class="worker-card">
+						<div class="info">
+							<h3>Auto-Buyer (Active)</h3>
+							<p>
+								Buys {formatNumber(currentBuyerThreshold)} rubber when rubber drops below threshold.
+							</p>
+						</div>
+						<div class="controls">
+							<label for="threshold">Threshold:</label>
+							<input
+								id="threshold"
+								type="number"
+								bind:value={buyerThreshold}
+								on:input={updateBuyerThreshold}
+								min="0"
+							/>
+						</div>
+					</div>
+				{/if}
+			</div>
+		{/if}
+
+		<div class="plantation-list">
+			{#each plantationTypes as plantation}
+				{#if game.level >= plantation.unlock_level}
+					{@const owned = game.plantations[plantation.name] || 0}
+					{@const max = game.getMaxAffordablePlantation(plantation.name, game.money, owned)}
+					{@const amount = buyAmount === -1 ? Math.max(1, max) : buyAmount}
+					{@const cost = game.getPlantationCost(plantation.name, amount, owned)}
+					{@const canAfford = game.money >= cost}
+
+					<div class="plantation-card">
+						<div class="plantation-info">
+							<h3>{plantation.name}</h3>
+							<p class="details">Output: {formatNumber(plantation.output)} Rubber/tick</p>
+							<p class="details">Maint: ${formatNumber(plantation.maintenance_cost)}/tick</p>
+							<p class="owned">Owned: {formatNumber(owned)}</p>
+							<p class="details">
+								Total Maint: ${formatNumber(owned * plantation.maintenance_cost)}/tick
+							</p>
+							<p class="price">Price: ${formatNumber(cost)}</p>
+						</div>
+						<div class="actions">
+							<button
+								class="buy-btn"
+								disabled={(!canAfford && buyAmount !== -1) || (buyAmount === -1 && max === 0)}
+								on:click={() => handleBuy(plantation.name)}
+							>
+								Buy
+							</button>
+							<button
+								class="buy-btn max-btn"
+								disabled={max <= 0}
+								on:click={() => handleBuy(plantation.name, max)}
+								title="Buy Max"
+							>
+								Buy ({formatNumber(max)})
+							</button>
+						</div>
+					</div>
+				{/if}
+			{/each}
 		</div>
-	{/if}
-
-	<div class="plantation-list">
-		{#each plantationTypes as plantation}
-			{#if game.level >= plantation.unlock_level}
-				{@const owned = game.plantations[plantation.name] || 0}
-				{@const max = game.getMaxAffordablePlantation(plantation.name, game.money, owned)}
-				{@const amount = buyAmount === -1 ? Math.max(1, max) : buyAmount}
-				{@const cost = game.getPlantationCost(plantation.name, amount, owned)}
-				{@const canAfford = game.money >= cost}
-
-				<div class="plantation-card">
-					<div class="plantation-info">
-						<h3>{plantation.name}</h3>
-						<p class="details">Output: {formatNumber(plantation.output)} Rubber/tick</p>
-						<p class="details">Maint: ${formatNumber(plantation.maintenance_cost)}/tick</p>
-						<p class="owned">Owned: {formatNumber(owned)}</p>
-						<p class="details">
-							Total Maint: ${formatNumber(owned * plantation.maintenance_cost)}/tick
-						</p>
-						<p class="price">Price: ${formatNumber(cost)}</p>
-					</div>
-					<div class="actions">
-						<button
-							class="buy-btn"
-							disabled={(!canAfford && buyAmount !== -1) || (buyAmount === -1 && max === 0)}
-							on:click={() => handleBuy(plantation.name)}
-						>
-							Buy
-						</button>
-						<button
-							class="buy-btn max-btn"
-							disabled={max <= 0}
-							on:click={() => handleBuy(plantation.name, max)}
-							title="Buy Max"
-						>
-							Buy ({formatNumber(max)})
-						</button>
-					</div>
-				</div>
-			{/if}
-		{/each}
-	</div>
-</section>
+	</section>
+{/if}
 
 <style>
 	section {
@@ -190,5 +256,47 @@
 	.warning p {
 		margin: 0;
 		font-size: 0.9em;
+	}
+
+	.auto-buyer-section {
+		margin-bottom: 1rem;
+	}
+
+	.hire-card,
+	.worker-card {
+		background: #252525;
+		padding: 1rem;
+		border-radius: 8px;
+		border: 1px solid #333;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	.controls {
+		display: flex;
+		gap: 1rem;
+		align-items: center;
+	}
+
+	input {
+		background: #333;
+		border: 1px solid #444;
+		color: #fff;
+		padding: 0.5rem;
+		border-radius: 4px;
+	}
+
+	@media (max-width: 480px) {
+		.hire-card,
+		.worker-card {
+			flex-direction: column;
+			gap: 1rem;
+			align-items: stretch;
+		}
+
+		.controls {
+			justify-content: space-between;
+		}
 	}
 </style>

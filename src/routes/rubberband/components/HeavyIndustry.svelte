@@ -20,9 +20,11 @@
 			dispatch('action');
 		}
 	}
+
+	const minUnlockLevel = Math.min(...productionLines.map((p) => p.unlock_level));
 </script>
 
-{#if game.level >= 20}
+{#if game.level >= minUnlockLevel}
 	<section class="heavy-industry">
 		<h2>Heavy Industry</h2>
 		<div class="machine-list">

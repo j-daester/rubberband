@@ -43,54 +43,58 @@
 			dispatch('action');
 		}
 	}
+
+	const minUnlockLevel = Math.min(...machineTypes.map((m) => m.unlock_level));
 </script>
 
-<section class="shop">
-	<h2>Machine Shop</h2>
-	<!-- Buy Amount Toggle could be added here if needed, but for now hardcoded to 1 in logic or we can add UI -->
+{#if game.level >= minUnlockLevel}
+	<section class="shop">
+		<h2>Machine Shop</h2>
+		<!-- Buy Amount Toggle could be added here if needed, but for now hardcoded to 1 in logic or we can add UI -->
 
-	<div class="machine-list">
-		{#each machineTypes as machine}
-			{#if game.level >= machine.unlock_level}
-				{@const owned = game.machines[machine.name] || 0}
-				{@const max = game.getMaxAffordable(machine.name, game.money, owned)}
-				{@const amount = buyAmount === -1 ? Math.max(1, max) : buyAmount}
-				{@const cost = game.getMachineCost(machine.name, amount, owned)}
-				{@const canAfford = game.money >= cost}
+		<div class="machine-list">
+			{#each machineTypes as machine}
+				{#if game.level >= machine.unlock_level}
+					{@const owned = game.machines[machine.name] || 0}
+					{@const max = game.getMaxAffordable(machine.name, game.money, owned)}
+					{@const amount = buyAmount === -1 ? Math.max(1, max) : buyAmount}
+					{@const cost = game.getMachineCost(machine.name, amount, owned)}
+					{@const canAfford = game.money >= cost}
 
-				<div class="machine-card">
-					<div class="machine-info">
-						<h3>{machine.name}</h3>
-						<p class="details">Output: {formatNumber(machine.output)}/tick</p>
-						<p class="details">Maint: ${formatNumber(machine.maintenance_cost)}/tick</p>
-						<p class="owned">Owned: {formatNumber(owned)}</p>
-						<p class="details">
-							Total Maint: ${formatNumber(owned * machine.maintenance_cost)}/tick
-						</p>
-						<p class="price">Price: ${formatNumber(cost)}</p>
+					<div class="machine-card">
+						<div class="machine-info">
+							<h3>{machine.name}</h3>
+							<p class="details">Output: {formatNumber(machine.output)}/tick</p>
+							<p class="details">Maint: ${formatNumber(machine.maintenance_cost)}/tick</p>
+							<p class="owned">Owned: {formatNumber(owned)}</p>
+							<p class="details">
+								Total Maint: ${formatNumber(owned * machine.maintenance_cost)}/tick
+							</p>
+							<p class="price">Price: ${formatNumber(cost)}</p>
+						</div>
+						<div class="actions">
+							<button
+								class="buy-btn"
+								disabled={(!canAfford && buyAmount !== -1) || (buyAmount === -1 && max === 0)}
+								on:click={() => handleBuy(machine.name)}
+							>
+								Buy
+							</button>
+							<button
+								class="buy-btn max-btn"
+								disabled={max <= 0}
+								on:click={() => handleBuy(machine.name, max)}
+								title="Buy Max"
+							>
+								Buy ({formatNumber(max)})
+							</button>
+						</div>
 					</div>
-					<div class="actions">
-						<button
-							class="buy-btn"
-							disabled={(!canAfford && buyAmount !== -1) || (buyAmount === -1 && max === 0)}
-							on:click={() => handleBuy(machine.name)}
-						>
-							Buy
-						</button>
-						<button
-							class="buy-btn max-btn"
-							disabled={max <= 0}
-							on:click={() => handleBuy(machine.name, max)}
-							title="Buy Max"
-						>
-							Buy ({formatNumber(max)})
-						</button>
-					</div>
-				</div>
-			{/if}
-		{/each}
-	</div>
-</section>
+				{/if}
+			{/each}
+		</div>
+	</section>
+{/if}
 
 <style>
 	section {
