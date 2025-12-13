@@ -172,6 +172,14 @@ export class Game {
 		return rate;
 	}
 
+	get rubberShortage() {
+		const production = this.productionRate;
+		const plantation = this.plantationProductionRate;
+		const autoBuyCapacity = this.buyerHired ? GAME_CONSTANTS.MAX_RUBBER_NO_PRODUCTION : 0;
+
+		return production > (plantation + Math.min(autoBuyCapacity, this.buyerThreshold));
+	}
+
 	get maxRubber() {
 		return GAME_CONSTANTS.MAX_RUBBER_NO_PRODUCTION + this.plantationProductionRate;
 	}
@@ -207,7 +215,13 @@ export class Game {
 
 	private handleAutoBuy() {
 		if (this.buyerHired && this.rubber < this.buyerThreshold) {
-			this.buyRubber(this.buyerThreshold);
+			const needed = this.buyerThreshold - this.rubber;
+			// Limit buying speed to MAX_RUBBER_NO_PRODUCTION per tick
+			const buyAmount = Math.min(needed, GAME_CONSTANTS.MAX_RUBBER_NO_PRODUCTION);
+
+			if (buyAmount > 0) {
+				this.buyRubber(buyAmount);
+			}
 		}
 	}
 

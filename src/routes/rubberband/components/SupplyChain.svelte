@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Game } from '../game';
-	import { plantationTypes } from '../parameters';
+	import { plantationTypes, GAME_CONSTANTS } from '../parameters';
 	import { formatNumber } from '../utils';
 	import { createEventDispatcher } from 'svelte';
 
@@ -16,6 +16,20 @@
 		game = game;
 	}
 
+	$: warningMessage = (() => {
+		const suggestions = ['Build more plantations'];
+		if (!game.buyerHired) {
+			suggestions.push('hire a buyer');
+		} else if (game.buyerThreshold < GAME_CONSTANTS.MAX_RUBBER_NO_PRODUCTION) {
+			suggestions.push('increase auto-buy amount');
+		}
+		if (suggestions.length > 1) {
+			const last = suggestions.pop();
+			return `Rubber production is lower than demand! ${suggestions.join(', ')} or ${last}.`;
+		}
+		return `Rubber production is lower than demand! ${suggestions[0]}.`;
+	})();
+
 	const dispatch = createEventDispatcher();
 
 	function handleBuy(plantationName: string, amount: number = 1) {
@@ -27,6 +41,15 @@
 
 <section class="supply-chain">
 	<h2>Supply Chain</h2>
+
+	{#if game.rubberShortage}
+		<div class="warning">
+			<p>
+				⚠️ <strong>Warning:</strong>
+				{warningMessage}
+			</p>
+		</div>
+	{/if}
 
 	<div class="plantation-list">
 		{#each plantationTypes as plantation}
@@ -150,5 +173,22 @@
 		flex: 1;
 		font-size: 0.85em;
 		padding: 0.75rem 0.5rem;
+	}
+
+	.warning {
+		background: rgba(255, 68, 68, 0.1);
+		border: 1px solid #ff4444;
+		border-radius: 8px;
+		padding: 0.75rem;
+		margin-bottom: 1rem;
+		color: #ff8888;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.warning p {
+		margin: 0;
+		font-size: 0.9em;
 	}
 </style>
