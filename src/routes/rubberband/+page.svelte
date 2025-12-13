@@ -1,3 +1,7 @@
+<script context="module" lang="ts">
+	declare const __APP_VERSION__: string;
+</script>
+
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { Game } from './game';
@@ -7,6 +11,8 @@
 	import Marketing from './components/Marketing.svelte';
 	import HeavyIndustry from './components/HeavyIndustry.svelte';
 	import SupplyChain from './components/SupplyChain.svelte';
+
+	const appVersion = __APP_VERSION__;
 
 	let game = new Game();
 	let interval: ReturnType<typeof setInterval>;
@@ -283,6 +289,10 @@
 			</div>
 		</div>
 	{/if}
+
+	<footer>
+		v{appVersion}
+	</footer>
 </div>
 
 <style>
@@ -296,6 +306,18 @@
 		width: 90%;
 		margin: 0 auto;
 		padding: 2rem;
+		display: flex;
+		flex-direction: column;
+		min-height: 100vh;
+	}
+
+	footer {
+		margin-top: auto;
+		text-align: center;
+		color: var(--color-text-muted);
+		font-size: var(--font-size-xs);
+		padding-top: 2rem;
+		opacity: 0.5;
 	}
 
 	header {
