@@ -1,4 +1,4 @@
-import { machineTypes, productionLines, plantationTypes, GAME_CONSTANTS } from './parameters';
+import { machineTypes, productionLines, plantationTypes, researchList, GAME_CONSTANTS, type PlantationType, type ResearchType } from './parameters';
 
 export type MachineName = typeof machineTypes[number]['name'];
 
@@ -16,6 +16,7 @@ export interface GameState {
 	marketingLevel: number;
 	machineProductionLines: Record<string, number>;
 	plantations: Record<string, number>;
+	researched: string[];
 	gameOver: boolean;
 }
 
@@ -33,6 +34,7 @@ export class Game {
 	marketingLevel!: number;
 	machineProductionLines!: Record<string, number>;
 	plantations!: Record<string, number>;
+	researched!: string[];
 	gameOver!: boolean;
 
 	/**
@@ -55,6 +57,7 @@ export class Game {
 				this.marketingLevel = data.marketingLevel;
 				this.machineProductionLines = data.machineProductionLines || {};
 				this.plantations = data.plantations || {};
+				this.researched = data.researched || [];
 				this.gameOver = data.gameOver || false;
 				// Migration from old save if needed
 				if ((data as any).machineProductionLineCount && !this.machineProductionLines["Bander 100 Line"]) {
@@ -95,6 +98,7 @@ export class Game {
 		this.tickCount = 0;
 		this.machineProductionLines = {};
 		this.plantations = {};
+		this.researched = [];
 		this.gameOver = false;
 	}
 
@@ -103,20 +107,29 @@ export class Game {
 		for (const machine of machineTypes) {
 			rate += (this.machines[machine.name] || 0) * machine.output;
 		}
+		if (this.researched.includes('robotics')) {
+			rate *= 2;
+		}
 		return rate;
 	}
 
 	get level() {
-		if (this.totalRubberbandsSold < 100) return 1;
-		return 2 + Math.floor(Math.log(this.totalRubberbandsSold / 100) / Math.log(GAME_CONSTANTS.LEVEL_DIFFICULTY_FACTOR));
+		const thresholdLvl2 = GAME_CONSTANTS.LEVEL_REQ_BASE - GAME_CONSTANTS.LEVEL_REQ_OFFSET;
+		if (this.totalRubberbandsSold < thresholdLvl2) return 1;
+		return 2 + Math.floor(Math.log((this.totalRubberbandsSold + GAME_CONSTANTS.LEVEL_REQ_OFFSET) / GAME_CONSTANTS.LEVEL_REQ_BASE) / Math.log(GAME_CONSTANTS.LEVEL_DIFFICULTY_FACTOR));
 	}
 
 	get nextLevelRequirement() {
-		return Math.floor(100 * Math.pow(GAME_CONSTANTS.LEVEL_DIFFICULTY_FACTOR, this.level - 1));
+		return Math.floor(GAME_CONSTANTS.LEVEL_REQ_BASE * Math.pow(GAME_CONSTANTS.LEVEL_DIFFICULTY_FACTOR, this.level - 1) - GAME_CONSTANTS.LEVEL_REQ_OFFSET);
 	}
 
 	get demand() {
-		return Math.floor(Math.pow(3, this.marketingLevel) / this.rubberbandPrice * 10);
+		let basevalue = 1.5
+		if (this.researched.includes('hyperpersonalisation')) {
+			basevalue *= 2;
+		}
+		let demand = Math.floor(Math.pow(basevalue, this.marketingLevel) / this.rubberbandPrice * 10);
+		return demand;
 	}
 
 	get marketingCost() {
@@ -168,6 +181,12 @@ export class Game {
 		let rate = 0;
 		for (const plantation of plantationTypes) {
 			rate += (this.plantations[plantation.name] || 0) * plantation.output;
+		}
+		if (this.researched.includes('rubber_recycling')) {
+			rate *= 2;
+		}
+		if (this.researched.includes('robotics')) {
+			rate *= 5;
 		}
 		return rate;
 	}
@@ -460,6 +479,30 @@ export class Game {
 		if (this.rubberbandPrice < GAME_CONSTANTS.MIN_RUBBERBAND_PRICE) this.rubberbandPrice = GAME_CONSTANTS.MIN_RUBBERBAND_PRICE;
 	}
 
+	buyResearch(researchId: string) {
+		if (this.gameOver) return false;
+		if (this.researched.includes(researchId)) return false;
+
+		const research = researchList.find(r => r.id === researchId);
+		if (!research) return false;
+
+		if (this.level < research.unlock_level) return false;
+
+		if (this.money >= research.cost) {
+			this.money -= research.cost;
+			this.researched.push(researchId);
+			return true;
+		}
+		return false;
+	}
+
+	isPlantationUnlocked(plantation: PlantationType) {
+		if (plantation.required_research) {
+			return this.researched.includes(plantation.required_research);
+		}
+		return this.level >= plantation.unlock_level;
+	}
+
 	toJSON(): GameState {
 		return {
 			money: this.money,
@@ -475,6 +518,7 @@ export class Game {
 			marketingLevel: this.marketingLevel,
 			machineProductionLines: this.machineProductionLines,
 			plantations: this.plantations,
+			researched: this.researched,
 			gameOver: this.gameOver
 		};
 	}

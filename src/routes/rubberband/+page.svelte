@@ -11,6 +11,7 @@
 	import Marketing from './components/Marketing.svelte';
 	import HeavyIndustry from './components/HeavyIndustry.svelte';
 	import SupplyChain from './components/SupplyChain.svelte';
+	import Research from './components/Research.svelte';
 
 	const appVersion = __APP_VERSION__;
 
@@ -235,6 +236,8 @@
 		</section>
 
 		<Marketing {game} {tick} on:action={handleAction} />
+
+		<Research {game} {tick} on:action={handleAction} />
 
 		<MachineShop {game} {tick} on:action={handleAction} />
 

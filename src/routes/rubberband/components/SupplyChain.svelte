@@ -118,7 +118,7 @@
 
 		<div class="plantation-list">
 			{#each plantationTypes as plantation}
-				{#if game.level >= plantation.unlock_level}
+				{#if game.isPlantationUnlocked(plantation)}
 					{@const owned = game.plantations[plantation.name] || 0}
 					{@const max = game.getMaxAffordablePlantation(plantation.name, game.money, owned)}
 					{@const amount = buyAmount === -1 ? Math.max(1, max) : buyAmount}
