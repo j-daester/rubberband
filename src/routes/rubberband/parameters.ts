@@ -1,9 +1,27 @@
-export interface MachineType {
+export interface PurchasableItem {
 	name: string;
-	output: number;
 	initial_cost: number;
 	cost_factor: number;
 	unlock_level: number;
+	description?: string;
+	maintenance_cost?: number;
+	output?: number;
+	required_research?: string;
+}
+
+export interface MachineType extends PurchasableItem {
+	output: number;
+	maintenance_cost: number;
+}
+
+export interface ProductionLine extends PurchasableItem {
+	machine: string;
+	output: number;
+	product_type?: 'machine' | 'plantation';
+}
+
+export interface PlantationType extends PurchasableItem {
+	output: number;
 	maintenance_cost: number;
 }
 
@@ -14,6 +32,39 @@ export interface ResearchType {
 	cost: number;
 	unlock_level: number;
 }
+
+// --- Helper Functions for Cost Calculation ---
+
+export function getCost(item: PurchasableItem, amount: number, currentCount: number): number {
+	const r = item.cost_factor;
+	const a = Math.floor(item.initial_cost * Math.pow(r, currentCount));
+
+	if (r === 1) {
+		return a * amount;
+	}
+
+	return Math.floor(a * (Math.pow(r, amount) - 1) / (r - 1));
+}
+
+export function getMaxAffordable(item: PurchasableItem, money: number, currentCount: number): number {
+	const r = item.cost_factor;
+	const a = Math.floor(item.initial_cost * Math.pow(r, currentCount));
+
+	if (money < a) return 0;
+
+	if (r === 1) {
+		return Math.floor(money / a);
+	}
+
+	// Formula: money = a * (r^n - 1) / (r - 1)
+	// money * (r - 1) / a = r^n - 1
+	// r^n = 1 + money * (r - 1) / a
+	// n = log_r(1 + money * (r - 1) / a)
+	const n = Math.floor(Math.log(1 + money * (r - 1) / a) / Math.log(r));
+	return n;
+}
+
+// --- Data ---
 
 export const researchList: ResearchType[] = [
 	{
@@ -73,35 +124,6 @@ export const machineTypes: MachineType[] = [
 	},
 ];
 
-export const GAME_CONSTANTS = {
-	INITIAL_MONEY: 100,
-	INITIAL_RUBBER_PRICE: 0.1,
-	INITIAL_RUBBERBAND_PRICE: 1.0,
-	INITIAL_MARKETING_LEVEL: 1,
-	BUYER_COST: 1000,
-	BUYER_UNLOCK_LEVEL: 7,
-	MARKETING_BASE_COST: 700,
-	PRICE_FLUCTUATION_INTERVAL: 10,
-	MIN_RUBBER_PRICE: 0.01,
-	MAX_RUBBER_PRICE: 10.0,
-	MIN_RUBBERBAND_PRICE: 0.01,
-	MACHINES_UNLOCK_LEVEL: 2,
-	MARKETING_UNLOCK_LEVEL: 5,
-	LEVEL_DIFFICULTY_FACTOR: 1.25,
-	LEVEL_REQ_BASE: 100,
-	LEVEL_REQ_OFFSET: 80,
-	MAX_RUBBER_NO_PRODUCTION: 1000,
-};
-
-export interface ProductionLine {
-	name: string;
-	machine: string;
-	output: number;
-	initial_cost: number;
-	cost_factor: number;
-	unlock_level: number;
-}
-
 export const productionLines: ProductionLine[] = [
 	{
 		name: "Bander Line",
@@ -126,18 +148,17 @@ export const productionLines: ProductionLine[] = [
 		initial_cost: 100000000,
 		cost_factor: 1.5,
 		unlock_level: 50
+	},
+	{
+		name: "Synthetic Rubber Factory Line",
+		machine: "Synthetic Rubber Factory",
+		output: 1,
+		product_type: 'plantation',
+		initial_cost: 100000000,
+		cost_factor: 1.5,
+		unlock_level: 30
 	}
 ];
-
-export interface PlantationType {
-	name: string;
-	output: number;
-	initial_cost: number;
-	cost_factor: number;
-	unlock_level: number;
-	maintenance_cost: number;
-	required_research?: string;
-}
 
 export const plantationTypes: PlantationType[] = [
 	{
@@ -149,7 +170,7 @@ export const plantationTypes: PlantationType[] = [
 		maintenance_cost: 50
 	},
 	{
-		name: "Syntetic Rubber Factory",
+		name: "Synthetic Rubber Factory",
 		output: 100000,
 		initial_cost: 1000000,
 		cost_factor: 1.1,
@@ -158,3 +179,23 @@ export const plantationTypes: PlantationType[] = [
 		required_research: 'synthetic_rubber'
 	}
 ];
+
+export const GAME_CONSTANTS = {
+	INITIAL_MONEY: 3000,
+	INITIAL_RUBBER_PRICE: 0.1,
+	INITIAL_RUBBERBAND_PRICE: 1.0,
+	INITIAL_MARKETING_LEVEL: 1,
+	BUYER_COST: 1000,
+	BUYER_UNLOCK_LEVEL: 7,
+	MARKETING_BASE_COST: 700,
+	PRICE_FLUCTUATION_INTERVAL: 10,
+	MIN_RUBBER_PRICE: 0.01,
+	MAX_RUBBER_PRICE: 10.0,
+	MIN_RUBBERBAND_PRICE: 0.01,
+	MACHINES_UNLOCK_LEVEL: 2,
+	MARKETING_UNLOCK_LEVEL: 5,
+	LEVEL_DIFFICULTY_FACTOR: 1.25,
+	LEVEL_REQ_BASE: 100,
+	LEVEL_REQ_OFFSET: 80,
+	MAX_RUBBER_NO_PRODUCTION: 1000,
+};

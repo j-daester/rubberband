@@ -1,4 +1,4 @@
-import { machineTypes, productionLines, plantationTypes, researchList, GAME_CONSTANTS, type PlantationType, type ResearchType } from './parameters';
+import { machineTypes, productionLines, plantationTypes, researchList, GAME_CONSTANTS, getCost, getMaxAffordable, type PlantationType, type ResearchType } from './parameters';
 
 export type MachineName = typeof machineTypes[number]['name'];
 
@@ -69,6 +69,11 @@ export class Game {
 						this.machineProductionLines[line.name] = this.machineProductionLines[line.machine];
 						delete this.machineProductionLines[line.machine];
 					}
+				}
+				// Migration for typo fix "Syntetic" -> "Synthetic"
+				if (this.plantations["Syntetic Rubber Factory"]) {
+					this.plantations["Synthetic Rubber Factory"] = (this.plantations["Synthetic Rubber Factory"] || 0) + this.plantations["Syntetic Rubber Factory"];
+					delete this.plantations["Syntetic Rubber Factory"];
 				}
 			} catch (e) {
 				console.error('Failed to parse save game', e);
@@ -172,7 +177,12 @@ export class Game {
 			const count = this.machineProductionLines[line.name] || 0;
 			if (count > 0) {
 				const amount = count * line.output;
-				this.machines[line.machine] = (this.machines[line.machine] || 0) + amount;
+				if (line.product_type === 'plantation') {
+					this.plantations[line.machine] = (this.plantations[line.machine] || 0) + amount;
+				} else {
+					this.machines[line.machine] = (this.machines[line.machine] || 0) + amount;
+				}
+
 			}
 		}
 	}
@@ -288,14 +298,7 @@ export class Game {
 		if (!machine) return Infinity;
 
 		const count = currentCount !== undefined ? currentCount : (this.machines[machineName] || 0);
-		const r = machine.cost_factor;
-		const a = Math.floor(machine.initial_cost * Math.pow(r, count));
-
-		if (r === 1) {
-			return a * amount;
-		}
-
-		return Math.floor(a * (Math.pow(r, amount) - 1) / (r - 1));
+		return getCost(machine, amount, count);
 	}
 
 	getMaxAffordable(machineName: string, currentMoney?: number, currentCount?: number) {
@@ -303,19 +306,9 @@ export class Game {
 		if (!machine) return 0;
 
 		const count = currentCount !== undefined ? currentCount : (this.machines[machineName] || 0);
-		const r = machine.cost_factor;
-		const a = Math.floor(machine.initial_cost * Math.pow(r, count));
-
 		const money = currentMoney !== undefined ? currentMoney : this.money;
 
-		if (money < a) return 0;
-
-		if (r === 1) {
-			return Math.floor(this.money / a);
-		}
-
-		const n = Math.floor(Math.log(1 + this.money * (r - 1) / a) / Math.log(r));
-		return n;
+		return getMaxAffordable(machine, money, count);
 	}
 
 	buyMachine(machineName: string, amount: number = 1) {
@@ -377,14 +370,7 @@ export class Game {
 		if (!line) return Infinity;
 
 		const count = currentCount !== undefined ? currentCount : (this.machineProductionLines[lineName] || 0);
-		const r = line.cost_factor;
-		const a = Math.floor(line.initial_cost * Math.pow(r, count));
-
-		if (r === 1) {
-			return a * amount;
-		}
-
-		return Math.floor(a * (Math.pow(r, amount) - 1) / (r - 1));
+		return getCost(line, amount, count);
 	}
 
 	getMaxAffordableProductionLine(lineName: string, currentMoney?: number, currentCount?: number) {
@@ -392,19 +378,9 @@ export class Game {
 		if (!line) return 0;
 
 		const count = currentCount !== undefined ? currentCount : (this.machineProductionLines[lineName] || 0);
-		const r = line.cost_factor;
-		const a = Math.floor(line.initial_cost * Math.pow(r, count));
-
 		const money = currentMoney !== undefined ? currentMoney : this.money;
 
-		if (money < a) return 0;
-
-		if (r === 1) {
-			return Math.floor(money / a);
-		}
-
-		const n = Math.floor(Math.log(1 + money * (r - 1) / a) / Math.log(r));
-		return n;
+		return getMaxAffordable(line, money, count);
 	}
 
 	buyMachineProductionLine(lineName: string, amount: number = 1) {
@@ -428,14 +404,7 @@ export class Game {
 		if (!plantation) return Infinity;
 
 		const count = currentCount !== undefined ? currentCount : (this.plantations[plantationName] || 0);
-		const r = plantation.cost_factor;
-		const a = Math.floor(plantation.initial_cost * Math.pow(r, count));
-
-		if (r === 1) {
-			return a * amount;
-		}
-
-		return Math.floor(a * (Math.pow(r, amount) - 1) / (r - 1));
+		return getCost(plantation, amount, count);
 	}
 
 	getMaxAffordablePlantation(plantationName: string, currentMoney?: number, currentCount?: number) {
@@ -443,19 +412,9 @@ export class Game {
 		if (!plantation) return 0;
 
 		const count = currentCount !== undefined ? currentCount : (this.plantations[plantationName] || 0);
-		const r = plantation.cost_factor;
-		const a = Math.floor(plantation.initial_cost * Math.pow(r, count));
-
 		const money = currentMoney !== undefined ? currentMoney : this.money;
 
-		if (money < a) return 0;
-
-		if (r === 1) {
-			return Math.floor(money / a);
-		}
-
-		const n = Math.floor(Math.log(1 + money * (r - 1) / a) / Math.log(r));
-		return n;
+		return getMaxAffordable(plantation, money, count);
 	}
 
 	buyPlantation(plantationName: string, amount: number = 1) {

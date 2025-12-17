@@ -255,7 +255,7 @@
 					<p>SCORE: {formatNumber(score)}</p>
 					<p>Total Rubberbands Sold: {formatNumber(totalSold)}</p>
 					<p>Money: ${formatNumber(money)}</p>
-					<p>Ticks: {formatNumber(tickCount)}</p>
+					<p>Ticks: {tickCount}</p>
 				</div>
 
 				<div class="share-section">
