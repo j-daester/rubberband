@@ -129,16 +129,30 @@ export class Game {
 	}
 
 	get demand() {
-		let basevalue = 1.5
+		let basevalue = 1.1;
+		if (this.researched.includes('online_marketing')) {
+			basevalue *= 2;
+		}
 		if (this.researched.includes('hyperpersonalisation')) {
 			basevalue *= 2;
 		}
-		let demand = Math.floor(Math.pow(basevalue, this.marketingLevel) / this.rubberbandPrice * 10);
+		if (this.researched.includes('brainwashing')) {
+			basevalue *= 2;
+		}
+		if (this.researched.includes('hypnosis')) {
+			basevalue *= 2;
+		}
+		if (this.researched.includes('mind_control')) {
+			basevalue *= 2;
+		}
+		// Exponential demand curve: Demand ~ e^(-price)
+		// Calibrated with constant 30 to match previous values at reasonable prices (e.g., price ~1.0)
+		let demand = Math.floor(Math.pow(this.marketingLevel, basevalue) * 30 * Math.exp(-this.rubberbandPrice));
 		return demand;
 	}
 
 	get marketingCost() {
-		return GAME_CONSTANTS.MARKETING_BASE_COST * Math.pow(2, this.marketingLevel);
+		return GAME_CONSTANTS.MARKETING_BASE_COST * Math.pow(1.5, this.marketingLevel);
 	}
 
 	get maintenanceCost() {
@@ -431,6 +445,54 @@ export class Game {
 			return true;
 		}
 		return false;
+	}
+
+	sellMachine(machineName: string, amount: number = 1) {
+		if (this.gameOver) return false;
+		const machine = machineTypes.find(m => m.name === machineName);
+		if (!machine) return false;
+
+		const currentCount = this.machines[machineName] || 0;
+		if (currentCount < amount) return false;
+
+		// Calculate refund: 50% of the cost of the LAST 'amount' machines
+		// The cost to buy the *existing* machines from (currentCount - amount) to currentCount
+		// is getCost(machine, amount, currentCount - amount).
+		const refund = Math.floor(0.5 * getCost(machine, amount, currentCount - amount));
+
+		this.machines[machineName] = currentCount - amount;
+		this.money += refund;
+		return true;
+	}
+
+	sellMachineProductionLine(lineName: string, amount: number = 1) {
+		if (this.gameOver) return false;
+		const line = productionLines.find(l => l.name === lineName);
+		if (!line) return false;
+
+		const currentCount = this.machineProductionLines[lineName] || 0;
+		if (currentCount < amount) return false;
+
+		const refund = Math.floor(0.5 * getCost(line, amount, currentCount - amount));
+
+		this.machineProductionLines[lineName] = currentCount - amount;
+		this.money += refund;
+		return true;
+	}
+
+	sellPlantation(plantationName: string, amount: number = 1) {
+		if (this.gameOver) return false;
+		const plantation = plantationTypes.find(p => p.name === plantationName);
+		if (!plantation) return false;
+
+		const currentCount = this.plantations[plantationName] || 0;
+		if (currentCount < amount) return false;
+
+		const refund = Math.floor(0.5 * getCost(plantation, amount, currentCount - amount));
+
+		this.plantations[plantationName] = currentCount - amount;
+		this.money += refund;
+		return true;
 	}
 
 	setRubberbandPrice(price: number) {

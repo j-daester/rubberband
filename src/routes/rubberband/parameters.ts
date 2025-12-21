@@ -67,33 +67,62 @@ export function getMaxAffordable(item: PurchasableItem, money: number, currentCo
 // --- Data ---
 
 export const researchList: ResearchType[] = [
-	{
-		id: 'hyperpersonalisation',
-		name: 'Hyperpersonalisation',
-		description: 'Increases the effectivity of marketing significantly.',
-		cost: 5000,
-		unlock_level: 5
-	},
+
 	{
 		id: 'rubber_recycling',
 		name: 'Rubber Recycling',
 		description: 'Increases the output of rubber plantations and synthetic rubber factories by factor 2.',
-		cost: 10000,
-		unlock_level: 10
+		cost: 100000,
+		unlock_level: 20
 	},
 	{
 		id: 'synthetic_rubber',
 		name: 'Synthetic Rubber',
 		description: 'Makes synthetic rubber factories available.',
-		cost: 25000,
+		cost: 2500000,
 		unlock_level: 25
 	},
 	{
 		id: 'robotics',
 		name: 'Robotics',
 		description: 'Makes machines more efficient.',
-		cost: 25000,
+		cost: 5000000,
 		unlock_level: 30
+	},
+	{
+		id: 'online_marketing',
+		name: 'Online Marketing',
+		description: 'Increases the effectivity of marketing significantly.',
+		cost: 5000,
+		unlock_level: 15
+	},
+	{
+		id: 'hyperpersonalisation',
+		name: 'Hyperpersonalisation',
+		description: 'Increases the effectivity of marketing significantly.',
+		cost: 50000,
+		unlock_level: 15
+	},
+	{
+		id: 'brainwashing',
+		name: 'Brainwashing',
+		description: 'Uses Brainwashing to compel customers to buy rubberbands.',
+		cost: 1000000,
+		unlock_level: 45
+	},
+	{
+		id: 'hypnosis',
+		name: 'Hypnosis',
+		description: 'Uses mass hypnosis to compel customers to buy rubberbands.',
+		cost: 1000000000,
+		unlock_level: 50
+	},
+	{
+		id: 'mind_control',
+		name: 'Mind Control',
+		description: 'Uses mind control to compel customers to buy rubberbands.',
+		cost: 1000000000000,
+		unlock_level: 55
 	}
 ];
 
@@ -110,7 +139,7 @@ export const machineTypes: MachineType[] = [
 		name: "MAX-Bander",
 		output: 1000,
 		initial_cost: 750,
-		cost_factor: 1.2,
+		cost_factor: 1.25,
 		unlock_level: 5,
 		maintenance_cost: 20
 	},
@@ -118,7 +147,7 @@ export const machineTypes: MachineType[] = [
 		name: "MEGA-Bander",
 		output: 100000,
 		initial_cost: 5000,
-		cost_factor: 1.3,
+		cost_factor: 1.5,
 		unlock_level: 15,
 		maintenance_cost: 100
 	},
@@ -128,7 +157,7 @@ export const productionLines: ProductionLine[] = [
 	{
 		name: "Bander Line",
 		machine: "Bander",
-		output: 100,
+		output: 1,
 		initial_cost: 1000000,
 		cost_factor: 1.5,
 		unlock_level: 15
@@ -136,7 +165,7 @@ export const productionLines: ProductionLine[] = [
 	{
 		name: "MAX-Bander Line",
 		machine: "MAX-Bander",
-		output: 1000,
+		output: 1,
 		initial_cost: 10000000,
 		cost_factor: 1.5,
 		unlock_level: 30
@@ -144,7 +173,7 @@ export const productionLines: ProductionLine[] = [
 	{
 		name: "MEGA-Bander Line",
 		machine: "MEGA-Bander",
-		output: 100000,
+		output: 1,
 		initial_cost: 100000000,
 		cost_factor: 1.5,
 		unlock_level: 50
@@ -187,13 +216,13 @@ export const GAME_CONSTANTS = {
 	INITIAL_MARKETING_LEVEL: 1,
 	BUYER_COST: 1000,
 	BUYER_UNLOCK_LEVEL: 7,
-	MARKETING_BASE_COST: 700,
+	MARKETING_BASE_COST: 300,
 	PRICE_FLUCTUATION_INTERVAL: 10,
 	MIN_RUBBER_PRICE: 0.01,
 	MAX_RUBBER_PRICE: 10.0,
 	MIN_RUBBERBAND_PRICE: 0.01,
 	MACHINES_UNLOCK_LEVEL: 2,
-	MARKETING_UNLOCK_LEVEL: 5,
+	MARKETING_UNLOCK_LEVEL: 3,
 	LEVEL_DIFFICULTY_FACTOR: 1.25,
 	LEVEL_REQ_BASE: 100,
 	LEVEL_REQ_OFFSET: 80,

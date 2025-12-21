@@ -44,6 +44,12 @@
 		}
 	}
 
+	function handleSell(machineName: string, amount: number = 1) {
+		if (game.sellMachine(machineName, amount)) {
+			dispatch('action');
+		}
+	}
+
 	const minUnlockLevel = Math.min(...machineTypes.map((m) => m.unlock_level));
 </script>
 
@@ -81,12 +87,11 @@
 								Buy
 							</button>
 							<button
-								class="buy-btn max-btn"
-								disabled={max <= 0}
-								on:click={() => handleBuy(machine.name, max)}
-								title="Buy Max"
+								class="buy-btn sell-btn"
+								disabled={owned <= 0}
+								on:click={() => handleSell(machine.name)}
 							>
-								Buy ({formatNumber(max)})
+								Sell
 							</button>
 						</div>
 					</div>
@@ -171,13 +176,16 @@
 		color: #666;
 	}
 
-	.buy-btn:not(.max-btn) {
+	.buy-btn:not(.sell-btn) {
 		flex: 2;
 	}
 
-	.max-btn {
+	.sell-btn {
+		background: #663333;
 		flex: 1;
-		font-size: 0.85em;
-		padding: 0.75rem 0.5rem;
+	}
+
+	.sell-btn:hover:not(:disabled) {
+		background: #884444;
 	}
 </style>
