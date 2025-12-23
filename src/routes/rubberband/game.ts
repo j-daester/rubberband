@@ -7,6 +7,7 @@ export interface GameState {
 	rubberbands: number;
 	rubber: number;
 	machines: Record<string, number>;
+	purchasedMachines: Record<string, number>;
 	totalRubberbandsSold: number;
 	buyerHired: boolean;
 	buyerThreshold: number;
@@ -16,6 +17,7 @@ export interface GameState {
 	marketingLevel: number;
 	machineProductionLines: Record<string, number>;
 	plantations: Record<string, number>;
+	purchasedPlantations: Record<string, number>;
 	researched: string[];
 	gameOver: boolean;
 }
@@ -25,6 +27,7 @@ export class Game {
 	rubberbands!: number;
 	rubber!: number;
 	machines!: Record<string, number>;
+	purchasedMachines!: Record<string, number>;
 	totalRubberbandsSold!: number;
 	buyerHired!: boolean;
 	buyerThreshold!: number;
@@ -34,6 +37,7 @@ export class Game {
 	marketingLevel!: number;
 	machineProductionLines!: Record<string, number>;
 	plantations!: Record<string, number>;
+	purchasedPlantations!: Record<string, number>;
 	researched!: string[];
 	gameOver!: boolean;
 
@@ -44,19 +48,21 @@ export class Game {
 		if (serialized) {
 			try {
 				const data = JSON.parse(serialized) as GameState;
-				this.money = data.money;
-				this.rubberbands = data.rubberbands;
-				this.rubber = data.rubber;
-				this.machines = data.machines;
-				this.totalRubberbandsSold = data.totalRubberbandsSold;
-				this.buyerHired = data.buyerHired;
-				this.buyerThreshold = data.buyerThreshold;
-				this.rubberPrice = data.rubberPrice;
-				this.rubberbandPrice = data.rubberbandPrice;
-				this.tickCount = data.tickCount;
-				this.marketingLevel = data.marketingLevel;
+				this.money = data.money || GAME_CONSTANTS.INITIAL_MONEY;
+				this.rubberbands = data.rubberbands || 0;
+				this.rubber = data.rubber || 0;
+				this.machines = data.machines || {};
+				this.totalRubberbandsSold = data.totalRubberbandsSold || 0;
+				this.buyerHired = data.buyerHired || false;
+				this.buyerThreshold = data.buyerThreshold || 0;
+				this.rubberPrice = data.rubberPrice || GAME_CONSTANTS.INITIAL_RUBBER_PRICE;
+				this.rubberbandPrice = data.rubberbandPrice || GAME_CONSTANTS.INITIAL_RUBBERBAND_PRICE;
+				this.tickCount = data.tickCount || 0;
+				this.marketingLevel = data.marketingLevel || GAME_CONSTANTS.INITIAL_MARKETING_LEVEL;
 				this.machineProductionLines = data.machineProductionLines || {};
 				this.plantations = data.plantations || {};
+				this.purchasedMachines = data.purchasedMachines || { ...this.machines };
+				this.purchasedPlantations = data.purchasedPlantations || { ...this.plantations };
 				this.researched = data.researched || [];
 				this.gameOver = data.gameOver || false;
 				// Migration from old save if needed
@@ -94,6 +100,7 @@ export class Game {
 		for (const machine of machineTypes) {
 			this.machines[machine.name] = 0;
 		}
+		this.purchasedMachines = { ...this.machines };
 		this.buyerHired = false;
 		this.buyerThreshold = 0;
 		this.rubberPrice = GAME_CONSTANTS.INITIAL_RUBBER_PRICE;
@@ -103,17 +110,26 @@ export class Game {
 		this.tickCount = 0;
 		this.machineProductionLines = {};
 		this.plantations = {};
+		this.purchasedPlantations = {};
 		this.researched = [];
 		this.gameOver = false;
+	}
+
+	getMachineOutputPerUnit(machineName: string) {
+		const machine = machineTypes.find(m => m.name === machineName);
+		if (!machine) return 0;
+
+		let output = machine.output;
+		if (this.researched.includes('robotics')) {
+			output *= 2;
+		}
+		return output;
 	}
 
 	get productionRate() {
 		let rate = 0;
 		for (const machine of machineTypes) {
-			rate += (this.machines[machine.name] || 0) * machine.output;
-		}
-		if (this.researched.includes('robotics')) {
-			rate *= 2;
+			rate += (this.machines[machine.name] || 0) * this.getMachineOutputPerUnit(machine.name);
 		}
 		return rate;
 	}
@@ -201,16 +217,24 @@ export class Game {
 		}
 	}
 
+	getPlantationOutputPerUnit(plantationName: string) {
+		const plantation = plantationTypes.find(p => p.name === plantationName);
+		if (!plantation) return 0;
+
+		let output = plantation.output;
+		if (this.researched.includes('rubber_recycling')) {
+			output *= 2;
+		}
+		if (this.researched.includes('robotics')) {
+			output *= 5;
+		}
+		return output;
+	}
+
 	get plantationProductionRate() {
 		let rate = 0;
 		for (const plantation of plantationTypes) {
-			rate += (this.plantations[plantation.name] || 0) * plantation.output;
-		}
-		if (this.researched.includes('rubber_recycling')) {
-			rate *= 2;
-		}
-		if (this.researched.includes('robotics')) {
-			rate *= 5;
+			rate += (this.plantations[plantation.name] || 0) * this.getPlantationOutputPerUnit(plantation.name);
 		}
 		return rate;
 	}
@@ -311,7 +335,7 @@ export class Game {
 		const machine = machineTypes.find(m => m.name === machineName);
 		if (!machine) return Infinity;
 
-		const count = currentCount !== undefined ? currentCount : (this.machines[machineName] || 0);
+		const count = currentCount !== undefined ? currentCount : (this.purchasedMachines[machineName] || 0);
 		return getCost(machine, amount, count);
 	}
 
@@ -319,14 +343,25 @@ export class Game {
 		const machine = machineTypes.find(m => m.name === machineName);
 		if (!machine) return 0;
 
-		const count = currentCount !== undefined ? currentCount : (this.machines[machineName] || 0);
+		const count = currentCount !== undefined ? currentCount : (this.purchasedMachines[machineName] || 0);
 		const money = currentMoney !== undefined ? currentMoney : this.money;
 
 		return getMaxAffordable(machine, money, count);
 	}
 
+	isBeingProduced(itemName: string) {
+		for (const line of productionLines) {
+			if (line.machine === itemName && (this.machineProductionLines[line.name] || 0) > 0) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	buyMachine(machineName: string, amount: number = 1) {
 		if (this.gameOver) return false;
+		if (this.isBeingProduced(machineName)) return false;
+
 		const machine = machineTypes.find(m => m.name === machineName);
 		if (!machine) return false;
 
@@ -337,6 +372,7 @@ export class Game {
 		if (this.money >= cost) {
 			this.money -= cost;
 			this.machines[machineName] = (this.machines[machineName] || 0) + amount;
+			this.purchasedMachines[machineName] = (this.purchasedMachines[machineName] || 0) + amount;
 			return true;
 		}
 
@@ -417,7 +453,7 @@ export class Game {
 		const plantation = plantationTypes.find(p => p.name === plantationName);
 		if (!plantation) return Infinity;
 
-		const count = currentCount !== undefined ? currentCount : (this.plantations[plantationName] || 0);
+		const count = currentCount !== undefined ? currentCount : (this.purchasedPlantations[plantationName] || 0);
 		return getCost(plantation, amount, count);
 	}
 
@@ -425,7 +461,7 @@ export class Game {
 		const plantation = plantationTypes.find(p => p.name === plantationName);
 		if (!plantation) return 0;
 
-		const count = currentCount !== undefined ? currentCount : (this.plantations[plantationName] || 0);
+		const count = currentCount !== undefined ? currentCount : (this.purchasedPlantations[plantationName] || 0);
 		const money = currentMoney !== undefined ? currentMoney : this.money;
 
 		return getMaxAffordable(plantation, money, count);
@@ -433,6 +469,8 @@ export class Game {
 
 	buyPlantation(plantationName: string, amount: number = 1) {
 		if (this.gameOver) return false;
+		if (this.isBeingProduced(plantationName)) return false;
+
 		const plantation = plantationTypes.find(p => p.name === plantationName);
 		if (!plantation) return false;
 
@@ -442,6 +480,7 @@ export class Game {
 		if (this.money >= cost) {
 			this.money -= cost;
 			this.plantations[plantationName] = (this.plantations[plantationName] || 0) + amount;
+			this.purchasedPlantations[plantationName] = (this.purchasedPlantations[plantationName] || 0) + amount;
 			return true;
 		}
 		return false;
@@ -449,6 +488,8 @@ export class Game {
 
 	sellMachine(machineName: string, amount: number = 1) {
 		if (this.gameOver) return false;
+		if (this.isBeingProduced(machineName)) return false;
+
 		const machine = machineTypes.find(m => m.name === machineName);
 		if (!machine) return false;
 
@@ -456,9 +497,45 @@ export class Game {
 		if (currentCount < amount) return false;
 
 		// Calculate refund: 50% of the cost of the LAST 'amount' machines
-		// The cost to buy the *existing* machines from (currentCount - amount) to currentCount
-		// is getCost(machine, amount, currentCount - amount).
-		const refund = Math.floor(0.5 * getCost(machine, amount, currentCount - amount));
+		// The cost to buy the *existing* PRODUCED machines... wait.
+		// If we are selling, we are reducing the count. The user wants the price to be "frozen" during production.
+		// But sell is disabled during production. So "frozen price" is only for READ purposes during production.
+		// When selling, we are OUT of production.
+		// So we need to calculate refund based on PURCHASED count, because we only sell purchased machines (conceptually we sell any, but price scales on purchased).
+		// Wait, if I have 100 machines (1 purchased, 99 produced).
+		// Price is at level 1. I sell 1.
+		// Refund should probably be based on level 1.
+		// If I sell 1, purchased count goes to 0. Price drops to level 0.
+
+		const purchasedCount = this.purchasedMachines[machineName] || 0;
+		// Refund is based on purchased count logic?
+		// "price continues to grow from the frozen price onwards for each bought machine afterwards"
+		// If I sell, price should shrink.
+		// Standard game logic: selling gives 50% of what it would cost to buy them back.
+		// Cost to buy back is based on PURCHASED count.
+
+		// We need to figure out how much refund.
+		// getCost uses purchasedMachines count now.
+		// So `getCost(machine, amount, purchasedCount - amount)` is the cost of the last `amount` purchased machines.
+		// But what if I sell more than I purchased? e.g. Sell produced machines?
+		// The prompt doesn't explicitly say what happens to produced machines price-wise.
+		// But since price ONLY scales with manual purchases, produced machines effectively have "0 cost" impact on price.
+		// So we shouldn't get refund for produced machines? Or we get refund based on current price?
+		// Use case: I buy 1 machine (cost 100). Produced 10 machines. Total 11.
+		// Sell 1. Refund 50. Total 10. Purchased 0.
+		// Sell 1 again. Refund 50? Or 0?
+		// If I sell a produced machine, I probably shouldn't get money back as if I bought it?
+		// "Sell ... at half their purchase price". Produced machines have 0 purchase price.
+		// So I only get refund if I decrement `purchased` count?
+		// Let's assume yes. Refund is only for purchased items.
+
+		const sellAmountFromPurchased = Math.min(amount, purchasedCount);
+
+		let refund = 0;
+		if (sellAmountFromPurchased > 0) {
+			refund = Math.floor(0.5 * getCost(machine, sellAmountFromPurchased, purchasedCount - sellAmountFromPurchased));
+			this.purchasedMachines[machineName] = purchasedCount - sellAmountFromPurchased;
+		}
 
 		this.machines[machineName] = currentCount - amount;
 		this.money += refund;
@@ -482,13 +559,22 @@ export class Game {
 
 	sellPlantation(plantationName: string, amount: number = 1) {
 		if (this.gameOver) return false;
+		if (this.isBeingProduced(plantationName)) return false;
+
 		const plantation = plantationTypes.find(p => p.name === plantationName);
 		if (!plantation) return false;
 
 		const currentCount = this.plantations[plantationName] || 0;
 		if (currentCount < amount) return false;
 
-		const refund = Math.floor(0.5 * getCost(plantation, amount, currentCount - amount));
+		const purchasedCount = this.purchasedPlantations[plantationName] || 0;
+		const sellAmountFromPurchased = Math.min(amount, purchasedCount);
+
+		let refund = 0;
+		if (sellAmountFromPurchased > 0) {
+			refund = Math.floor(0.5 * getCost(plantation, sellAmountFromPurchased, purchasedCount - sellAmountFromPurchased));
+			this.purchasedPlantations[plantationName] = purchasedCount - sellAmountFromPurchased;
+		}
 
 		this.plantations[plantationName] = currentCount - amount;
 		this.money += refund;
@@ -530,6 +616,7 @@ export class Game {
 			rubberbands: this.rubberbands,
 			rubber: this.rubber,
 			machines: this.machines,
+			purchasedMachines: this.purchasedMachines,
 			totalRubberbandsSold: this.totalRubberbandsSold,
 			buyerHired: this.buyerHired,
 			buyerThreshold: this.buyerThreshold,
@@ -539,6 +626,7 @@ export class Game {
 			marketingLevel: this.marketingLevel,
 			machineProductionLines: this.machineProductionLines,
 			plantations: this.plantations,
+			purchasedPlantations: this.purchasedPlantations,
 			researched: this.researched,
 			gameOver: this.gameOver
 		};

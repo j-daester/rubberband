@@ -62,15 +62,19 @@
 			{#each machineTypes as machine}
 				{#if game.level >= machine.unlock_level}
 					{@const owned = game.machines[machine.name] || 0}
-					{@const max = game.getMaxAffordable(machine.name, game.money, owned)}
+					{@const purchased = game.purchasedMachines[machine.name] || 0}
+					{@const max = game.getMaxAffordable(machine.name, game.money, purchased)}
 					{@const amount = buyAmount === -1 ? Math.max(1, max) : buyAmount}
-					{@const cost = game.getMachineCost(machine.name, amount, owned)}
+					{@const cost = game.getMachineCost(machine.name, amount, purchased)}
 					{@const canAfford = game.money >= cost}
+					{@const isBeingProduced = game.isBeingProduced(machine.name)}
 
 					<div class="machine-card">
 						<div class="machine-info">
 							<h3>{machine.name}</h3>
-							<p class="details">Output: {formatNumber(machine.output)}/tick</p>
+							<p class="details">
+								Output: {formatNumber(game.getMachineOutputPerUnit(machine.name))}/tick
+							</p>
 							<p class="details">Maint: ${formatNumber(machine.maintenance_cost)}/tick</p>
 							<p class="owned">Owned: {formatNumber(owned)}</p>
 							<p class="details">
@@ -81,15 +85,19 @@
 						<div class="actions">
 							<button
 								class="buy-btn"
-								disabled={(!canAfford && buyAmount !== -1) || (buyAmount === -1 && max === 0)}
+								disabled={(!canAfford && buyAmount !== -1) ||
+									(buyAmount === -1 && max === 0) ||
+									isBeingProduced}
 								on:click={() => handleBuy(machine.name)}
+								title={isBeingProduced ? 'Cannot buy while being produced by heavy industry' : ''}
 							>
 								Buy
 							</button>
 							<button
 								class="buy-btn sell-btn"
-								disabled={owned <= 0}
+								disabled={owned <= 0 || isBeingProduced}
 								on:click={() => handleSell(machine.name)}
+								title={isBeingProduced ? 'Cannot sell while being produced by heavy industry' : ''}
 							>
 								Sell
 							</button>

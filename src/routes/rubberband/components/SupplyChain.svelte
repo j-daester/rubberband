@@ -126,15 +126,19 @@
 			{#each plantationTypes as plantation}
 				{#if game.isPlantationUnlocked(plantation)}
 					{@const owned = game.plantations[plantation.name] || 0}
-					{@const max = game.getMaxAffordablePlantation(plantation.name, game.money, owned)}
+					{@const purchased = game.purchasedPlantations[plantation.name] || 0}
+					{@const max = game.getMaxAffordablePlantation(plantation.name, game.money, purchased)}
 					{@const amount = buyAmount === -1 ? Math.max(1, max) : buyAmount}
-					{@const cost = game.getPlantationCost(plantation.name, amount, owned)}
+					{@const cost = game.getPlantationCost(plantation.name, amount, purchased)}
 					{@const canAfford = game.money >= cost}
+					{@const isBeingProduced = game.isBeingProduced(plantation.name)}
 
 					<div class="plantation-card">
 						<div class="plantation-info">
 							<h3>{plantation.name}</h3>
-							<p class="details">Output: {formatNumber(plantation.output)} Rubber/tick</p>
+							<p class="details">
+								Output: {formatNumber(game.getPlantationOutputPerUnit(plantation.name))} Rubber/tick
+							</p>
 							<p class="details">Maint: ${formatNumber(plantation.maintenance_cost)}/tick</p>
 							<p class="owned">Owned: {formatNumber(owned)}</p>
 							<p class="details">
@@ -145,15 +149,19 @@
 						<div class="actions">
 							<button
 								class="buy-btn"
-								disabled={(!canAfford && buyAmount !== -1) || (buyAmount === -1 && max === 0)}
+								disabled={(!canAfford && buyAmount !== -1) ||
+									(buyAmount === -1 && max === 0) ||
+									isBeingProduced}
 								on:click={() => handleBuy(plantation.name)}
+								title={isBeingProduced ? 'Cannot buy while being produced by heavy industry' : ''}
 							>
 								Buy
 							</button>
 							<button
 								class="buy-btn sell-btn"
-								disabled={owned <= 0}
+								disabled={owned <= 0 || isBeingProduced}
 								on:click={() => handleSell(plantation.name)}
+								title={isBeingProduced ? 'Cannot sell while being produced by heavy industry' : ''}
 							>
 								Sell
 							</button>
