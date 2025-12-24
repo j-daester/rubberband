@@ -2,8 +2,8 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "type": "npm",
-            "script": "dev",
+            "type": "shell",
+            "command": "npx pnpm dev",
             "problemMatcher": [
                 {
                     "owner": "typescript",
@@ -24,7 +24,7 @@
                     }
                 }
             ],
-            "label": "npm: dev",
+            "label": "pnpm: dev",
             "isBackground": true,
             "presentation": {
                 "reveal": "never",
