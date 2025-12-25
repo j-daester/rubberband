@@ -1,4 +1,4 @@
-import { machineTypes, productionLines, plantationTypes, researchList, GAME_CONSTANTS, getCost, getMaxAffordable, type PlantationType, type ResearchType } from './parameters';
+import { machineTypes, productionLines, rubberSources, researchList, GAME_CONSTANTS, getCost, getMaxAffordable, type RubberSource, type ResearchType, type MachineType, type ProductionLine } from './parameters';
 
 export type MachineName = typeof machineTypes[number]['name'];
 
@@ -16,8 +16,8 @@ export interface GameState {
 	tickCount: number;
 	marketingLevel: number;
 	machineProductionLines: Record<string, number>;
-	plantations: Record<string, number>;
-	purchasedPlantations: Record<string, number>;
+	rubberSources: Record<string, number>;
+	purchasedRubberSources: Record<string, number>;
 	researched: string[];
 	gameOver: boolean;
 }
@@ -36,8 +36,8 @@ export class Game {
 	tickCount!: number;
 	marketingLevel!: number;
 	machineProductionLines!: Record<string, number>;
-	plantations!: Record<string, number>;
-	purchasedPlantations!: Record<string, number>;
+	rubberSources!: Record<string, number>;
+	purchasedRubberSources!: Record<string, number>;
 	researched!: string[];
 	gameOver!: boolean;
 
@@ -60,9 +60,9 @@ export class Game {
 				this.tickCount = data.tickCount || 0;
 				this.marketingLevel = data.marketingLevel || GAME_CONSTANTS.INITIAL_MARKETING_LEVEL;
 				this.machineProductionLines = data.machineProductionLines || {};
-				this.plantations = data.plantations || {};
+				this.rubberSources = data.rubberSources || (data as any).plantations || {};
 				this.purchasedMachines = data.purchasedMachines || { ...this.machines };
-				this.purchasedPlantations = data.purchasedPlantations || { ...this.plantations };
+				this.purchasedRubberSources = data.purchasedRubberSources || (data as any).purchasedPlantations || { ...this.rubberSources };
 				this.researched = data.researched || [];
 				this.gameOver = data.gameOver || false;
 				// Migration from old save if needed
@@ -77,9 +77,9 @@ export class Game {
 					}
 				}
 				// Migration for typo fix "Syntetic" -> "Synthetic"
-				if (this.plantations["Syntetic Rubber Factory"]) {
-					this.plantations["Synthetic Rubber Factory"] = (this.plantations["Synthetic Rubber Factory"] || 0) + this.plantations["Syntetic Rubber Factory"];
-					delete this.plantations["Syntetic Rubber Factory"];
+				if (this.rubberSources["Syntetic Rubber Factory"]) {
+					this.rubberSources["Synthetic Rubber Factory"] = (this.rubberSources["Synthetic Rubber Factory"] || 0) + this.rubberSources["Syntetic Rubber Factory"];
+					delete this.rubberSources["Syntetic Rubber Factory"];
 				}
 			} catch (e) {
 				console.error('Failed to parse save game', e);
@@ -109,8 +109,8 @@ export class Game {
 		this.tickCount = 0;
 		this.tickCount = 0;
 		this.machineProductionLines = {};
-		this.plantations = {};
-		this.purchasedPlantations = {};
+		this.rubberSources = {};
+		this.purchasedRubberSources = {};
 		this.researched = [];
 		this.gameOver = false;
 	}
@@ -176,8 +176,8 @@ export class Game {
 		for (const machine of machineTypes) {
 			cost += (this.machines[machine.name] || 0) * machine.maintenance_cost;
 		}
-		for (const plantation of plantationTypes) {
-			cost += (this.plantations[plantation.name] || 0) * plantation.maintenance_cost;
+		for (const source of rubberSources) {
+			cost += (this.rubberSources[source.name] || 0) * source.maintenance_cost;
 		}
 		return cost;
 	}
@@ -194,7 +194,7 @@ export class Game {
 
 		this.updateMarket();
 		this.produceResources();
-		this.produceRubberFromPlantations();
+		this.produceRubberFromSources();
 		this.produceMachines();
 		this.handleAutoBuy();
 		this.handleAutoSell();
@@ -207,8 +207,8 @@ export class Game {
 			const count = this.machineProductionLines[line.name] || 0;
 			if (count > 0) {
 				const amount = count * line.output;
-				if (line.product_type === 'plantation') {
-					this.plantations[line.machine] = (this.plantations[line.machine] || 0) + amount;
+				if (line.product_type === 'rubber_source') {
+					this.rubberSources[line.machine] = (this.rubberSources[line.machine] || 0) + amount;
 				} else {
 					this.machines[line.machine] = (this.machines[line.machine] || 0) + amount;
 				}
@@ -217,11 +217,11 @@ export class Game {
 		}
 	}
 
-	getPlantationOutputPerUnit(plantationName: string) {
-		const plantation = plantationTypes.find(p => p.name === plantationName);
-		if (!plantation) return 0;
+	getRubberSourceOutputPerUnit(sourceName: string) {
+		const source = rubberSources.find(p => p.name === sourceName);
+		if (!source) return 0;
 
-		let output = plantation.output;
+		let output = source.output;
 		if (this.researched.includes('rubber_recycling')) {
 			output *= 2;
 		}
@@ -231,28 +231,28 @@ export class Game {
 		return output;
 	}
 
-	get plantationProductionRate() {
+	get rubberProductionRate() {
 		let rate = 0;
-		for (const plantation of plantationTypes) {
-			rate += (this.plantations[plantation.name] || 0) * this.getPlantationOutputPerUnit(plantation.name);
+		for (const source of rubberSources) {
+			rate += (this.rubberSources[source.name] || 0) * this.getRubberSourceOutputPerUnit(source.name);
 		}
 		return rate;
 	}
 
 	get rubberShortage() {
 		const production = this.productionRate;
-		const plantation = this.plantationProductionRate;
+		const sourceProduction = this.rubberProductionRate;
 		const autoBuyCapacity = this.buyerHired ? GAME_CONSTANTS.MAX_RUBBER_NO_PRODUCTION : 0;
 
-		return production > (plantation + Math.min(autoBuyCapacity, this.buyerThreshold));
+		return production > (sourceProduction + Math.min(autoBuyCapacity, this.buyerThreshold));
 	}
 
 	get maxRubber() {
-		return GAME_CONSTANTS.MAX_RUBBER_NO_PRODUCTION + this.plantationProductionRate;
+		return GAME_CONSTANTS.MAX_RUBBER_NO_PRODUCTION + this.rubberProductionRate;
 	}
 
-	private produceRubberFromPlantations() {
-		const production = this.plantationProductionRate;
+	private produceRubberFromSources() {
+		const production = this.rubberProductionRate;
 		if (production > 0) {
 			this.rubber += production;
 		}
@@ -365,7 +365,8 @@ export class Game {
 		const machine = machineTypes.find(m => m.name === machineName);
 		if (!machine) return false;
 
-		if (this.level < machine.unlock_level) return false;
+		if (machine.allow_manual_purchase === false) return false;
+		if (!this.isMachineUnlocked(machine)) return false;
 
 		const cost = this.getMachineCost(machineName, amount);
 
@@ -438,7 +439,7 @@ export class Game {
 		const line = productionLines.find(l => l.name === lineName);
 		if (!line) return false;
 
-		if (this.level < line.unlock_level) return false;
+		if (!this.isProductionLineUnlocked(line)) return false;
 
 		const cost = this.getMachineProductionLineCost(lineName, amount);
 		if (this.money >= cost) {
@@ -449,38 +450,39 @@ export class Game {
 		return false;
 	}
 
-	getPlantationCost(plantationName: string, amount: number, currentCount?: number) {
-		const plantation = plantationTypes.find(p => p.name === plantationName);
-		if (!plantation) return Infinity;
+	getRubberSourceCost(sourceName: string, amount: number, currentCount?: number) {
+		const source = rubberSources.find(p => p.name === sourceName);
+		if (!source) return Infinity;
 
-		const count = currentCount !== undefined ? currentCount : (this.purchasedPlantations[plantationName] || 0);
-		return getCost(plantation, amount, count);
+		const count = currentCount !== undefined ? currentCount : (this.purchasedRubberSources[sourceName] || 0);
+		return getCost(source, amount, count);
 	}
 
-	getMaxAffordablePlantation(plantationName: string, currentMoney?: number, currentCount?: number) {
-		const plantation = plantationTypes.find(p => p.name === plantationName);
-		if (!plantation) return 0;
+	getMaxAffordableRubberSource(sourceName: string, currentMoney?: number, currentCount?: number) {
+		const source = rubberSources.find(p => p.name === sourceName);
+		if (!source) return 0;
 
-		const count = currentCount !== undefined ? currentCount : (this.purchasedPlantations[plantationName] || 0);
+		const count = currentCount !== undefined ? currentCount : (this.purchasedRubberSources[sourceName] || 0);
 		const money = currentMoney !== undefined ? currentMoney : this.money;
 
-		return getMaxAffordable(plantation, money, count);
+		return getMaxAffordable(source, money, count);
 	}
 
-	buyPlantation(plantationName: string, amount: number = 1) {
+	buyRubberSource(sourceName: string, amount: number = 1) {
 		if (this.gameOver) return false;
-		if (this.isBeingProduced(plantationName)) return false;
+		if (this.isBeingProduced(sourceName)) return false;
 
-		const plantation = plantationTypes.find(p => p.name === plantationName);
-		if (!plantation) return false;
+		const source = rubberSources.find(p => p.name === sourceName);
+		if (!source) return false;
 
-		if (this.level < plantation.unlock_level) return false;
+		if (source.allow_manual_purchase === false) return false;
+		if (!this.isRubberSourceUnlocked(source)) return false;
 
-		const cost = this.getPlantationCost(plantationName, amount);
+		const cost = this.getRubberSourceCost(sourceName, amount);
 		if (this.money >= cost) {
 			this.money -= cost;
-			this.plantations[plantationName] = (this.plantations[plantationName] || 0) + amount;
-			this.purchasedPlantations[plantationName] = (this.purchasedPlantations[plantationName] || 0) + amount;
+			this.rubberSources[sourceName] = (this.rubberSources[sourceName] || 0) + amount;
+			this.purchasedRubberSources[sourceName] = (this.purchasedRubberSources[sourceName] || 0) + amount;
 			return true;
 		}
 		return false;
@@ -557,26 +559,26 @@ export class Game {
 		return true;
 	}
 
-	sellPlantation(plantationName: string, amount: number = 1) {
+	sellRubberSource(sourceName: string, amount: number = 1) {
 		if (this.gameOver) return false;
-		if (this.isBeingProduced(plantationName)) return false;
+		if (this.isBeingProduced(sourceName)) return false;
 
-		const plantation = plantationTypes.find(p => p.name === plantationName);
-		if (!plantation) return false;
+		const source = rubberSources.find(p => p.name === sourceName);
+		if (!source) return false;
 
-		const currentCount = this.plantations[plantationName] || 0;
+		const currentCount = this.rubberSources[sourceName] || 0;
 		if (currentCount < amount) return false;
 
-		const purchasedCount = this.purchasedPlantations[plantationName] || 0;
+		const purchasedCount = this.purchasedRubberSources[sourceName] || 0;
 		const sellAmountFromPurchased = Math.min(amount, purchasedCount);
 
 		let refund = 0;
 		if (sellAmountFromPurchased > 0) {
-			refund = Math.floor(0.5 * getCost(plantation, sellAmountFromPurchased, purchasedCount - sellAmountFromPurchased));
-			this.purchasedPlantations[plantationName] = purchasedCount - sellAmountFromPurchased;
+			refund = Math.floor(0.5 * getCost(source, sellAmountFromPurchased, purchasedCount - sellAmountFromPurchased));
+			this.purchasedRubberSources[sourceName] = purchasedCount - sellAmountFromPurchased;
 		}
 
-		this.plantations[plantationName] = currentCount - amount;
+		this.rubberSources[sourceName] = currentCount - amount;
 		this.money += refund;
 		return true;
 	}
@@ -584,6 +586,13 @@ export class Game {
 	setRubberbandPrice(price: number) {
 		this.rubberbandPrice = price;
 		if (this.rubberbandPrice < GAME_CONSTANTS.MIN_RUBBERBAND_PRICE) this.rubberbandPrice = GAME_CONSTANTS.MIN_RUBBERBAND_PRICE;
+	}
+
+	isMachineUnlocked(machine: MachineType) {
+		if (machine.required_research) {
+			return this.researched.includes(machine.required_research);
+		}
+		return this.level >= machine.unlock_level;
 	}
 
 	buyResearch(researchId: string) {
@@ -603,11 +612,18 @@ export class Game {
 		return false;
 	}
 
-	isPlantationUnlocked(plantation: PlantationType) {
-		if (plantation.required_research) {
-			return this.researched.includes(plantation.required_research);
+	isProductionLineUnlocked(line: ProductionLine) {
+		if (line.required_research) {
+			return this.researched.includes(line.required_research);
 		}
-		return this.level >= plantation.unlock_level;
+		return this.level >= line.unlock_level;
+	}
+
+	isRubberSourceUnlocked(source: RubberSource) {
+		if (source.required_research) {
+			return this.researched.includes(source.required_research);
+		}
+		return this.level >= source.unlock_level;
 	}
 
 	toJSON(): GameState {
@@ -625,8 +641,8 @@ export class Game {
 			tickCount: this.tickCount,
 			marketingLevel: this.marketingLevel,
 			machineProductionLines: this.machineProductionLines,
-			plantations: this.plantations,
-			purchasedPlantations: this.purchasedPlantations,
+			rubberSources: this.rubberSources,
+			purchasedRubberSources: this.purchasedRubberSources,
 			researched: this.researched,
 			gameOver: this.gameOver
 		};

@@ -35,7 +35,7 @@
 		<h2>Heavy Industry</h2>
 		<div class="machine-list">
 			{#each productionLines as line}
-				{#if game.level >= line.unlock_level}
+				{#if game.isProductionLineUnlocked(line)}
 					{@const count = game.machineProductionLines[line.name] || 0}
 					{@const cost = game.getMachineProductionLineCost(line.name, 1, count)}
 					{@const max = game.getMaxAffordableProductionLine(line.name, game.money, count)}

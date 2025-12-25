@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Game } from '../game';
-	import { plantationTypes, GAME_CONSTANTS } from '../parameters';
+	import { rubberSources, GAME_CONSTANTS } from '../parameters';
 	import { formatNumber } from '../utils';
 	import { createEventDispatcher } from 'svelte';
 
@@ -44,14 +44,14 @@
 
 	const dispatch = createEventDispatcher();
 
-	function handleBuy(plantationName: string, amount: number = 1) {
-		if (game.buyPlantation(plantationName, amount)) {
+	function handleBuy(sourceName: string, amount: number = 1) {
+		if (game.buyRubberSource(sourceName, amount)) {
 			dispatch('action');
 		}
 	}
 
-	function handleSell(plantationName: string, amount: number = 1) {
-		if (game.sellPlantation(plantationName, amount)) {
+	function handleSell(sourceName: string, amount: number = 1) {
+		if (game.sellRubberSource(sourceName, amount)) {
 			dispatch('action');
 		}
 	}
@@ -68,7 +68,7 @@
 	}
 
 	const minUnlockLevel = Math.min(
-		...plantationTypes.map((p) => p.unlock_level),
+		...rubberSources.map((p) => p.unlock_level),
 		GAME_CONSTANTS.BUYER_UNLOCK_LEVEL
 	);
 </script>
@@ -123,48 +123,55 @@
 		{/if}
 
 		<div class="plantation-list">
-			{#each plantationTypes as plantation}
-				{#if game.isPlantationUnlocked(plantation)}
-					{@const owned = game.plantations[plantation.name] || 0}
-					{@const purchased = game.purchasedPlantations[plantation.name] || 0}
-					{@const max = game.getMaxAffordablePlantation(plantation.name, game.money, purchased)}
+			{#each rubberSources as source}
+				{#if game.isRubberSourceUnlocked(source)}
+					{@const owned = game.rubberSources[source.name] || 0}
+					{@const purchased = game.purchasedRubberSources[source.name] || 0}
+					{@const max = game.getMaxAffordableRubberSource(source.name, game.money, purchased)}
 					{@const amount = buyAmount === -1 ? Math.max(1, max) : buyAmount}
-					{@const cost = game.getPlantationCost(plantation.name, amount, purchased)}
+					{@const cost = game.getRubberSourceCost(source.name, amount, purchased)}
 					{@const canAfford = game.money >= cost}
-					{@const isBeingProduced = game.isBeingProduced(plantation.name)}
+					{@const isBeingProduced = game.isBeingProduced(source.name)}
+					{@const isDisplayOnly = source.allow_manual_purchase === false}
 
 					<div class="plantation-card">
 						<div class="plantation-info">
-							<h3>{plantation.name}</h3>
+							<h3>{source.name}</h3>
 							<p class="details">
-								Output: {formatNumber(game.getPlantationOutputPerUnit(plantation.name))} Rubber/tick
+								Output: {formatNumber(game.getRubberSourceOutputPerUnit(source.name))} Rubber/tick
 							</p>
-							<p class="details">Maint: ${formatNumber(plantation.maintenance_cost)}/tick</p>
+							<p class="details">Maint: ${formatNumber(source.maintenance_cost)}/tick</p>
 							<p class="owned">Owned: {formatNumber(owned)}</p>
 							<p class="details">
-								Total Maint: ${formatNumber(owned * plantation.maintenance_cost)}/tick
+								Total Maint: ${formatNumber(owned * source.maintenance_cost)}/tick
 							</p>
-							<p class="price">Price: ${formatNumber(cost)}</p>
+							{#if !isDisplayOnly}
+								<p class="price">Price: ${formatNumber(cost)}</p>
+							{/if}
 						</div>
 						<div class="actions">
-							<button
-								class="buy-btn"
-								disabled={(!canAfford && buyAmount !== -1) ||
-									(buyAmount === -1 && max === 0) ||
-									isBeingProduced}
-								on:click={() => handleBuy(plantation.name)}
-								title={isBeingProduced ? 'Cannot buy while being produced by heavy industry' : ''}
-							>
-								Buy
-							</button>
-							<button
-								class="buy-btn sell-btn"
-								disabled={owned <= 0 || isBeingProduced}
-								on:click={() => handleSell(plantation.name)}
-								title={isBeingProduced ? 'Cannot sell while being produced by heavy industry' : ''}
-							>
-								Sell
-							</button>
+							{#if !isDisplayOnly}
+								<button
+									class="buy-btn"
+									disabled={(!canAfford && buyAmount !== -1) ||
+										(buyAmount === -1 && max === 0) ||
+										isBeingProduced}
+									on:click={() => handleBuy(source.name)}
+									title={isBeingProduced ? 'Cannot buy while being produced by heavy industry' : ''}
+								>
+									Buy
+								</button>
+								<button
+									class="buy-btn sell-btn"
+									disabled={owned <= 0 || isBeingProduced}
+									on:click={() => handleSell(source.name)}
+									title={isBeingProduced
+										? 'Cannot sell while being produced by heavy industry'
+										: ''}
+								>
+									Sell
+								</button>
+							{/if}
 						</div>
 					</div>
 				{/if}

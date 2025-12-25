@@ -26,7 +26,7 @@
 	let rubberbands = game.rubberbands;
 	let rubber = game.rubber;
 	let productionRate = game.productionRate;
-	let rubberProduction = game.plantationProductionRate;
+	let rubberProduction = game.rubberProductionRate;
 	let totalSold = game.totalRubberbandsSold;
 	let level = game.level;
 	let demand = game.demand;
@@ -104,7 +104,7 @@
 		rubberbands = game.rubberbands;
 		rubber = game.rubber;
 		productionRate = game.productionRate;
-		rubberProduction = game.plantationProductionRate;
+		rubberProduction = game.rubberProductionRate;
 		totalSold = game.totalRubberbandsSold;
 		level = game.level;
 		demand = game.demand;

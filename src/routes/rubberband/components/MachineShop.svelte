@@ -60,7 +60,7 @@
 
 		<div class="machine-list">
 			{#each machineTypes as machine}
-				{#if game.level >= machine.unlock_level}
+				{#if game.isMachineUnlocked(machine)}
 					{@const owned = game.machines[machine.name] || 0}
 					{@const purchased = game.purchasedMachines[machine.name] || 0}
 					{@const max = game.getMaxAffordable(machine.name, game.money, purchased)}
@@ -68,6 +68,7 @@
 					{@const cost = game.getMachineCost(machine.name, amount, purchased)}
 					{@const canAfford = game.money >= cost}
 					{@const isBeingProduced = game.isBeingProduced(machine.name)}
+					{@const isDisplayOnly = machine.allow_manual_purchase === false}
 
 					<div class="machine-card">
 						<div class="machine-info">
@@ -80,27 +81,33 @@
 							<p class="details">
 								Total Maint: ${formatNumber(owned * machine.maintenance_cost)}/tick
 							</p>
-							<p class="price">Price: ${formatNumber(cost)}</p>
+							{#if !isDisplayOnly}
+								<p class="price">Price: ${formatNumber(cost)}</p>
+							{/if}
 						</div>
 						<div class="actions">
-							<button
-								class="buy-btn"
-								disabled={(!canAfford && buyAmount !== -1) ||
-									(buyAmount === -1 && max === 0) ||
-									isBeingProduced}
-								on:click={() => handleBuy(machine.name)}
-								title={isBeingProduced ? 'Cannot buy while being produced by heavy industry' : ''}
-							>
-								Buy
-							</button>
-							<button
-								class="buy-btn sell-btn"
-								disabled={owned <= 0 || isBeingProduced}
-								on:click={() => handleSell(machine.name)}
-								title={isBeingProduced ? 'Cannot sell while being produced by heavy industry' : ''}
-							>
-								Sell
-							</button>
+							{#if !isDisplayOnly}
+								<button
+									class="buy-btn"
+									disabled={(!canAfford && buyAmount !== -1) ||
+										(buyAmount === -1 && max === 0) ||
+										isBeingProduced}
+									on:click={() => handleBuy(machine.name)}
+									title={isBeingProduced ? 'Cannot buy while being produced by heavy industry' : ''}
+								>
+									Buy
+								</button>
+								<button
+									class="buy-btn sell-btn"
+									disabled={owned <= 0 || isBeingProduced}
+									on:click={() => handleSell(machine.name)}
+									title={isBeingProduced
+										? 'Cannot sell while being produced by heavy industry'
+										: ''}
+								>
+									Sell
+								</button>
+							{/if}
 						</div>
 					</div>
 				{/if}
