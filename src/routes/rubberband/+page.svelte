@@ -34,6 +34,7 @@
 	let tickCount = game.tickCount;
 	let gameOver = game.gameOver;
 	let nextLevelRequirement = game.nextLevelRequirement;
+	let inventoryCost = game.inventoryCost;
 
 	$: score = 100000 / tickCount;
 	$: shareText = `I just scored ${formatNumber(
@@ -110,7 +111,9 @@
 		demand = game.demand;
 		tickCount = game.tickCount;
 		gameOver = game.gameOver;
+		gameOver = game.gameOver;
 		nextLevelRequirement = game.nextLevelRequirement;
+		inventoryCost = game.inventoryCost;
 
 		// Ensure price is synced if game updates it (unlikely but good practice)
 		// if (rubberbandPrice !== game.rubberbandPrice) {
@@ -173,6 +176,12 @@
 						<span class="label">Rubberbands</span>
 						<span class="value">{formatNumber(Math.floor(rubberbands))}</span>
 					</div>
+					{#if inventoryCost > 0}
+						<div class="stat">
+							<span class="label">Storage Cost</span>
+							<span class="value" style="color: #ff6b6b">-{formatMoney(inventoryCost)}/t</span>
+						</div>
+					{/if}
 				</div>
 			</div>
 
@@ -194,7 +203,7 @@
 				<span class="group-title">Economy</span>
 				<div class="stat-row">
 					<div class="stat">
-						<span class="label">Coins</span>
+						<span class="label">Coins ⓒ</span>
 						<span class="value">{formatMoney(money)}</span>
 					</div>
 					<div class="stat">

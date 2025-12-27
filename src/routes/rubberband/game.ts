@@ -15,6 +15,7 @@ export interface GameState {
 	rubberbandPrice: number;
 	tickCount: number;
 	marketingLevel: number;
+	lastMarketingUpdateTick: number;
 	machineProductionLines: Record<string, number>;
 	rubberSources: Record<string, number>;
 	purchasedRubberSources: Record<string, number>;
@@ -35,6 +36,7 @@ export class Game {
 	rubberbandPrice!: number;
 	tickCount!: number;
 	marketingLevel!: number;
+	lastMarketingUpdateTick!: number;
 	machineProductionLines!: Record<string, number>;
 	rubberSources!: Record<string, number>;
 	purchasedRubberSources!: Record<string, number>;
@@ -59,6 +61,7 @@ export class Game {
 				this.rubberbandPrice = data.rubberbandPrice || GAME_CONSTANTS.INITIAL_RUBBERBAND_PRICE;
 				this.tickCount = data.tickCount || 0;
 				this.marketingLevel = data.marketingLevel || GAME_CONSTANTS.INITIAL_MARKETING_LEVEL;
+				this.lastMarketingUpdateTick = data.lastMarketingUpdateTick || this.tickCount;
 				this.machineProductionLines = data.machineProductionLines || {};
 				this.rubberSources = data.rubberSources || (data as any).plantations || {};
 				this.purchasedMachines = data.purchasedMachines || { ...this.machines };
@@ -106,6 +109,7 @@ export class Game {
 		this.rubberPrice = GAME_CONSTANTS.INITIAL_RUBBER_PRICE;
 		this.rubberbandPrice = GAME_CONSTANTS.INITIAL_RUBBERBAND_PRICE;
 		this.marketingLevel = GAME_CONSTANTS.INITIAL_MARKETING_LEVEL;
+		this.lastMarketingUpdateTick = 0;
 		this.tickCount = 0;
 		this.tickCount = 0;
 		this.machineProductionLines = {};
@@ -192,6 +196,15 @@ export class Game {
 
 		this.tickCount++;
 
+		if (!this.researched.includes('automated_ai_marketing')) {
+			if (this.tickCount - this.lastMarketingUpdateTick >= GAME_CONSTANTS.MARKETING_DECAY_INTERVAL) {
+				if (this.marketingLevel > 1) {
+					this.marketingLevel--;
+				}
+				this.lastMarketingUpdateTick = this.tickCount;
+			}
+		}
+
 		this.updateMarket();
 		this.produceResources();
 		this.produceRubberFromSources();
@@ -199,7 +212,32 @@ export class Game {
 		this.handleAutoBuy();
 		this.handleAutoSell();
 
+
+		const invCost = this.inventoryCost;
+		if (this.money >= invCost) {
+			this.money -= invCost;
+		} else {
+			// If not enough money, we might want to force sell or just debt?
+			// For now, let's just go into debt or stop deducting?
+			// Usually idle games allow 0 or negative, or just stop operations.
+			// Let's allow negative money for maintenance/inventory costs to pressure player.
+			this.money -= invCost;
+		}
 		this.money -= this.maintenanceCost;
+	}
+
+	get inventoryCost() {
+		const rubberExcess = Math.max(0, this.rubber - GAME_CONSTANTS.INVENTORY_LIMIT_RUBBER);
+		const bandExcess = Math.max(0, this.rubberbands - GAME_CONSTANTS.INVENTORY_LIMIT_RUBBERBANDS);
+
+		let cost = 0;
+		if (rubberExcess > 0) {
+			cost += 0.001 * Math.pow(rubberExcess / GAME_CONSTANTS.INVENTORY_COST_DIVISOR_RUBBER, GAME_CONSTANTS.INVENTORY_COST_EXPONENT);
+		}
+		if (bandExcess > 0) {
+			cost += 0.001 * Math.pow(bandExcess / GAME_CONSTANTS.INVENTORY_COST_DIVISOR_RUBBERBANDS, GAME_CONSTANTS.INVENTORY_COST_EXPONENT);
+		}
+		return cost;
 	}
 
 	private produceMachines() {
@@ -412,6 +450,7 @@ export class Game {
 		if (this.money >= cost) {
 			this.money -= cost;
 			this.marketingLevel++;
+			this.lastMarketingUpdateTick = this.tickCount;
 			return true;
 		}
 		return false;
@@ -641,6 +680,7 @@ export class Game {
 			rubberbandPrice: this.rubberbandPrice,
 			tickCount: this.tickCount,
 			marketingLevel: this.marketingLevel,
+			lastMarketingUpdateTick: this.lastMarketingUpdateTick,
 			machineProductionLines: this.machineProductionLines,
 			rubberSources: this.rubberSources,
 			purchasedRubberSources: this.purchasedRubberSources,

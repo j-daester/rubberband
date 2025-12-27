@@ -104,6 +104,13 @@ export const researchList: ResearchType[] = [
 		unlock_level: 15
 	},
 	{
+		id: 'automated_ai_marketing',
+		name: 'Automated AI-Marketing',
+		description: 'Eliminates the marketing decay.',
+		cost: 100000,
+		unlock_level: 25
+	},
+	{
 		id: 'hyperpersonalisation',
 		name: 'Hyperpersonalisation',
 		description: 'Increases the effectivity of marketing significantly.',
@@ -313,7 +320,7 @@ export const GAME_CONSTANTS = {
 	INITIAL_MARKETING_LEVEL: 1,
 	BUYER_COST: 1000,
 	BUYER_UNLOCK_LEVEL: 7,
-	MARKETING_BASE_COST: 300,
+	MARKETING_BASE_COST: 200,
 	PRICE_FLUCTUATION_INTERVAL: 10,
 	MIN_RUBBER_PRICE: 0.01,
 	MAX_RUBBER_PRICE: 10.0,
@@ -324,4 +331,10 @@ export const GAME_CONSTANTS = {
 	LEVEL_REQ_BASE: 100,
 	LEVEL_REQ_OFFSET: 80,
 	MAX_RUBBER_NO_PRODUCTION: 1000,
+	INVENTORY_LIMIT_RUBBER: 1000000,
+	INVENTORY_LIMIT_RUBBERBANDS: 10000,
+	INVENTORY_COST_EXPONENT: 1.1,
+	INVENTORY_COST_DIVISOR_RUBBER: 10000,
+	INVENTORY_COST_DIVISOR_RUBBERBANDS: 1000,
+	MARKETING_DECAY_INTERVAL: 20
 };

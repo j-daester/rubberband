@@ -33,7 +33,11 @@
 		<div class="marketing-card">
 			<div class="info">
 				<h3>Marketing Campaign (Lvl {marketingLevel})</h3>
-				<p>Increases demand for rubberbands.</p>
+				<p>
+					Increases demand for rubberbands. {game.researched.includes('automated_ai_marketing')
+						? 'No decay.'
+						: 'Decays over time.'}
+				</p>
 			</div>
 			<button class="buy-btn" disabled={money < marketingCost} on:click={buyMarketing}>
 				<span class="action-text">Buy Campaign</span>
