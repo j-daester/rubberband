@@ -40,7 +40,7 @@
 	$: score = 100000 / tickCount;
 	$: shareText = `I just scored ${formatNumber(
 		score
-	)} Points in Rubberband Inc.! Level ${level} reached with ${formatNumber(
+	)} Points in Rubberband Inc. (Version ${appVersion})! Level ${level} reached with ${formatNumber(
 		totalSold
 	)} rubberbands sold in ${formatNumber(
 		tickCount
@@ -281,10 +281,11 @@
 				<h2>Game Over</h2>
 				<p>Congratulations! You have reached level 100 and beaten the game.</p>
 				<div class="stats-grid">
-					<p>SCORE: {formatNumber(score)}</p>
+					<p><strong>SCORE: {formatNumber(score)}</strong></p>
 					<p>Total Rubberbands Sold: {formatNumber(totalSold)} items</p>
 					<p>Coins: {formatMoney(money)}</p>
 					<p>Ticks: {tickCount}</p>
+					<p><small>Version: {appVersion}</small></p>
 				</div>
 
 				<div class="share-section">
@@ -323,7 +324,7 @@
 	{/if}
 
 	<footer>
-		v{appVersion}
+		Version: {appVersion}
 	</footer>
 </div>
 

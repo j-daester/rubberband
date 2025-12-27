@@ -76,6 +76,20 @@ export const researchList: ResearchType[] = [
 		unlock_level: 5
 	},
 	{
+		id: 'online_marketing',
+		name: 'Online Marketing',
+		description: 'Increases the effectivity of marketing significantly.',
+		cost: 5000,
+		unlock_level: 15
+	},
+	{
+		id: 'hyperpersonalisation',
+		name: 'Hyperpersonalisation',
+		description: 'Increases the effectivity of marketing significantly.',
+		cost: 50000,
+		unlock_level: 15
+	},
+	{
 		id: 'rubber_recycling',
 		name: 'Rubber Recycling',
 		description: 'Increases the output of rubber plantations and synthetic rubber factories by factor 2.',
@@ -90,20 +104,6 @@ export const researchList: ResearchType[] = [
 		unlock_level: 25
 	},
 	{
-		id: 'robotics',
-		name: 'Robotics',
-		description: 'Makes machines more efficient.',
-		cost: 5000000,
-		unlock_level: 30
-	},
-	{
-		id: 'online_marketing',
-		name: 'Online Marketing',
-		description: 'Increases the effectivity of marketing significantly.',
-		cost: 5000,
-		unlock_level: 15
-	},
-	{
 		id: 'automated_ai_marketing',
 		name: 'Automated AI-Marketing',
 		description: 'Eliminates the marketing decay.',
@@ -111,11 +111,11 @@ export const researchList: ResearchType[] = [
 		unlock_level: 25
 	},
 	{
-		id: 'hyperpersonalisation',
-		name: 'Hyperpersonalisation',
-		description: 'Increases the effectivity of marketing significantly.',
-		cost: 50000,
-		unlock_level: 15
+		id: 'robotics',
+		name: 'Robotics',
+		description: 'Makes machines more efficient and allows for the production of more machines.',
+		cost: 5000000,
+		unlock_level: 30
 	},
 	{
 		id: 'brainwashing',
@@ -198,7 +198,7 @@ export const machineTypes: MachineType[] = [
 		output: 500000,
 		initial_cost: 50000000,
 		cost_factor: 1.6,
-		unlock_level: 60,
+		unlock_level: researchList.find(r => r.id === 'nanotechnology')?.unlock_level ?? 60,
 		maintenance_cost: 1000,
 		required_research: 'nanotechnology',
 		allow_manual_purchase: false
@@ -208,7 +208,7 @@ export const machineTypes: MachineType[] = [
 		output: 2500000,
 		initial_cost: 500000000,
 		cost_factor: 1.7,
-		unlock_level: 70,
+		unlock_level: researchList.find(r => r.id === 'quantum_mechanics')?.unlock_level ?? 70,
 		maintenance_cost: 5000,
 		required_research: 'quantum_mechanics'
 	},
@@ -217,21 +217,31 @@ export const machineTypes: MachineType[] = [
 		output: 1000000000000000,
 		initial_cost: 1000000000000,
 		cost_factor: 2.5,
-		unlock_level: 90,
+		unlock_level: researchList.find(r => r.id === 'time_travel')?.unlock_level ?? 90,
 		maintenance_cost: 100000,
 		required_research: 'time_travel',
-		allow_manual_purchase: false
-	},
+	}
 ];
 
 export const productionLines: ProductionLine[] = [
+	{
+		name: "Synthetic Rubber Factory Line",
+		machine: "Synthetic Rubber Factory",
+		output: 1,
+		product_type: 'rubber_source',
+		initial_cost: 100000000,
+		cost_factor: 1.5,
+		unlock_level: researchList.find(r => r.id === 'synthetic_rubber')?.unlock_level ?? 25,
+		required_research: 'synthetic_rubber'
+	},
 	{
 		name: "MEGA-Bander Line",
 		machine: "MEGA-Bander",
 		output: 1,
 		initial_cost: 100000000,
 		cost_factor: 1.3,
-		unlock_level: 50
+		unlock_level: researchList.find(r => r.id === 'robotics')?.unlock_level ?? 30,
+		required_research: 'robotics'
 	},
 	{
 		name: "Nanobot Factory",
@@ -248,38 +258,9 @@ export const productionLines: ProductionLine[] = [
 		output: 1,
 		initial_cost: 10000000000,
 		cost_factor: 1.7,
-		unlock_level: researchList.find(r => r.id === 'quantum_mechanics')?.unlock_level ?? 80,
+		unlock_level: researchList.find(r => r.id === 'quantum_mechanics')?.unlock_level ?? 70,
 		required_research: 'quantum_mechanics'
 	},
-	{
-		name: "Black Hole Extruder Line",
-		machine: "Black Hole Extruder",
-		output: 1,
-		product_type: 'rubber_source',
-		initial_cost: 200000000000,
-		cost_factor: 2.0,
-		unlock_level: researchList.find(r => r.id === 'singularity_theory')?.unlock_level ?? 90,
-		required_research: 'singularity_theory'
-	},
-	{
-		name: "Temporal Press Line",
-		machine: "Temporal Press",
-		output: 1,
-		initial_cost: 2000000000000,
-		cost_factor: 2.5,
-		unlock_level: researchList.find(r => r.id === 'time_travel')?.unlock_level ?? 95,
-		required_research: 'time_travel'
-	},
-	{
-		name: "Synthetic Rubber Factory Line",
-		machine: "Synthetic Rubber Factory",
-		output: 1,
-		product_type: 'rubber_source',
-		initial_cost: 100000000,
-		cost_factor: 1.5,
-		unlock_level: researchList.find(r => r.id === 'synthetic_rubber')?.unlock_level ?? 25,
-		required_research: 'synthetic_rubber'
-	}
 ];
 
 export const rubberSources: RubberSource[] = [
@@ -302,13 +283,12 @@ export const rubberSources: RubberSource[] = [
 	},
 	{
 		name: "Black Hole Extruder",
-		output: 15000000,
-		initial_cost: 10000000000,
+		output: 100000000,
+		initial_cost: 1000000000000,
 		cost_factor: 2.0,
-		unlock_level: 80,
+		unlock_level: researchList.find(r => r.id === 'singularity_theory')?.unlock_level ?? 80,
 		maintenance_cost: 20000,
-		required_research: 'singularity_theory',
-		allow_manual_purchase: false
+		required_research: 'singularity_theory'
 	}
 
 ];
@@ -333,7 +313,7 @@ export const GAME_CONSTANTS = {
 	MAX_RUBBER_NO_PRODUCTION: 1000,
 	INVENTORY_LIMIT_RUBBER: 1000000,
 	INVENTORY_LIMIT_RUBBERBANDS: 10000,
-	INVENTORY_COST_EXPONENT: 1.1,
+	INVENTORY_COST_EXPONENT: 1.5,
 	INVENTORY_COST_DIVISOR_RUBBER: 10000,
 	INVENTORY_COST_DIVISOR_RUBBERBANDS: 1000,
 	MARKETING_DECAY_INTERVAL: 30
