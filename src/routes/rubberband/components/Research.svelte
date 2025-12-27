@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Game } from '../game';
 	import { researchList } from '../parameters';
-	import { formatNumber } from '../utils';
+	import { formatNumber, formatMoney } from '../utils';
 	import { createEventDispatcher } from 'svelte';
 
 	export let game: Game;
@@ -36,7 +36,7 @@
 							<h3>{research.name}</h3>
 							<p>{research.description}</p>
 							{#if !isResearched}
-								<p class="price">Cost: ${formatNumber(research.cost)}</p>
+								<!-- Price removed from here -->
 							{:else}
 								<p class="status">✅ Researched</p>
 							{/if}
@@ -48,7 +48,8 @@
 									disabled={game.money < research.cost}
 									on:click={() => buyResearch(research.id)}
 								>
-									Research
+									<span class="action-text">Research</span>
+									<span class="price-text">{formatMoney(research.cost)}</span>
 								</button>
 							{/if}
 						</div>
@@ -98,12 +99,6 @@
 		margin: 0;
 	}
 
-	.price {
-		color: var(--color-text-base);
-		font-size: var(--font-size-sm);
-		margin-top: 0.5rem !important;
-	}
-
 	.status {
 		color: #4caf50;
 		font-weight: bold;
@@ -117,7 +112,19 @@
 		background: #444;
 		color: #fff;
 		cursor: pointer;
+		cursor: pointer;
 		transition: background 0.2s;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	.action-text {
+		font-weight: bold;
+	}
+
+	.price-text {
+		font-weight: normal;
 	}
 
 	.buy-btn:hover:not(:disabled) {

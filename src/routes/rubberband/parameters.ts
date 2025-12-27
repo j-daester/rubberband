@@ -68,7 +68,13 @@ export function getMaxAffordable(item: PurchasableItem, money: number, currentCo
 // --- Data ---
 
 export const researchList: ResearchType[] = [
-
+	{
+		id: 'optimize_production',
+		name: 'Optimize Production',
+		description: 'Increases the efficiency of all machines, so less rubber is needed to produce the same amount of rubberbands.',
+		cost: 1000,
+		unlock_level: 5
+	},
 	{
 		id: 'rubber_recycling',
 		name: 'Rubber Recycling',

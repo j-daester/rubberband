@@ -1,7 +1,7 @@
 # Rubberband
 
 Rubberband is an incremental clicker game built with SvelteKit. Start by manually making rubberbands and grow your empire into a massive industrial complex.
-Inspired by [Paperclip](https://www.decisionproblem.com/paperclips/index2.html).
+Inspired by [Paperclips](https://www.decisionproblem.com/paperclips/index2.html).
 
 ## Features
 

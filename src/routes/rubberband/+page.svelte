@@ -6,7 +6,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { Game } from './game';
 	import { GAME_CONSTANTS } from './parameters';
-	import { formatNumber } from './utils';
+	import { formatNumber, formatMoney } from './utils';
 	import MachineShop from './components/MachineShop.svelte';
 	import Marketing from './components/Marketing.svelte';
 	import HeavyIndustry from './components/HeavyIndustry.svelte';
@@ -163,35 +163,44 @@
 
 		<div class="resources-bar">
 			<div class="resource-group">
-				<div class="stat">
-					<span class="label">Money</span>
-					<span class="value">${formatNumber(money)}</span>
+				<span class="group-title">Inventory</span>
+				<div class="stat-row">
+					<div class="stat">
+						<span class="label">Rubber</span>
+						<span class="value">{formatNumber(Math.floor(rubber))} g</span>
+					</div>
+					<div class="stat">
+						<span class="label">Rubberbands</span>
+						<span class="value">{formatNumber(Math.floor(rubberbands))}</span>
+					</div>
 				</div>
 			</div>
 
 			<div class="resource-group">
-				<div class="stat">
-					<span class="label">Rubber</span>
-					<span class="value">{formatNumber(Math.floor(rubber))}</span>
-				</div>
-				<div class="stat">
-					<span class="label">Prod</span>
-					<span class="value">{formatNumber(rubberProduction)} / tick</span>
+				<span class="group-title">Production</span>
+				<div class="stat-row">
+					<div class="stat">
+						<span class="label">Rubber</span>
+						<span class="value">{formatNumber(rubberProduction)}/t</span>
+					</div>
+					<div class="stat">
+						<span class="label">Bands</span>
+						<span class="value">{formatNumber(productionRate)}/t</span>
+					</div>
 				</div>
 			</div>
 
 			<div class="resource-group">
-				<div class="stat">
-					<span class="label">Bands</span>
-					<span class="value">{formatNumber(Math.floor(rubberbands))}</span>
-				</div>
-				<div class="stat">
-					<span class="label">Prod</span>
-					<span class="value">{formatNumber(productionRate)} / tick</span>
-				</div>
-				<div class="stat">
-					<span class="label">Demand</span>
-					<span class="value">{formatNumber(demand)} / tick</span>
+				<span class="group-title">Economy</span>
+				<div class="stat-row">
+					<div class="stat">
+						<span class="label">Coins</span>
+						<span class="value">{formatMoney(money)}</span>
+					</div>
+					<div class="stat">
+						<span class="label">Demand</span>
+						<span class="value">{formatNumber(demand)}/t</span>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -209,7 +218,8 @@
 					on:click={buyRubber}
 					disabled={money < 100 * game.rubberPrice}
 				>
-					Buy Rubber (100 for ${formatNumber(100 * game.rubberPrice)})
+					Buy Rubber (100 g for <span class="small-text">{formatMoney(100 * game.rubberPrice)}</span
+					>)
 				</button>
 			</div>
 		</section>
@@ -222,15 +232,17 @@
 					<p>Lower price increases demand.</p>
 				</div>
 				<div class="controls">
-					<label for="price">Price per Rubberband ($):</label>
-					<input
-						id="price"
-						type="number"
-						bind:value={rubberbandPrice}
-						on:input={updateRubberbandPrice}
-						min="0.01"
-						step="0.01"
-					/>
+					<div class="controls">
+						<label for="price">Price per Rubberband (ⓒ):</label>
+						<input
+							id="price"
+							type="number"
+							bind:value={rubberbandPrice}
+							on:input={updateRubberbandPrice}
+							min="0.01"
+							step="0.01"
+						/>
+					</div>
 				</div>
 			</div>
 		</section>
@@ -253,8 +265,8 @@
 				<p>Congratulations! You have reached level 100 and beaten the game.</p>
 				<div class="stats-grid">
 					<p>SCORE: {formatNumber(score)}</p>
-					<p>Total Rubberbands Sold: {formatNumber(totalSold)}</p>
-					<p>Money: ${formatNumber(money)}</p>
+					<p>Total Rubberbands Sold: {formatNumber(totalSold)} items</p>
+					<p>Coins: {formatMoney(money)}</p>
 					<p>Ticks: {tickCount}</p>
 				</div>
 
@@ -387,11 +399,31 @@
 	.resource-group {
 		flex: 1;
 		display: flex;
-		justify-content: space-around;
+		flex-direction: column;
 		background: #2d2d2d;
-		padding: 1rem;
+		padding: 0.5rem;
 		border-radius: 12px;
 		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.group-title {
+		font-size: var(--font-size-xs);
+		text-transform: uppercase;
+		letter-spacing: 1px;
+		color: var(--color-text-muted);
+		font-weight: bold;
+		border-bottom: 1px solid #444;
+		width: 100%;
+		text-align: center;
+		padding-bottom: 0.25rem;
+	}
+
+	.stat-row {
+		display: flex;
+		justify-content: space-around;
+		width: 100%;
 		align-items: center;
 	}
 

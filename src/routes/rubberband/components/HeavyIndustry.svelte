@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Game } from '../game';
 	import { productionLines } from '../parameters';
-	import { formatNumber } from '../utils';
+	import { formatNumber, formatMoney } from '../utils';
 	import { createEventDispatcher } from 'svelte';
 
 	export let game: Game;
@@ -39,6 +39,10 @@
 					{@const count = game.machineProductionLines[line.name] || 0}
 					{@const cost = game.getMachineProductionLineCost(line.name, 1, count)}
 					{@const max = game.getMaxAffordableProductionLine(line.name, game.money, count)}
+					{@const sellPrice =
+						count > 0
+							? Math.floor(0.5 * game.getMachineProductionLineCost(line.name, 1, count - 1))
+							: 0}
 
 					<div class="industry-card">
 						<div class="info">
@@ -48,7 +52,6 @@
 								Production: {formatNumber(line.output)} machines/tick per line
 							</p>
 							<p class="owned">Owned: {formatNumber(count)}</p>
-							<p class="price">Cost: ${formatNumber(cost)}</p>
 						</div>
 						<div class="actions">
 							<button
@@ -56,14 +59,16 @@
 								disabled={game.money < cost}
 								on:click={() => buyMachineProductionLine(line.name)}
 							>
-								Buy
+								<span class="action-text">Buy</span>
+								<span class="price-text">{formatMoney(cost)}</span>
 							</button>
 							<button
 								class="buy-btn sell-btn"
 								disabled={count <= 0}
 								on:click={() => sellMachineProductionLine(line.name)}
 							>
-								Sell
+								<span class="action-text">Sell</span>
+								<span class="price-text">{formatMoney(sellPrice)}</span>
 							</button>
 						</div>
 					</div>
@@ -118,12 +123,6 @@
 		margin: 0.5rem 0 0.5rem 0;
 	}
 
-	.price {
-		color: var(--color-text-base);
-		font-size: var(--font-size-sm);
-		margin-bottom: 1rem;
-	}
-
 	.actions {
 		display: flex;
 		gap: 0.5rem;
@@ -136,7 +135,19 @@
 		background: #444;
 		color: #fff;
 		cursor: pointer;
+		cursor: pointer;
 		transition: background 0.2s;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	.action-text {
+		font-weight: bold;
+	}
+
+	.price-text {
+		font-weight: normal;
 	}
 
 	.buy-btn:hover:not(:disabled) {

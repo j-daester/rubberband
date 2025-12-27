@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Game } from '../game';
 	import { machineTypes } from '../parameters';
-	import { formatNumber } from '../utils';
+	import { formatNumber, formatMoney } from '../utils';
 
 	export let game: Game;
 	export let tick: number;
@@ -69,6 +69,10 @@
 					{@const canAfford = game.money >= cost}
 					{@const isBeingProduced = game.isBeingProduced(machine.name)}
 					{@const isDisplayOnly = machine.allow_manual_purchase === false}
+					{@const sellPrice =
+						purchased > 0
+							? Math.floor(0.5 * game.getMachineCost(machine.name, 1, purchased - 1))
+							: 0}
 
 					<div class="machine-card">
 						<div class="machine-info">
@@ -76,14 +80,11 @@
 							<p class="details">
 								Output: {formatNumber(game.getMachineOutputPerUnit(machine.name))}/tick
 							</p>
-							<p class="details">Maint: ${formatNumber(machine.maintenance_cost)}/tick</p>
+							<p class="details">Maint: {formatMoney(machine.maintenance_cost)}/tick</p>
 							<p class="owned">Owned: {formatNumber(owned)}</p>
 							<p class="details">
-								Total Maint: ${formatNumber(owned * machine.maintenance_cost)}/tick
+								Total Maint: {formatMoney(owned * machine.maintenance_cost)}/tick
 							</p>
-							{#if !isDisplayOnly}
-								<p class="price">Price: ${formatNumber(cost)}</p>
-							{/if}
 						</div>
 						<div class="actions">
 							{#if !isDisplayOnly}
@@ -95,7 +96,8 @@
 									on:click={() => handleBuy(machine.name)}
 									title={isBeingProduced ? 'Cannot buy while being produced by heavy industry' : ''}
 								>
-									Buy
+									<span class="action-text">Buy</span>
+									<span class="price-text">{formatMoney(cost)}</span>
 								</button>
 								<button
 									class="buy-btn sell-btn"
@@ -105,7 +107,8 @@
 										? 'Cannot sell while being produced by heavy industry'
 										: ''}
 								>
-									Sell
+									<span class="action-text">Sell</span>
+									<span class="price-text">{formatMoney(sellPrice)}</span>
 								</button>
 							{/if}
 						</div>
@@ -159,12 +162,6 @@
 		margin: 0.5rem 0 0.5rem 0;
 	}
 
-	.price {
-		color: var(--color-text-base);
-		font-size: var(--font-size-sm);
-		margin-bottom: 1rem;
-	}
-
 	.actions {
 		display: flex;
 		gap: 0.5rem;
@@ -178,6 +175,17 @@
 		color: #fff;
 		cursor: pointer;
 		transition: background 0.2s;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	.action-text {
+		font-weight: bold;
+	}
+
+	.price-text {
+		font-weight: normal;
 	}
 
 	.buy-btn:hover:not(:disabled) {

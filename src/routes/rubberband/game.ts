@@ -302,8 +302,9 @@ export class Game {
 
 	makeRubberband(amount: number = 1) {
 		if (this.gameOver) return;
-		if (this.rubber >= amount) {
-			this.rubber -= amount;
+		const ratio = this.researched.includes('optimize_production') ? 1 : 2;
+		if (this.rubber >= amount * ratio) {
+			this.rubber -= amount * ratio;
 			this.rubberbands += amount;
 		}
 	}

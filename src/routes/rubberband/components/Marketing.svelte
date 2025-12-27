@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Game } from '../game';
 	import { GAME_CONSTANTS } from '../parameters';
-	import { formatNumber } from '../utils';
+	import { formatNumber, formatMoney } from '../utils';
 	import { createEventDispatcher } from 'svelte';
 
 	export let game: Game;
@@ -34,10 +34,10 @@
 			<div class="info">
 				<h3>Marketing Campaign (Lvl {marketingLevel})</h3>
 				<p>Increases demand for rubberbands.</p>
-				<p class="price">Cost: ${formatNumber(marketingCost)}</p>
 			</div>
 			<button class="buy-btn" disabled={money < marketingCost} on:click={buyMarketing}>
-				Buy Campaign
+				<span class="action-text">Buy Campaign</span>
+				<span class="price-text">{formatMoney(marketingCost)}</span>
 			</button>
 		</div>
 	</section>
@@ -70,11 +70,6 @@
 		margin: 0;
 	}
 
-	.price {
-		color: var(--color-text-base);
-		margin-top: 0.5rem !important;
-	}
-
 	.buy-btn {
 		padding: 0.75rem 1.5rem;
 		border: none;
@@ -82,7 +77,19 @@
 		background: #444;
 		color: #fff;
 		cursor: pointer;
+		cursor: pointer;
 		transition: background 0.2s;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	.action-text {
+		font-weight: bold;
+	}
+
+	.price-text {
+		font-weight: normal;
 	}
 
 	.buy-btn:hover:not(:disabled) {

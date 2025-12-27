@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Game } from '../game';
 	import { rubberSources, GAME_CONSTANTS } from '../parameters';
-	import { formatNumber } from '../utils';
+	import { formatNumber, formatMoney } from '../utils';
 	import { createEventDispatcher } from 'svelte';
 
 	export let game: Game;
@@ -93,10 +93,9 @@
 						<div class="info">
 							<h3>Auto-Buyer</h3>
 							<p>Automatically buys rubber when low.</p>
-							<p class="price">Cost: ${formatNumber(1000)}</p>
 						</div>
 						<button class="buy-btn" disabled={money < 1000} on:click={hireBuyer}>
-							Hire Buyer
+							Hire Buyer (<span class="small-text">{formatMoney(1000)}</span>)
 						</button>
 					</div>
 				{:else}
@@ -132,21 +131,26 @@
 					{@const cost = game.getRubberSourceCost(source.name, amount, purchased)}
 					{@const canAfford = game.money >= cost}
 					{@const isBeingProduced = game.isBeingProduced(source.name)}
+
 					{@const isDisplayOnly = source.allow_manual_purchase === false}
+					{@const sellPrice =
+						purchased > 0
+							? Math.floor(0.5 * game.getRubberSourceCost(source.name, 1, purchased - 1))
+							: 0}
 
 					<div class="plantation-card">
 						<div class="plantation-info">
 							<h3>{source.name}</h3>
 							<p class="details">
-								Output: {formatNumber(game.getRubberSourceOutputPerUnit(source.name))} Rubber/tick
+								Output: {formatNumber(game.getRubberSourceOutputPerUnit(source.name))} g Rubber/tick
 							</p>
-							<p class="details">Maint: ${formatNumber(source.maintenance_cost)}/tick</p>
+							<p class="details">Maint: {formatMoney(source.maintenance_cost)}/tick</p>
 							<p class="owned">Owned: {formatNumber(owned)}</p>
 							<p class="details">
-								Total Maint: ${formatNumber(owned * source.maintenance_cost)}/tick
+								Total Maint: {formatMoney(owned * source.maintenance_cost)}/tick
 							</p>
 							{#if !isDisplayOnly}
-								<p class="price">Price: ${formatNumber(cost)}</p>
+								<!-- Price removed -->
 							{/if}
 						</div>
 						<div class="actions">
@@ -159,7 +163,7 @@
 									on:click={() => handleBuy(source.name)}
 									title={isBeingProduced ? 'Cannot buy while being produced by heavy industry' : ''}
 								>
-									Buy
+									Buy (<span class="small-text">{formatMoney(cost)}</span>)
 								</button>
 								<button
 									class="buy-btn sell-btn"
@@ -169,7 +173,8 @@
 										? 'Cannot sell while being produced by heavy industry'
 										: ''}
 								>
-									Sell
+									<span class="action-text">Sell</span>
+									<span class="price-text">{formatMoney(sellPrice)}</span>
 								</button>
 							{/if}
 						</div>
@@ -217,12 +222,6 @@
 		color: var(--color-text-highlight);
 		font-weight: var(--font-weight-bold);
 		margin: 0.5rem 0 0.5rem 0;
-	}
-
-	.price {
-		color: var(--color-text-base);
-		font-size: var(--font-size-sm);
-		margin-bottom: 1rem;
 	}
 
 	.actions {
