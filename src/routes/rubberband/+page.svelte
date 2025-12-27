@@ -35,6 +35,7 @@
 	let gameOver = game.gameOver;
 	let nextLevelRequirement = game.nextLevelRequirement;
 	let inventoryCost = game.inventoryCost;
+	let maintenanceCost = game.maintenanceCost;
 
 	$: score = 100000 / tickCount;
 	$: shareText = `I just scored ${formatNumber(
@@ -114,6 +115,7 @@
 		gameOver = game.gameOver;
 		nextLevelRequirement = game.nextLevelRequirement;
 		inventoryCost = game.inventoryCost;
+		maintenanceCost = game.maintenanceCost;
 
 		// Ensure price is synced if game updates it (unlikely but good practice)
 		// if (rubberbandPrice !== game.rubberbandPrice) {
@@ -196,6 +198,12 @@
 						<span class="label">Bands</span>
 						<span class="value">{formatNumber(productionRate)}/t</span>
 					</div>
+					{#if maintenanceCost > 0}
+						<div class="stat">
+							<span class="label">Maintenance</span>
+							<span class="value" style="color: #ff6b6b">-{formatMoney(maintenanceCost)}/t</span>
+						</div>
+					{/if}
 				</div>
 			</div>
 

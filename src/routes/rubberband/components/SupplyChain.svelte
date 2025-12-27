@@ -95,7 +95,8 @@
 							<p>Automatically buys rubber when low.</p>
 						</div>
 						<button class="buy-btn" disabled={money < 1000} on:click={hireBuyer}>
-							Hire Buyer (<span class="small-text">{formatMoney(1000)}</span>)
+							<span class="action-text">Hire Buyer</span>
+							<span class="price-text">{formatMoney(1000)}</span>
 						</button>
 					</div>
 				{:else}
@@ -163,7 +164,8 @@
 									on:click={() => handleBuy(source.name)}
 									title={isBeingProduced ? 'Cannot buy while being produced by heavy industry' : ''}
 								>
-									Buy (<span class="small-text">{formatMoney(cost)}</span>)
+									<span class="action-text">Buy</span>
+									<span class="price-text">{formatMoney(cost)}</span>
 								</button>
 								<button
 									class="buy-btn sell-btn"
@@ -230,13 +232,29 @@
 	}
 
 	.buy-btn {
-		padding: 0.75rem;
+		padding: 0.5rem;
 		border: none;
 		border-radius: 6px;
 		background: #444;
 		color: #fff;
 		cursor: pointer;
 		transition: background 0.2s;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		min-height: 3.5rem;
+	}
+
+	.action-text {
+		font-weight: bold;
+		font-size: 1em;
+	}
+
+	.price-text {
+		font-weight: normal;
+		font-size: 0.9em;
+		opacity: 0.9;
 	}
 
 	.buy-btn:hover:not(:disabled) {

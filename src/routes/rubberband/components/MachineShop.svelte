@@ -168,7 +168,7 @@
 	}
 
 	.buy-btn {
-		padding: 0.75rem;
+		padding: 0.5rem;
 		border: none;
 		border-radius: 6px;
 		background: #444;
@@ -176,8 +176,10 @@
 		cursor: pointer;
 		transition: background 0.2s;
 		display: flex;
-		justify-content: space-between;
+		flex-direction: column;
+		justify-content: center;
 		align-items: center;
+		min-height: 3.5rem;
 	}
 
 	.action-text {

@@ -1,16 +1,31 @@
 # Rubberband
 
-Rubberband is an incremental clicker game built with SvelteKit. Start by manually making rubberbands and grow your empire into a massive industrial complex.
+Rubberband is an incremental clicker game built with SvelteKit. Start by manually making rubberbands and grow your empire into a massive, reality-bending industrial complex.
+
 Inspired by [Paperclips](https://www.decisionproblem.com/paperclips/index2.html).
 
 ## Features
 
 - **Manual Production**: Click to make rubberbands and earn your first dollars.
-- **Resource Management**: Buy raw rubber to keep production going.
-- **Machine Shop**: Automate your production with various machines, from simple Auto Winders to massive Industrial Plants.
-- **Marketing**: Launch marketing campaigns to increase demand and sell your rubberbands faster.
-- **Progression**: Level up to unlock new features like automated buyers and advanced machinery.
-- **Game Over**: Can you reach level 100? Or will the market crash?
+- **Resource Management**: Manage your raw rubber supply. Hire **Auto-Buyers** to keep your stock replenished automatically.
+- **Industrial Revolution**: Progress through tiers of machinery:
+  - **Bander & MAX-Bander**: Basic automation.
+  - **MEGA-Bander**: Hardcore industrial output.
+  - **Nano-Swarms**: Self-replicating manufacturing clouds.
+  - **Quantum Bander**: Probabilistic production from the quantum realm.
+  - **Temporal Press**: Why make it now when you can have already made it?
+- **Supply Chain Mastery**: Secure your own raw material sources:
+  - **Rubbertree Plantations**: Sustainable organic sourcing.
+  - **Synthetic Rubber Factories**: Industrial chemical synthesis.
+  - **Black Hole Extruders**: Harvest matter directly from singularities.
+- **Self-Replication**: Build **Production Lines** that manufacture your machines for you, creating exponential growth independent of money.
+- **Research & Tech**: Unlock efficiency upgrades and deep technologies like **Robotics**, **Nanotechnology**, **Quantum Mechanics**, and **Singularity Theory**.
+- **Marketing & Psychology**: Increase demand through **Online Marketing**, **Hyperpersonalisation**, and eventual **Mass Hypnosis** and **Mind Control**.
+- **Complex Economy**:
+  - **Market Fluctuations**: Prices for rubber and rubberbands shift over time.
+  - **Maintenance Costs**: Machines and facilities cost money to run every tick.
+  - **Inventory Costs**: Storing massive amounts of rubber or product incurs increasing fees.
+- **Game Over**: Can you reach **Level 100**?
 
 ## Developing
 
