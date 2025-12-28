@@ -209,7 +209,7 @@ export const machineTypes: MachineType[] = [
 		initial_cost: 500000000,
 		cost_factor: 1.7,
 		unlock_level: researchList.find(r => r.id === 'quantum_mechanics')?.unlock_level ?? 70,
-		maintenance_cost: 5000,
+		maintenance_cost: 500000,
 		required_research: 'quantum_mechanics'
 	},
 	{
@@ -218,7 +218,7 @@ export const machineTypes: MachineType[] = [
 		initial_cost: 1000000000000,
 		cost_factor: 2.5,
 		unlock_level: researchList.find(r => r.id === 'time_travel')?.unlock_level ?? 90,
-		maintenance_cost: 100000,
+		maintenance_cost: 10000000000,
 		required_research: 'time_travel',
 	}
 ];
@@ -287,7 +287,7 @@ export const rubberSources: RubberSource[] = [
 		initial_cost: 1000000000000,
 		cost_factor: 2.0,
 		unlock_level: researchList.find(r => r.id === 'singularity_theory')?.unlock_level ?? 80,
-		maintenance_cost: 20000,
+		maintenance_cost: 200000000,
 		required_research: 'singularity_theory'
 	}
 

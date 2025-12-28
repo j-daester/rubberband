@@ -2,7 +2,7 @@
     "common": {
         "level": "Level",
         "total_sold": "Total Sold",
-        "ticks": "Ticks",
+        "ticks": "⏱️",
         "inventory": "Inventory",
         "rubber": "Rubber",
         "rubberbands": "Rubberbands",
@@ -27,7 +27,7 @@
         "score_stat": "SCORE: {score}",
         "total_sold_stat": "Total Rubberbands Sold: {amount} items",
         "coins_stat": "Coins: {amount}",
-        "ticks_stat": "Ticks: {amount}",
+        "ticks_stat": "⏱️: {amount}",
         "version": "Version",
         "buy": "Buy",
         "sell": "Sell",
@@ -45,7 +45,7 @@
         "campaign_title": "Marketing Campaign (Lvl {level})",
         "desc_base": "Increases demand for rubberbands.",
         "no_decay": "No decay.",
-        "decays_in": "Decays in {ticks} ticks.",
+        "decays_in": "Decays in {ticks} ⏱️.",
         "buy_campaign": "Buy Campaign"
     },
     "supply_chain_ui": {
@@ -65,7 +65,7 @@
     "heavy_industry_ui": {
         "title": "Heavy Industry",
         "auto_produces": "Automatically produces {machine}.",
-        "production_rate": "Production: {amount} machines/tick per line"
+        "production_rate": "Production: {amount} machines/⏱️ per line"
     },
     "research_ui": {
         "title": "Research",

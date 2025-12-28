@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Game } from '../game';
 	import { rubberSources, GAME_CONSTANTS } from '../parameters';
-	import { formatNumber, formatMoney } from '../utils';
+	import { formatNumber, formatMoney, formatWeight } from '../utils';
 	import { createEventDispatcher } from 'svelte';
 	import { t, locale } from 'svelte-i18n';
 
@@ -164,20 +164,20 @@
 						<div class="plantation-info">
 							<h3>{$t('rubber_sources.' + source.name)}</h3>
 							<p class="details">
-								{$t('common.production')}: {formatNumber(
-									game.getRubberSourceOutputPerUnit(source.name),
-									suffixes
-								)} g {$t('common.rubber')}/t
+								{$t('common.production')}: {formatWeight(
+									game.getRubberSourceOutputPerUnit(source.name)
+								)}
+								{$t('common.rubber')}/⏱️
 							</p>
 							<p class="details">
-								{$t('common.maintenance')}: {formatMoney(source.maintenance_cost, suffixes)}/t
+								{$t('common.maintenance')}: {formatMoney(source.maintenance_cost, suffixes)}/⏱️
 							</p>
 							<p class="owned">{$t('common.owned')}: {formatNumber(owned, suffixes)}</p>
 							<p class="details">
 								Total {$t('common.maintenance')}: {formatMoney(
 									owned * source.maintenance_cost,
 									suffixes
-								)}/t
+								)}/⏱️
 							</p>
 							{#if !isDisplayOnly}
 								<!-- Price removed -->

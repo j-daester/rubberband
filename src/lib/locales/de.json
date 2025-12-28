@@ -2,7 +2,7 @@
     "common": {
         "level": "Level",
         "total_sold": "Insgesamt verkauft",
-        "ticks": "Ticks",
+        "ticks": "⏱️",
         "inventory": "Inventar",
         "rubber": "Gummi",
         "rubberbands": "Gummibänder",
@@ -27,7 +27,7 @@
         "score_stat": "PUNKTE: {score}",
         "total_sold_stat": "Insgesamt verkaufte Gummibänder: {amount} Stück",
         "coins_stat": "Münzen: {amount}",
-        "ticks_stat": "Ticks: {amount}",
+        "ticks_stat": "⏱️: {amount}",
         "version": "Version",
         "buy": "Kaufen",
         "sell": "Verkaufen",
@@ -45,7 +45,7 @@
         "campaign_title": "Marketingkampagne (Lvl {level})",
         "desc_base": "Erhöht die Nachfrage nach Gummibändern.",
         "no_decay": "Obsolet durch KI.",
-        "decays_in": "Verfällt in {ticks} Ticks.",
+        "decays_in": "Verfällt in {ticks} ⏱️.",
         "buy_campaign": "Kampagne kaufen"
     },
     "supply_chain_ui": {
@@ -65,7 +65,7 @@
     "heavy_industry_ui": {
         "title": "Schwerindustrie",
         "auto_produces": "Produziert automatisch {machine}.",
-        "production_rate": "Produktion: {amount} Maschinen/Tick pro Linie"
+        "production_rate": "Produktion: {amount} Maschinen/⏱️ pro Linie"
     },
     "research_ui": {
         "title": "Forschung",

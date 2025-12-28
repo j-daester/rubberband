@@ -2,7 +2,7 @@
     "common": {
         "level": "Niveau",
         "total_sold": "Total vendu",
-        "ticks": "Ticks",
+        "ticks": "⏱️",
         "inventory": "Inventaire",
         "rubber": "Caoutchouc",
         "rubberbands": "Élastiques",
@@ -27,7 +27,7 @@
         "score_stat": "SCORE : {score}",
         "total_sold_stat": "Total d'élastiques vendus : {amount} unités",
         "coins_stat": "Pièces : {amount}",
-        "ticks_stat": "Ticks : {amount}",
+        "ticks_stat": "⏱️ : {amount}",
         "version": "Version",
         "buy": "Acheter",
         "sell": "Vendre",
@@ -45,7 +45,7 @@
         "campaign_title": "Campagne Marketing (Niv {level})",
         "desc_base": "Augmente la demande pour les élastiques.",
         "no_decay": "Pas de déclin.",
-        "decays_in": "Décline dans {ticks} ticks.",
+        "decays_in": "Décline dans {ticks} ⏱️.",
         "buy_campaign": "Acheter la campagne"
     },
     "supply_chain_ui": {
@@ -65,7 +65,7 @@
     "heavy_industry_ui": {
         "title": "Industrie lourde",
         "auto_produces": "Produit automatiquement {machine}.",
-        "production_rate": "Production : {amount} machines/tick par ligne"
+        "production_rate": "Production : {amount} machines/⏱️ par ligne"
     },
     "research_ui": {
         "title": "Recherche",

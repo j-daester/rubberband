@@ -9,7 +9,7 @@
 
 	export let params: any = undefined; // Silence unknown prop warning
 
-	import { formatNumber, formatMoney } from './utils';
+	import { formatNumber, formatMoney, formatWeight } from './utils';
 	import MachineShop from './components/MachineShop.svelte';
 	import Marketing from './components/Marketing.svelte';
 	import HeavyIndustry from './components/HeavyIndustry.svelte';
@@ -246,7 +246,7 @@
 				<div class="stat-row">
 					<div class="stat">
 						<span class="label">{$t('common.rubber')}</span>
-						<span class="value">{formatNumber(Math.floor(rubber), suffixes)} g</span>
+						<span class="value">{formatWeight(rubber)}</span>
 					</div>
 					<div class="stat">
 						<span class="label">{$t('common.rubberbands')}</span>
@@ -256,7 +256,7 @@
 						<div class="stat">
 							<span class="label">{$t('common.storage_cost')}</span>
 							<span class="value" style="color: #ff6b6b"
-								>-{formatMoney(inventoryCost, suffixes)}/t</span
+								>-{formatMoney(inventoryCost, suffixes)}/⏱️</span
 							>
 						</div>
 					{/if}
@@ -268,17 +268,17 @@
 				<div class="stat-row">
 					<div class="stat">
 						<span class="label">{$t('common.rubber')}</span>
-						<span class="value">{formatNumber(rubberProduction, suffixes)}/t</span>
+						<span class="value">{formatWeight(rubberProduction)}/⏱️</span>
 					</div>
 					<div class="stat">
 						<span class="label">{$t('common.bands')}</span>
-						<span class="value">{formatNumber(productionRate, suffixes)}/t</span>
+						<span class="value">{formatNumber(productionRate, suffixes)}/⏱️</span>
 					</div>
 					{#if maintenanceCost > 0}
 						<div class="stat">
 							<span class="label">{$t('common.maintenance')}</span>
 							<span class="value" style="color: #ff6b6b"
-								>-{formatMoney(maintenanceCost, suffixes)}/t</span
+								>-{formatMoney(maintenanceCost, suffixes)}/⏱️</span
 							>
 						</div>
 					{/if}
@@ -294,7 +294,7 @@
 					</div>
 					<div class="stat">
 						<span class="label">{$t('common.demand')}</span>
-						<span class="value">{formatNumber(demand, suffixes)}/t</span>
+						<span class="value">{formatNumber(demand, suffixes)}/⏱️</span>
 					</div>
 				</div>
 			</div>

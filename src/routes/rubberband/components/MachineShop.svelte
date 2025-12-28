@@ -72,17 +72,17 @@
 								{$t('common.production')}: {formatNumber(
 									game.getMachineOutputPerUnit(machine.name),
 									suffixes
-								)}/t
+								)}/⏱️
 							</p>
 							<p class="details">
-								{$t('common.maintenance')}: {formatMoney(machine.maintenance_cost, suffixes)}/t
+								{$t('common.maintenance')}: {formatMoney(machine.maintenance_cost, suffixes)}/⏱️
 							</p>
 							<p class="owned">{$t('common.owned')}: {formatNumber(owned, suffixes)}</p>
 							<p class="details">
 								Total {$t('common.maintenance')}: {formatMoney(
 									owned * machine.maintenance_cost,
 									suffixes
-								)}/t
+								)}/⏱️
 							</p>
 						</div>
 						<div class="actions">

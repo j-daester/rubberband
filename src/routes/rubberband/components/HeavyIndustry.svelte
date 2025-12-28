@@ -64,11 +64,7 @@
 							<h3>{$t('production_lines.' + line.name)}</h3>
 							<p>{tr('heavy_industry_ui.auto_produces', '{machine}', machineNameTranslated)}</p>
 							<p class="details">
-								{tr(
-									'heavy_industry_ui.production_rate',
-									'{amount}',
-									formatNumber(line.output, suffixes)
-								)}
+								{$t('common.production')}: {formatNumber(line.output, suffixes)}/⏱️
 							</p>
 							<p class="owned">{$t('common.owned')}: {formatNumber(count, suffixes)}</p>
 						</div>
