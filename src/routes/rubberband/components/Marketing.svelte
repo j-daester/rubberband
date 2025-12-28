@@ -25,6 +25,8 @@
 			dispatch('action');
 		}
 	}
+	$: ticksSinceLastUpdate = game.tickCount - game.lastMarketingUpdateTick;
+	$: ticksUntilDecay = Math.max(0, GAME_CONSTANTS.MARKETING_DECAY_INTERVAL - ticksSinceLastUpdate);
 </script>
 
 {#if game.level >= GAME_CONSTANTS.MARKETING_UNLOCK_LEVEL}
@@ -36,7 +38,7 @@
 				<p>
 					Increases demand for rubberbands. {game.researched.includes('automated_ai_marketing')
 						? 'No decay.'
-						: 'Decays over time.'}
+						: `Decays in ${ticksUntilDecay} ticks.`}
 				</p>
 			</div>
 			<button class="buy-btn" disabled={money < marketingCost} on:click={buyMarketing}>
