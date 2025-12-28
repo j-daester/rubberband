@@ -1,0 +1,167 @@
+{
+    "common": {
+        "level": "Level",
+        "total_sold": "Insgesamt verkauft",
+        "ticks": "Ticks",
+        "inventory": "Inventar",
+        "rubber": "Gummi",
+        "rubberbands": "Gummibänder",
+        "storage_cost": "Lagerkosten",
+        "production": "Produktion",
+        "bands": "Bänder",
+        "maintenance": "Wartung",
+        "economy": "Wirtschaft",
+        "coins": "Münzen",
+        "demand": "Nachfrage",
+        "operations": "Betrieb",
+        "make_rubberband": "Gummiband herstellen",
+        "buy_rubber": "Gummi kaufen (100 g für <span class=\"small-text\">{cost}</span>)",
+        "sales_strategy": "Verkaufsstrategie",
+        "price_setting_title": "Preissetzung",
+        "price_setting_desc": "Niedrigerer Preis erhöht die Nachfrage.",
+        "price_label": "Preis pro Gummiband ({currency}):",
+        "restart_game": "Spiel neustarten",
+        "share_success": "Teile deinen Erfolg",
+        "game_over": "Spiel vorbei",
+        "congrats": "Herzlichen Glückwunsch! Du hast Level 100 erreicht und das Spiel durchgespielt.",
+        "score_stat": "PUNKTE: {score}",
+        "total_sold_stat": "Insgesamt verkaufte Gummibänder: {amount} Stück",
+        "coins_stat": "Münzen: {amount}",
+        "ticks_stat": "Ticks: {amount}",
+        "version": "Version",
+        "buy": "Kaufen",
+        "sell": "Verkaufen",
+        "owned": "Im Besitz",
+        "machine_shop": "Maschinenhalle",
+        "marketing": "Marketing",
+        "research": "Forschung",
+        "supply_chain": "Lieferkette",
+        "heavy_industry": "Schwerindustrie",
+        "locked": "Gesperrt",
+        "unlocks_at_level": "Freigeschaltet ab Level {level}"
+    },
+    "marketing_ui": {
+        "title": "Marketing",
+        "campaign_title": "Marketingkampagne (Lvl {level})",
+        "desc_base": "Erhöht die Nachfrage nach Gummibändern.",
+        "no_decay": "Obsolet durch KI.",
+        "decays_in": "Verfällt in {ticks} Ticks.",
+        "buy_campaign": "Kampagne kaufen"
+    },
+    "supply_chain_ui": {
+        "title": "Lieferkette",
+        "warning_title": "Warnung:",
+        "warning_prefix": "Gummiproduktion ist niedriger als Nachfrage!",
+        "suggestion_increase_production": "Erhöhe deine Gummiproduktion",
+        "suggestion_hire_buyer": "stelle einen Einkäufer ein",
+        "suggestion_increase_auto_buy": "erhöhe die Auto-Kauf-Menge",
+        "auto_buyer": "Auto-Einkäufer",
+        "auto_buyer_desc": "Kauft automatisch Gummi, wenn der Vorrat knapp ist.",
+        "hire_buyer": "Einkäufer einstellen",
+        "auto_buyer_active": "Auto-Einkäufer (Aktiv)",
+        "auto_buyer_active_desc": "Kauft {amount} Gummi, wenn der Vorrat unter den Schwellenwert fällt.",
+        "threshold_label": "Schwellenwert:"
+    },
+    "heavy_industry_ui": {
+        "title": "Schwerindustrie",
+        "auto_produces": "Produziert automatisch {machine}.",
+        "production_rate": "Produktion: {amount} Maschinen/Tick pro Linie"
+    },
+    "research_ui": {
+        "title": "Forschung",
+        "researched": "✅ Erforscht",
+        "research_btn": "Erforschen"
+    },
+    "suffixes": [
+        "",
+        "k",
+        "M",
+        "Mrd",
+        "Bio",
+        "Brd",
+        "Trill",
+        "Trilliard",
+        "Qu",
+        "Quard",
+        "Quin",
+        "Quint"
+    ],
+    "machines": {
+        "Bander": "Bander",
+        "MAX-Bander": "MAX-Bander",
+        "MEGA-Bander": "MEGA-Bander",
+        "Nano-Swarms": "Nano-Schwärme",
+        "Quantum Bander": "Quanten-Bander",
+        "Temporal Press": "Temporale Presse"
+    },
+    "production_lines": {
+        "Synthetic Rubber Factory Line": "Synthetische Gummifabrik-Linie",
+        "MEGA-Bander Line": "MEGA-Bander-Linie",
+        "Nanobot Factory": "Nanobot-Fabrik",
+        "Quantum Bander Line": "Quanten-Bander-Linie",
+        "Bander 100 Line": "Bander 100 Linie"
+    },
+    "rubber_sources": {
+        "Rubbertree Plantation": "Gummibaum-Plantage",
+        "Synthetic Rubber Factory": "Synthetische Gummifabrik",
+        "Black Hole Extruder": "Schwarzes Loch Extruder"
+    },
+    "research": {
+        "optimize_production": {
+            "name": "Produktion optimieren",
+            "desc": "Erhöht die Effizienz aller Maschinen, sodass weniger Gummi benötigt wird, um die gleiche Menge an Gummibändern herzustellen."
+        },
+        "online_marketing": {
+            "name": "Online Marketing",
+            "desc": "Erhöht die Effektivität des Marketings erheblich."
+        },
+        "hyperpersonalisation": {
+            "name": "Hyperpersonalisierung",
+            "desc": "Erhöht die Effektivität des Marketings erheblich."
+        },
+        "rubber_recycling": {
+            "name": "Gummi-Recycling",
+            "desc": "Verdoppelt den Ertrag von Gummiplantagen und synthetischen Gummifabriken."
+        },
+        "synthetic_rubber": {
+            "name": "Synthetischer Gummi",
+            "desc": "Macht synthetische Gummifabriken verfügbar."
+        },
+        "automated_ai_marketing": {
+            "name": "Automatisiertes KI-Marketing",
+            "desc": "Eliminiert den Marketing-Verfall."
+        },
+        "robotics": {
+            "name": "Robotik",
+            "desc": "Macht Maschinen effizienter und ermöglicht die Produktion von mehr Maschinen."
+        },
+        "brainwashing": {
+            "name": "Gehirnwäsche",
+            "desc": "Nutzt Gehirnwäsche, um Kunden zum Kauf von Gummibändern zu zwingen."
+        },
+        "hypnosis": {
+            "name": "Hypnose",
+            "desc": "Nutzt Massenhypnose, um Kunden zum Kauf von Gummibändern zu zwingen."
+        },
+        "mind_control": {
+            "name": "Gedankenkontrolle",
+            "desc": "Nutzt Gedankenkontrolle, um Kunden zum Kauf von Gummibändern zu zwingen."
+        },
+        "nanotechnology": {
+            "name": "Nanotechnologie",
+            "desc": "Schaltet die Fähigkeit frei, selbstreplizierende Nanobots für die Fertigung zu erstellen."
+        },
+        "quantum_mechanics": {
+            "name": "Quantenmechanik",
+            "desc": "Das Verständnis der Quantenwelt ermöglicht probabilistische Fertigung."
+        },
+        "singularity_theory": {
+            "name": "Singularitätstheorie",
+            "desc": "Nutzung der Kraft eines Schwarzen Lochs zur Materialextrusion."
+        },
+        "time_travel": {
+            "name": "Zeitreisen",
+            "desc": "Warum es jetzt machen, wenn man es schon gemacht haben kann?"
+        }
+    }
+}

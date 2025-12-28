@@ -1,0 +1,167 @@
+{
+    "common": {
+        "level": "Niveau",
+        "total_sold": "Total vendu",
+        "ticks": "Ticks",
+        "inventory": "Inventaire",
+        "rubber": "Caoutchouc",
+        "rubberbands": "Élastiques",
+        "storage_cost": "Coût de stockage",
+        "production": "Production",
+        "bands": "Élastiques",
+        "maintenance": "Maintenance",
+        "economy": "Économie",
+        "coins": "Pièces",
+        "demand": "Demande",
+        "operations": "Opérations",
+        "make_rubberband": "Fabriquer un élastique",
+        "buy_rubber": "Acheter du caoutchouc (100 g pour <span class=\"small-text\">{cost}</span>)",
+        "sales_strategy": "Stratégie de vente",
+        "price_setting_title": "Fixation des prix",
+        "price_setting_desc": "Un prix plus bas augmente la demande.",
+        "price_label": "Prix par élastique ({currency}) :",
+        "restart_game": "Recommencer le jeu",
+        "share_success": "Partagez votre succès",
+        "game_over": "Jeu terminé",
+        "congrats": "Félicitations ! Vous avez atteint le niveau 100 et terminé le jeu.",
+        "score_stat": "SCORE : {score}",
+        "total_sold_stat": "Total d'élastiques vendus : {amount} unités",
+        "coins_stat": "Pièces : {amount}",
+        "ticks_stat": "Ticks : {amount}",
+        "version": "Version",
+        "buy": "Acheter",
+        "sell": "Vendre",
+        "owned": "Possédé",
+        "machine_shop": "Atelier de machines",
+        "marketing": "Marketing",
+        "research": "Recherche",
+        "supply_chain": "Chaîne d'approvisionnement",
+        "heavy_industry": "Industrie lourde",
+        "locked": "Verrouillé",
+        "unlocks_at_level": "Débloqué au niveau {level}"
+    },
+    "marketing_ui": {
+        "title": "Marketing",
+        "campaign_title": "Campagne Marketing (Niv {level})",
+        "desc_base": "Augmente la demande pour les élastiques.",
+        "no_decay": "Pas de déclin.",
+        "decays_in": "Décline dans {ticks} ticks.",
+        "buy_campaign": "Acheter la campagne"
+    },
+    "supply_chain_ui": {
+        "title": "Chaîne d'approvisionnement",
+        "warning_title": "Attention :",
+        "warning_prefix": "La production de caoutchouc est inférieure à la demande !",
+        "suggestion_increase_production": "Augmentez votre production de caoutchouc",
+        "suggestion_hire_buyer": "embauchez un acheteur",
+        "suggestion_increase_auto_buy": "augmentez la quantité d'achat automatique",
+        "auto_buyer": "Acheteur automatique",
+        "auto_buyer_desc": "Achète automatiquement du caoutchouc lorsqu'il manque.",
+        "hire_buyer": "Embaucher un acheteur",
+        "auto_buyer_active": "Acheteur automatique (Actif)",
+        "auto_buyer_active_desc": "Achète {amount} caoutchouc lorsque le stock tombe sous le seuil.",
+        "threshold_label": "Seuil :"
+    },
+    "heavy_industry_ui": {
+        "title": "Industrie lourde",
+        "auto_produces": "Produit automatiquement {machine}.",
+        "production_rate": "Production : {amount} machines/tick par ligne"
+    },
+    "research_ui": {
+        "title": "Recherche",
+        "researched": "✅ Recherché",
+        "research_btn": "Rechercher"
+    },
+    "suffixes": [
+        "",
+        "k",
+        "M",
+        "Md",
+        "B",
+        "Bd",
+        "T",
+        "Td",
+        "Qn",
+        "Qnd",
+        "Sn",
+        "Snd"
+    ],
+    "machines": {
+        "Bander": "Bander",
+        "MAX-Bander": "MAX-Bander",
+        "MEGA-Bander": "MEGA-Bander",
+        "Nano-Swarms": "Nano-Essaims",
+        "Quantum Bander": "Bander Quantique",
+        "Temporal Press": "Presse Temporelle"
+    },
+    "production_lines": {
+        "Synthetic Rubber Factory Line": "Ligne d'usine de caoutchouc synthétique",
+        "MEGA-Bander Line": "Ligne MEGA-Bander",
+        "Nanobot Factory": "Usine de nanobots",
+        "Quantum Bander Line": "Ligne Bander Quantique",
+        "Bander 100 Line": "Ligne Bander 100"
+    },
+    "rubber_sources": {
+        "Rubbertree Plantation": "Plantation d'hévéas",
+        "Synthetic Rubber Factory": "Usine de caoutchouc synthétique",
+        "Black Hole Extruder": "Extrudeuse Trou Noir"
+    },
+    "research": {
+        "optimize_production": {
+            "name": "Optimiser la production",
+            "desc": "Augmente l'efficacité de toutes les machines, nécessitant moins de caoutchouc pour produire la même quantité d'élastiques."
+        },
+        "online_marketing": {
+            "name": "Marketing en ligne",
+            "desc": "Augmente considérablement l'efficacité du marketing."
+        },
+        "hyperpersonalisation": {
+            "name": "Hyperpersonnalisation",
+            "desc": "Augmente considérablement l'efficacité du marketing."
+        },
+        "rubber_recycling": {
+            "name": "Recyclage du caoutchouc",
+            "desc": "Multiplie par 2 la production des plantations d'hévéas et des usines de caoutchouc synthétique."
+        },
+        "synthetic_rubber": {
+            "name": "Caoutchouc synthétique",
+            "desc": "Rend les usines de caoutchouc synthétique disponibles."
+        },
+        "automated_ai_marketing": {
+            "name": "Marketing IA automatisé",
+            "desc": "Élimine le marketing decay."
+        },
+        "robotics": {
+            "name": "Robotique",
+            "desc": "Rend les machines plus efficaces et permet la production de plus de machines."
+        },
+        "brainwashing": {
+            "name": "Lavage de cerveau",
+            "desc": "Utilise le lavage de cerveau pour obliger les clients à acheter des élastiques."
+        },
+        "hypnosis": {
+            "name": "Hypnose",
+            "desc": "Utilise l'hypnose de masse pour obliger les clients à acheter des élastiques."
+        },
+        "mind_control": {
+            "name": "Contrôle mental",
+            "desc": "Utilise le contrôle mental pour obliger les clients à acheter des élastiques."
+        },
+        "nanotechnology": {
+            "name": "Nanotechnologie",
+            "desc": "Débloque la capacité de créer des nanobots auto-répliquants pour la fabrication."
+        },
+        "quantum_mechanics": {
+            "name": "Mécanique quantique",
+            "desc": "Comprendre le domaine quantique permet une fabrication probabiliste."
+        },
+        "singularity_theory": {
+            "name": "Théorie de la singularité",
+            "desc": "Exploiter la puissance d'un trou noir pour l'extrusion de matériaux."
+        },
+        "time_travel": {
+            "name": "Voyage dans le temps",
+            "desc": "Pourquoi le faire maintenant alors que vous pouvez l'avoir déjà fait ?"
+        }
+    }
+}

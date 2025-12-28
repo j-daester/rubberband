@@ -9,4 +9,12 @@ declare global {
 	}
 }
 
-export {};
+
+export { };
+
+declare module 'svelte-i18n' {
+	// eslint-disable-next-line @typescript-eslint/no-empty-interface
+	export interface MessageObject {
+		[key: string]: any;
+	}
+}

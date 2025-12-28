@@ -3,9 +3,11 @@
 	import { researchList } from '../parameters';
 	import { formatNumber, formatMoney } from '../utils';
 	import { createEventDispatcher } from 'svelte';
+	import { t } from 'svelte-i18n';
 
 	export let game: Game;
 	export let tick: number;
+	export let suffixes: string[] = [];
 
 	const dispatch = createEventDispatcher();
 
@@ -26,19 +28,19 @@
 
 {#if game.level >= minUnlockLevel}
 	<section class="research">
-		<h2>Research</h2>
+		<h2>{$t('research_ui.title')}</h2>
 		<div class="research-list">
 			{#each researchList as research}
 				{#if game.level >= research.unlock_level}
 					{@const isResearched = game.researched.includes(research.id)}
 					<div class="research-card" class:researched={isResearched}>
 						<div class="info">
-							<h3>{research.name}</h3>
-							<p>{research.description}</p>
+							<h3>{$t('research.' + research.id + '.name')}</h3>
+							<p>{$t('research.' + research.id + '.desc')}</p>
 							{#if !isResearched}
 								<!-- Price removed from here -->
 							{:else}
-								<p class="status">✅ Researched</p>
+								<p class="status">{$t('research_ui.researched')}</p>
 							{/if}
 						</div>
 						<div class="actions">
@@ -48,8 +50,8 @@
 									disabled={game.money < research.cost}
 									on:click={() => buyResearch(research.id)}
 								>
-									<span class="action-text">Research</span>
-									<span class="price-text">{formatMoney(research.cost)}</span>
+									<span class="action-text">{$t('research_ui.research_btn')}</span>
+									<span class="price-text">{formatMoney(research.cost, suffixes)}</span>
 								</button>
 							{/if}
 						</div>

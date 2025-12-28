@@ -3,9 +3,11 @@
 	import { rubberSources, GAME_CONSTANTS } from '../parameters';
 	import { formatNumber, formatMoney } from '../utils';
 	import { createEventDispatcher } from 'svelte';
+	import { t, locale } from 'svelte-i18n';
 
 	export let game: Game;
 	export let tick: number;
+	export let suffixes: string[] = [];
 
 	let buyAmount = 1;
 	let buyerThreshold = game.buyerThreshold;
@@ -29,17 +31,24 @@
 	$: currentBuyerThreshold = game.buyerThreshold;
 
 	$: warningMessage = (() => {
-		const suggestions = ['Increase your rubber production'];
+		// Ensure $t is available/reactive
+		// We depend on tick/game, but simpler to depend on t explicitly if needed?
+		// Svelte handles $t reactivity automatically.
+		const suggestions = [$t('supply_chain_ui.suggestion_increase_production')];
 		if (!game.buyerHired) {
-			suggestions.push('hire a buyer');
+			suggestions.push($t('supply_chain_ui.suggestion_hire_buyer'));
 		} else if (game.buyerThreshold < GAME_CONSTANTS.MAX_RUBBER_NO_PRODUCTION) {
-			suggestions.push('increase auto-buy amount');
+			suggestions.push($t('supply_chain_ui.suggestion_increase_auto_buy'));
 		}
+
+		const prefix = $t('supply_chain_ui.warning_prefix');
+		const orText = $locale?.startsWith('de') ? 'oder' : $locale?.startsWith('fr') ? 'ou' : 'or';
+
 		if (suggestions.length > 1) {
 			const last = suggestions.pop();
-			return `Rubber production is lower than demand! ${suggestions.join(', ')} or ${last}.`;
+			return `${prefix} ${suggestions.join(', ')} ${orText} ${last}.`;
 		}
-		return `Rubber production is lower than demand! ${suggestions[0]}.`;
+		return `${prefix} ${suggestions[0]}.`;
 	})();
 
 	const dispatch = createEventDispatcher();
@@ -71,16 +80,24 @@
 		...rubberSources.map((p) => p.unlock_level),
 		GAME_CONSTANTS.BUYER_UNLOCK_LEVEL
 	);
+
+	$: autoBuyerActiveParams = {
+		amount: formatNumber(currentBuyerThreshold, suffixes)
+	} as any;
+
+	function tr(key: string, search: string, replace: string) {
+		return ($t(key) as string).replace(search, replace);
+	}
 </script>
 
 {#if game.level >= minUnlockLevel}
 	<section class="supply-chain">
-		<h2>Supply Chain</h2>
+		<h2>{$t('supply_chain_ui.title')}</h2>
 
 		{#if game.rubberShortage}
 			<div class="warning">
 				<p>
-					⚠️ <strong>Warning:</strong>
+					⚠️ <strong>{$t('supply_chain_ui.warning_title')}</strong>
 					{warningMessage}
 				</p>
 			</div>
@@ -91,24 +108,28 @@
 				{#if !buyerHired}
 					<div class="hire-card">
 						<div class="info">
-							<h3>Auto-Buyer</h3>
-							<p>Automatically buys rubber when low.</p>
+							<h3>{$t('supply_chain_ui.auto_buyer')}</h3>
+							<p>{$t('supply_chain_ui.auto_buyer_desc')}</p>
 						</div>
 						<button class="buy-btn" disabled={money < 1000} on:click={hireBuyer}>
-							<span class="action-text">Hire Buyer</span>
-							<span class="price-text">{formatMoney(1000)}</span>
+							<span class="action-text">{$t('supply_chain_ui.hire_buyer')}</span>
+							<span class="price-text">{formatMoney(1000, suffixes)}</span>
 						</button>
 					</div>
 				{:else}
 					<div class="worker-card">
 						<div class="info">
-							<h3>Auto-Buyer (Active)</h3>
+							<h3>{$t('supply_chain_ui.auto_buyer_active')}</h3>
 							<p>
-								Buys {formatNumber(currentBuyerThreshold)} rubber when rubber drops below threshold.
+								{tr(
+									'supply_chain_ui.auto_buyer_active_desc',
+									'{amount}',
+									formatNumber(currentBuyerThreshold, suffixes)
+								)}
 							</p>
 						</div>
 						<div class="controls">
-							<label for="threshold">Threshold:</label>
+							<label for="threshold">{$t('supply_chain_ui.threshold_label')}</label>
 							<input
 								id="threshold"
 								type="number"
@@ -141,14 +162,22 @@
 
 					<div class="plantation-card">
 						<div class="plantation-info">
-							<h3>{source.name}</h3>
+							<h3>{$t('rubber_sources.' + source.name)}</h3>
 							<p class="details">
-								Output: {formatNumber(game.getRubberSourceOutputPerUnit(source.name))} g Rubber/tick
+								{$t('common.production')}: {formatNumber(
+									game.getRubberSourceOutputPerUnit(source.name),
+									suffixes
+								)} g {$t('common.rubber')}/t
 							</p>
-							<p class="details">Maint: {formatMoney(source.maintenance_cost)}/tick</p>
-							<p class="owned">Owned: {formatNumber(owned)}</p>
 							<p class="details">
-								Total Maint: {formatMoney(owned * source.maintenance_cost)}/tick
+								{$t('common.maintenance')}: {formatMoney(source.maintenance_cost, suffixes)}/t
+							</p>
+							<p class="owned">{$t('common.owned')}: {formatNumber(owned, suffixes)}</p>
+							<p class="details">
+								Total {$t('common.maintenance')}: {formatMoney(
+									owned * source.maintenance_cost,
+									suffixes
+								)}/t
 							</p>
 							{#if !isDisplayOnly}
 								<!-- Price removed -->
@@ -164,8 +193,8 @@
 									on:click={() => handleBuy(source.name)}
 									title={isBeingProduced ? 'Cannot buy while being produced by heavy industry' : ''}
 								>
-									<span class="action-text">Buy</span>
-									<span class="price-text">{formatMoney(cost)}</span>
+									<span class="action-text">{$t('common.buy')}</span>
+									<span class="price-text">{formatMoney(cost, suffixes)}</span>
 								</button>
 								<button
 									class="buy-btn sell-btn"
@@ -175,8 +204,8 @@
 										? 'Cannot sell while being produced by heavy industry'
 										: ''}
 								>
-									<span class="action-text">Sell</span>
-									<span class="price-text">{formatMoney(sellPrice)}</span>
+									<span class="action-text">{$t('common.sell')}</span>
+									<span class="price-text">{formatMoney(sellPrice, suffixes)}</span>
 								</button>
 							{/if}
 						</div>

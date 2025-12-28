@@ -1,0 +1,167 @@
+{
+    "common": {
+        "level": "Level",
+        "total_sold": "Total Sold",
+        "ticks": "Ticks",
+        "inventory": "Inventory",
+        "rubber": "Rubber",
+        "rubberbands": "Rubberbands",
+        "storage_cost": "Storage Cost",
+        "production": "Production",
+        "bands": "Bands",
+        "maintenance": "Maintenance",
+        "economy": "Economy",
+        "coins": "Coins",
+        "demand": "Demand",
+        "operations": "Operations",
+        "make_rubberband": "Make Rubberband",
+        "buy_rubber": "Buy Rubber (100 g for <span class=\"small-text\">{cost}</span>)",
+        "sales_strategy": "Sales Strategy",
+        "price_setting_title": "Price Setting",
+        "price_setting_desc": "Lower price increases demand.",
+        "price_label": "Price per Rubberband ({currency}):",
+        "restart_game": "Restart Game",
+        "share_success": "Share your success",
+        "game_over": "Game Over",
+        "congrats": "Congratulations! You have reached level 100 and beaten the game.",
+        "score_stat": "SCORE: {score}",
+        "total_sold_stat": "Total Rubberbands Sold: {amount} items",
+        "coins_stat": "Coins: {amount}",
+        "ticks_stat": "Ticks: {amount}",
+        "version": "Version",
+        "buy": "Buy",
+        "sell": "Sell",
+        "owned": "Owned",
+        "machine_shop": "Machine Shop",
+        "marketing": "Marketing",
+        "research": "Research",
+        "supply_chain": "Supply Chain",
+        "heavy_industry": "Heavy Industry",
+        "locked": "Locked",
+        "unlocks_at_level": "Unlocks at level {level}"
+    },
+    "marketing_ui": {
+        "title": "Marketing",
+        "campaign_title": "Marketing Campaign (Lvl {level})",
+        "desc_base": "Increases demand for rubberbands.",
+        "no_decay": "No decay.",
+        "decays_in": "Decays in {ticks} ticks.",
+        "buy_campaign": "Buy Campaign"
+    },
+    "supply_chain_ui": {
+        "title": "Supply Chain",
+        "warning_title": "Warning:",
+        "warning_prefix": "Rubber production is lower than demand!",
+        "suggestion_increase_production": "Increase your rubber production",
+        "suggestion_hire_buyer": "hire a buyer",
+        "suggestion_increase_auto_buy": "increase auto-buy amount",
+        "auto_buyer": "Auto-Buyer",
+        "auto_buyer_desc": "Automatically buys rubber when low.",
+        "hire_buyer": "Hire Buyer",
+        "auto_buyer_active": "Auto-Buyer (Active)",
+        "auto_buyer_active_desc": "Buys {amount} rubber when rubber drops below threshold.",
+        "threshold_label": "Threshold:"
+    },
+    "heavy_industry_ui": {
+        "title": "Heavy Industry",
+        "auto_produces": "Automatically produces {machine}.",
+        "production_rate": "Production: {amount} machines/tick per line"
+    },
+    "research_ui": {
+        "title": "Research",
+        "researched": "✅ Researched",
+        "research_btn": "Research"
+    },
+    "suffixes": [
+        "",
+        "k",
+        "M",
+        "B",
+        "T",
+        "Qa",
+        "Qi",
+        "Sx",
+        "Sp",
+        "Oc",
+        "No",
+        "Dc"
+    ],
+    "machines": {
+        "Bander": "Bander",
+        "MAX-Bander": "MAX-Bander",
+        "MEGA-Bander": "MEGA-Bander",
+        "Nano-Swarms": "Nano-Swarms",
+        "Quantum Bander": "Quantum Bander",
+        "Temporal Press": "Temporal Press"
+    },
+    "production_lines": {
+        "Synthetic Rubber Factory Line": "Synthetic Rubber Factory Line",
+        "MEGA-Bander Line": "MEGA-Bander Line",
+        "Nanobot Factory": "Nanobot Factory",
+        "Quantum Bander Line": "Quantum Bander Line",
+        "Bander 100 Line": "Bander 100 Line"
+    },
+    "rubber_sources": {
+        "Rubbertree Plantation": "Rubbertree Plantation",
+        "Synthetic Rubber Factory": "Synthetic Rubber Factory",
+        "Black Hole Extruder": "Black Hole Extruder"
+    },
+    "research": {
+        "optimize_production": {
+            "name": "Optimize Production",
+            "desc": "Increases the efficiency of all machines, so less rubber is needed to produce the same amount of rubberbands."
+        },
+        "online_marketing": {
+            "name": "Online Marketing",
+            "desc": "Increases the effectivity of marketing significantly."
+        },
+        "hyperpersonalisation": {
+            "name": "Hyperpersonalisation",
+            "desc": "Increases the effectivity of marketing significantly."
+        },
+        "rubber_recycling": {
+            "name": "Rubber Recycling",
+            "desc": "Increases the output of rubber plantations and synthetic rubber factories by factor 2."
+        },
+        "synthetic_rubber": {
+            "name": "Synthetic Rubber",
+            "desc": "Makes synthetic rubber factories available."
+        },
+        "automated_ai_marketing": {
+            "name": "Automated AI-Marketing",
+            "desc": "Eliminates the marketing decay."
+        },
+        "robotics": {
+            "name": "Robotics",
+            "desc": "Makes machines more efficient and allows for the production of more machines."
+        },
+        "brainwashing": {
+            "name": "Brainwashing",
+            "desc": "Uses Brainwashing to compel customers to buy rubberbands."
+        },
+        "hypnosis": {
+            "name": "Hypnosis",
+            "desc": "Uses mass hypnosis to compel customers to buy rubberbands."
+        },
+        "mind_control": {
+            "name": "Mind Control",
+            "desc": "Uses mind control to compel customers to buy rubberbands."
+        },
+        "nanotechnology": {
+            "name": "Nanotechnology",
+            "desc": "Unlocks the ability to create self-replicating nanobots for manufacturing."
+        },
+        "quantum_mechanics": {
+            "name": "Quantum Mechanics",
+            "desc": "Understanding the quantum realm allows for probabilistic manufacturing."
+        },
+        "singularity_theory": {
+            "name": "Singularity Theory",
+            "desc": "Harnessing the power of a black hole for material extrusion."
+        },
+        "time_travel": {
+            "name": "Time Travel",
+            "desc": "Why make it now when you can have already made it?"
+        }
+    }
+}

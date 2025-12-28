@@ -2,9 +2,11 @@
 	import type { Game } from '../game';
 	import { machineTypes } from '../parameters';
 	import { formatNumber, formatMoney } from '../utils';
+	import { t } from 'svelte-i18n';
 
 	export let game: Game;
 	export let tick: number;
+	export let suffixes: string[] = [];
 
 	let buyAmount = 1;
 
@@ -17,18 +19,7 @@
 
 	function buyMachine(machineName: string) {
 		if (game.buyMachine(machineName)) {
-			// We need to notify the parent or just let the tick prop handle the update cycle?
-			// Since game is an object reference, modifying it works.
-			// But we might need to trigger an update in the parent if the parent relies on specific properties.
-			// However, the parent passes `tick` which changes every second or on action.
-			// If we want immediate feedback, we might need to dispatch an event or just rely on the fact that
-			// Svelte reactivity is triggered by assignment.
-			// In +page.svelte, actions did `tick++`.
-			// We can't easily write back to `tick` prop.
-			// But we can just rely on the game object being mutated.
-			// To force a re-render locally, we can have a local tick or just use the game object.
-			// But to update the header stats (Money), we need the parent to update.
-			// So we should probably dispatch an event "action" that the parent listens to and increments tick.
+			// Logic handled below via dispatch
 		}
 	}
 
@@ -55,7 +46,7 @@
 
 {#if game.level >= minUnlockLevel}
 	<section class="shop">
-		<h2>Machine Shop</h2>
+		<h2>{$t('common.machine_shop')}</h2>
 		<!-- Buy Amount Toggle could be added here if needed, but for now hardcoded to 1 in logic or we can add UI -->
 
 		<div class="machine-list">
@@ -76,14 +67,22 @@
 
 					<div class="machine-card">
 						<div class="machine-info">
-							<h3>{machine.name}</h3>
+							<h3>{$t('machines.' + machine.name)}</h3>
 							<p class="details">
-								Output: {formatNumber(game.getMachineOutputPerUnit(machine.name))}/tick
+								{$t('common.production')}: {formatNumber(
+									game.getMachineOutputPerUnit(machine.name),
+									suffixes
+								)}/t
 							</p>
-							<p class="details">Maint: {formatMoney(machine.maintenance_cost)}/tick</p>
-							<p class="owned">Owned: {formatNumber(owned)}</p>
 							<p class="details">
-								Total Maint: {formatMoney(owned * machine.maintenance_cost)}/tick
+								{$t('common.maintenance')}: {formatMoney(machine.maintenance_cost, suffixes)}/t
+							</p>
+							<p class="owned">{$t('common.owned')}: {formatNumber(owned, suffixes)}</p>
+							<p class="details">
+								Total {$t('common.maintenance')}: {formatMoney(
+									owned * machine.maintenance_cost,
+									suffixes
+								)}/t
 							</p>
 						</div>
 						<div class="actions">
@@ -96,8 +95,8 @@
 									on:click={() => handleBuy(machine.name)}
 									title={isBeingProduced ? 'Cannot buy while being produced by heavy industry' : ''}
 								>
-									<span class="action-text">Buy</span>
-									<span class="price-text">{formatMoney(cost)}</span>
+									<span class="action-text">{$t('common.buy')}</span>
+									<span class="price-text">{formatMoney(cost, suffixes)}</span>
 								</button>
 								<button
 									class="buy-btn sell-btn"
@@ -107,8 +106,8 @@
 										? 'Cannot sell while being produced by heavy industry'
 										: ''}
 								>
-									<span class="action-text">Sell</span>
-									<span class="price-text">{formatMoney(sellPrice)}</span>
+									<span class="action-text">{$t('common.sell')}</span>
+									<span class="price-text">{formatMoney(sellPrice, suffixes)}</span>
 								</button>
 							{/if}
 						</div>

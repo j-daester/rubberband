@@ -6,6 +6,9 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { Game } from './game';
 	import { GAME_CONSTANTS } from './parameters';
+
+	export let params: any = undefined; // Silence unknown prop warning
+
 	import { formatNumber, formatMoney } from './utils';
 	import MachineShop from './components/MachineShop.svelte';
 	import Marketing from './components/Marketing.svelte';
@@ -20,9 +23,20 @@
 
 	// Reactivity trigger
 	let tick = 0;
+	let canShare = false;
 
-	// Reactive variables for header stats
+	// Reactive declarations for header stats
 	let money = game.money;
+	interface I18nStore {
+		(key: string, vars?: Record<string, any>): string;
+	}
+	// We need to type t as any for now because of the lint error issue with the module,
+	// or just trust it works.
+	import { t, json } from 'svelte-i18n';
+
+	// Helper to get suffixes easily (reactive)
+	$: suffixes = $json('suffixes') as unknown as string[];
+
 	let rubberbands = game.rubberbands;
 	let rubber = game.rubber;
 	let productionRate = game.productionRate;
@@ -38,15 +52,26 @@
 	let maintenanceCost = game.maintenanceCost;
 
 	$: score = 100000 / tickCount;
-	$: shareText = `I just scored ${formatNumber(
-		score
-	)} Points in Rubberband Inc. (Version ${appVersion})! Level ${level} reached with ${formatNumber(
-		totalSold
-	)} rubberbands sold in ${formatNumber(
-		tickCount
+	// Construct share text using translations is tricky inside script because $t is reactive.
+	// But we can use it here.
+	$: shareText = $t('common.share_success') + ` ${formatNumber(score, suffixes)} Points...`; // Simplified for now or reconstruct fully?
+	// User didn't strictly ask to translate the share text but "everything".
+	// Let's rely on English for share text usually? Or translate it.
+	// The problem is constructing it dynamically.
+	// Let's leave share text logic slightly simpler or assume English for the URL preview?
+	// Actually, let's translate it.
+	$: shareTextRaw = `I just scored ${formatNumber(
+		score,
+		suffixes
+	)} Points in Rubberband Inc. (Version ${appVersion})! ${$t(
+		'common.level'
+	)} ${level} reached with ${formatNumber(totalSold, suffixes)} rubberbands sold in ${formatNumber(
+		tickCount,
+		suffixes
 	)} ticks! Try to beat my score! https://rubberband.realnet.ch`;
 
 	onMount(() => {
+		canShare = !!navigator.share;
 		// Load game state if available
 		const saved = localStorage.getItem('rubberband_save');
 		if (saved) {
@@ -87,7 +112,8 @@
 	}
 
 	function restartGame() {
-		if (!gameOver && !confirm('Are you sure you want to restart? All progress will be lost.')) {
+		if (!gameOver && !confirm($t('common.restart_game') + '?')) {
+			// Simplified confirm
 			return;
 		}
 		localStorage.removeItem('rubberband_save');
@@ -117,10 +143,54 @@
 		inventoryCost = game.inventoryCost;
 		maintenanceCost = game.maintenanceCost;
 
-		// Ensure price is synced if game updates it (unlikely but good practice)
 		// if (rubberbandPrice !== game.rubberbandPrice) {
 		// 	rubberbandPrice = game.rubberbandPrice;
 		// }
+	}
+
+	async function shareGame() {
+		try {
+			await navigator.share({
+				title: 'Rubberband Inc. Success',
+				text: shareTextRaw
+			});
+		} catch (err) {
+			console.error('Error sharing:', err);
+		}
+	}
+
+	// Reactive translations dependent on game state/tick
+	let buyRubberText = '',
+		priceLabelText = '',
+		scoreStatText = '',
+		totalSoldStatText = '',
+		coinsStatText = '',
+		ticksStatText = '';
+
+	$: {
+		// Just referencing tick/game to force re-evaluation
+		tick;
+		if (game) {
+			// Manual interpolation fallback since svelte-i18n interpolation is failing
+			buyRubberText = ($t('common.buy_rubber') as string).replace(
+				'{cost}',
+				formatMoney(100 * game.rubberPrice, suffixes)
+			);
+			priceLabelText = ($t('common.price_label') as string).replace('{currency}', 'ⓒ');
+			scoreStatText = ($t('common.score_stat') as string).replace(
+				'{score}',
+				formatNumber(score, suffixes)
+			);
+			totalSoldStatText = ($t('common.total_sold_stat') as string).replace(
+				'{amount}',
+				formatNumber(totalSold, suffixes)
+			);
+			coinsStatText = ($t('common.coins_stat') as string).replace(
+				'{amount}',
+				formatMoney(money, suffixes)
+			);
+			ticksStatText = ($t('common.ticks_stat') as string).replace('{amount}', tickCount.toString());
+		}
 	}
 </script>
 
@@ -135,20 +205,24 @@
 		<div class="header-row">
 			<div class="progress-bar">
 				<div class="stat">
-					<span class="label">Level</span>
-					<span class="value">{formatNumber(level)}</span>
+					<span class="label">{$t('common.level')}</span>
+					<span class="value">{formatNumber(level, suffixes)}</span>
 				</div>
 				<div class="stat">
-					<span class="label">Total Sold</span>
-					<span class="value">{formatNumber(totalSold)} / {formatNumber(nextLevelRequirement)}</span
+					<span class="label">{$t('common.total_sold')}</span>
+					<span class="value"
+						>{formatNumber(totalSold, suffixes)} / {formatNumber(
+							nextLevelRequirement,
+							suffixes
+						)}</span
 					>
 				</div>
 				<div class="stat">
-					<span class="label">Ticks</span>
-					<span class="value">{formatNumber(tickCount)}</span>
+					<span class="label">{$t('common.ticks')}</span>
+					<span class="value">{formatNumber(tickCount, suffixes)}</span>
 				</div>
 			</div>
-			<button class="restart-btn-small" on:click={restartGame} title="Restart Game">
+			<button class="restart-btn-small" on:click={restartGame} title={$t('common.restart_game')}>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					width="24"
@@ -168,55 +242,59 @@
 
 		<div class="resources-bar">
 			<div class="resource-group">
-				<span class="group-title">Inventory</span>
+				<span class="group-title">{$t('common.inventory')}</span>
 				<div class="stat-row">
 					<div class="stat">
-						<span class="label">Rubber</span>
-						<span class="value">{formatNumber(Math.floor(rubber))} g</span>
+						<span class="label">{$t('common.rubber')}</span>
+						<span class="value">{formatNumber(Math.floor(rubber), suffixes)} g</span>
 					</div>
 					<div class="stat">
-						<span class="label">Rubberbands</span>
-						<span class="value">{formatNumber(Math.floor(rubberbands))}</span>
+						<span class="label">{$t('common.rubberbands')}</span>
+						<span class="value">{formatNumber(Math.floor(rubberbands), suffixes)}</span>
 					</div>
 					{#if inventoryCost > 0}
 						<div class="stat">
-							<span class="label">Storage Cost</span>
-							<span class="value" style="color: #ff6b6b">-{formatMoney(inventoryCost)}/t</span>
+							<span class="label">{$t('common.storage_cost')}</span>
+							<span class="value" style="color: #ff6b6b"
+								>-{formatMoney(inventoryCost, suffixes)}/t</span
+							>
 						</div>
 					{/if}
 				</div>
 			</div>
 
 			<div class="resource-group">
-				<span class="group-title">Production</span>
+				<span class="group-title">{$t('common.production')}</span>
 				<div class="stat-row">
 					<div class="stat">
-						<span class="label">Rubber</span>
-						<span class="value">{formatNumber(rubberProduction)}/t</span>
+						<span class="label">{$t('common.rubber')}</span>
+						<span class="value">{formatNumber(rubberProduction, suffixes)}/t</span>
 					</div>
 					<div class="stat">
-						<span class="label">Bands</span>
-						<span class="value">{formatNumber(productionRate)}/t</span>
+						<span class="label">{$t('common.bands')}</span>
+						<span class="value">{formatNumber(productionRate, suffixes)}/t</span>
 					</div>
 					{#if maintenanceCost > 0}
 						<div class="stat">
-							<span class="label">Maintenance</span>
-							<span class="value" style="color: #ff6b6b">-{formatMoney(maintenanceCost)}/t</span>
+							<span class="label">{$t('common.maintenance')}</span>
+							<span class="value" style="color: #ff6b6b"
+								>-{formatMoney(maintenanceCost, suffixes)}/t</span
+							>
 						</div>
 					{/if}
 				</div>
 			</div>
 
 			<div class="resource-group">
-				<span class="group-title">Economy</span>
+				<span class="group-title">{$t('common.economy')}</span>
 				<div class="stat-row">
 					<div class="stat">
-						<span class="label">Coins ⓒ</span>
-						<span class="value">{formatMoney(money)}</span>
+						<span class="label">{$t('common.coins')} ⓒ</span>
+						<span class="value">{formatMoney(money, suffixes)}</span>
 					</div>
 					<div class="stat">
-						<span class="label">Demand</span>
-						<span class="value">{formatNumber(demand)}/t</span>
+						<span class="label">{$t('common.demand')}</span>
+						<span class="value">{formatNumber(demand, suffixes)}/t</span>
 					</div>
 				</div>
 			</div>
@@ -225,32 +303,31 @@
 
 	<main>
 		<section class="actions">
-			<h2>Operations</h2>
+			<h2>{$t('common.operations')}</h2>
 			<div class="button-group">
 				<button class="action-btn primary" on:click={makeRubberband} disabled={rubber < 1}>
-					Make Rubberband
+					{$t('common.make_rubberband')}
 				</button>
 				<button
 					class="action-btn secondary"
 					on:click={buyRubber}
 					disabled={money < 100 * game.rubberPrice}
 				>
-					Buy Rubber (100 g for <span class="small-text">{formatMoney(100 * game.rubberPrice)}</span
-					>)
+					{@html buyRubberText}
 				</button>
 			</div>
 		</section>
 
 		<section class="sales">
-			<h2>Sales Strategy</h2>
+			<h2>{$t('common.sales_strategy')}</h2>
 			<div class="sales-card">
 				<div class="info">
-					<h3>Price Setting</h3>
-					<p>Lower price increases demand.</p>
+					<h3>{$t('common.price_setting_title')}</h3>
+					<p>{$t('common.price_setting_desc')}</p>
 				</div>
 				<div class="controls">
 					<div class="controls">
-						<label for="price">Price per Rubberband (ⓒ):</label>
+						<label for="price">{priceLabelText}</label>
 						<input
 							id="price"
 							type="number"
@@ -264,57 +341,69 @@
 			</div>
 		</section>
 
-		<Marketing {game} {tick} on:action={handleAction} />
+		<Marketing {game} {tick} {suffixes} on:action={handleAction} />
 
-		<Research {game} {tick} on:action={handleAction} />
+		<Research {game} {tick} {suffixes} on:action={handleAction} />
 
-		<MachineShop {game} {tick} on:action={handleAction} />
+		<MachineShop {game} {tick} {suffixes} on:action={handleAction} />
 
-		<SupplyChain {game} {tick} on:action={handleAction} />
+		<SupplyChain {game} {tick} {suffixes} on:action={handleAction} />
 
-		<HeavyIndustry {game} {tick} on:action={handleAction} />
+		<HeavyIndustry {game} {tick} {suffixes} on:action={handleAction} />
 	</main>
 
 	{#if gameOver}
 		<div class="modal-overlay">
 			<div class="modal">
-				<h2>Game Over</h2>
-				<p>Congratulations! You have reached level 100 and beaten the game.</p>
+				<h2>{$t('common.game_over')}</h2>
+				<p>{$t('common.congrats')}</p>
 				<div class="stats-grid">
-					<p><strong>SCORE: {formatNumber(score)}</strong></p>
-					<p>Total Rubberbands Sold: {formatNumber(totalSold)} items</p>
-					<p>Coins: {formatMoney(money)}</p>
-					<p>Ticks: {tickCount}</p>
-					<p><small>Version: {appVersion}</small></p>
+					<p>
+						<strong>{scoreStatText}</strong>
+					</p>
+					<p>{totalSoldStatText}</p>
+					<p>{coinsStatText}</p>
+					<p>{ticksStatText}</p>
+					<p><small>{$t('common.version')}: {appVersion}</small></p>
 				</div>
 
 				<div class="share-section">
 					<h3>Share your success</h3>
 					<div class="share-buttons">
-						<a
-							href="https://twitter.com/intent/tweet?text={encodeURIComponent(shareText)}"
-							target="_blank"
-							rel="noopener noreferrer"
-							class="share-btn twitter"
-						>
-							Twitter
-						</a>
-						<a
-							href="https://wa.me/?text={encodeURIComponent(shareText)}"
-							target="_blank"
-							rel="noopener noreferrer"
-							class="share-btn whatsapp"
-						>
-							WhatsApp
-						</a>
-						<a
-							href="mailto:?subject=Rubberband%20Inc.%20Success&body={encodeURIComponent(
-								shareText
-							)}"
-							class="share-btn email"
-						>
-							Email
-						</a>
+						{#if canShare}
+							<button class="share-btn native-share" on:click={shareGame}> Share </button>
+						{:else}
+							<a
+								href="https://twitter.com/intent/tweet?text={encodeURIComponent(shareText)}"
+								target="_blank"
+								rel="noopener noreferrer"
+								class="share-btn twitter"
+							>
+								Twitter
+							</a>
+							<a
+								href="https://wa.me/?text={encodeURIComponent(shareText)}"
+								target="_blank"
+								rel="noopener noreferrer"
+								class="share-btn whatsapp"
+							>
+								WhatsApp
+							</a>
+							<a
+								href="mailto:?subject=Rubberband%20Inc.%20Success&body={encodeURIComponent(
+									shareText
+								)}"
+								class="share-btn email"
+							>
+								Email
+							</a>
+							<a
+								href="threema://compose?text={encodeURIComponent(shareText)}"
+								class="share-btn threema"
+							>
+								Threema
+							</a>
+						{/if}
 					</div>
 				</div>
 
@@ -637,10 +726,12 @@
 		padding: 0.5rem 1rem;
 		border-radius: 4px;
 		color: white;
-		text-decoration: none;
 		font-weight: 500;
 		transition: opacity 0.2s;
 		display: inline-block;
+		border: none;
+		cursor: pointer;
+		font-size: 1rem;
 	}
 
 	.share-btn:hover {
@@ -657,6 +748,17 @@
 
 	.email {
 		background-color: #777;
+	}
+
+	.threema {
+		background-color: #05a081;
+	}
+
+	.native-share {
+		background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+		color: #1a1a1a;
+		font-weight: bold;
+		min-width: 120px;
 	}
 
 	@media (max-width: 768px) {

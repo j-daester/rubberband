@@ -3,9 +3,11 @@
 	import { productionLines } from '../parameters';
 	import { formatNumber, formatMoney } from '../utils';
 	import { createEventDispatcher } from 'svelte';
+	import { t } from 'svelte-i18n';
 
 	export let game: Game;
 	export let tick: number;
+	export let suffixes: string[] = [];
 
 	const dispatch = createEventDispatcher();
 
@@ -28,11 +30,19 @@
 	}
 
 	const minUnlockLevel = Math.min(...productionLines.map((p) => p.unlock_level));
+
+	function anyParams(p: any): any {
+		return p;
+	}
+
+	function tr(key: string, search: string, replace: string) {
+		return ($t(key) as string).replace(search, replace);
+	}
 </script>
 
 {#if game.level >= minUnlockLevel}
 	<section class="heavy-industry">
-		<h2>Heavy Industry</h2>
+		<h2>{$t('heavy_industry_ui.title')}</h2>
 		<div class="machine-list">
 			{#each productionLines as line}
 				{#if game.isProductionLineUnlocked(line)}
@@ -44,14 +54,23 @@
 							? Math.floor(0.5 * game.getMachineProductionLineCost(line.name, 1, count - 1))
 							: 0}
 
+					{@const machineNameTranslated =
+						line.product_type === 'rubber_source'
+							? $t('rubber_sources.' + line.machine)
+							: $t('machines.' + line.machine)}
+
 					<div class="industry-card">
 						<div class="info">
-							<h3>{line.name}</h3>
-							<p>Automatically produces {line.machine}.</p>
+							<h3>{$t('production_lines.' + line.name)}</h3>
+							<p>{tr('heavy_industry_ui.auto_produces', '{machine}', machineNameTranslated)}</p>
 							<p class="details">
-								Production: {formatNumber(line.output)} machines/tick per line
+								{tr(
+									'heavy_industry_ui.production_rate',
+									'{amount}',
+									formatNumber(line.output, suffixes)
+								)}
 							</p>
-							<p class="owned">Owned: {formatNumber(count)}</p>
+							<p class="owned">{$t('common.owned')}: {formatNumber(count, suffixes)}</p>
 						</div>
 						<div class="actions">
 							<button
@@ -59,16 +78,16 @@
 								disabled={game.money < cost}
 								on:click={() => buyMachineProductionLine(line.name)}
 							>
-								<span class="action-text">Buy</span>
-								<span class="price-text">{formatMoney(cost)}</span>
+								<span class="action-text">{$t('common.buy')}</span>
+								<span class="price-text">{formatMoney(cost, suffixes)}</span>
 							</button>
 							<button
 								class="buy-btn sell-btn"
 								disabled={count <= 0}
 								on:click={() => sellMachineProductionLine(line.name)}
 							>
-								<span class="action-text">Sell</span>
-								<span class="price-text">{formatMoney(sellPrice)}</span>
+								<span class="action-text">{$t('common.sell')}</span>
+								<span class="price-text">{formatMoney(sellPrice, suffixes)}</span>
 							</button>
 						</div>
 					</div>

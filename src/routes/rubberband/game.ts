@@ -186,6 +186,10 @@ export class Game {
 		return cost;
 	}
 
+	get marketingDecayInterval() {
+		return GAME_CONSTANTS.MARKETING_DECAY_INTERVAL * this.marketingLevel;
+	}
+
 	tick() {
 		if (this.gameOver) return;
 
@@ -197,7 +201,7 @@ export class Game {
 		this.tickCount++;
 
 		if (!this.researched.includes('automated_ai_marketing')) {
-			if (this.tickCount - this.lastMarketingUpdateTick >= GAME_CONSTANTS.MARKETING_DECAY_INTERVAL) {
+			if (this.tickCount - this.lastMarketingUpdateTick >= this.marketingDecayInterval) {
 				if (this.marketingLevel > 1) {
 					this.marketingLevel--;
 				}
