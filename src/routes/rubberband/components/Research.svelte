@@ -79,9 +79,10 @@
 		border-radius: 8px;
 		border: 1px solid #333;
 		display: flex;
+		flex-direction: column; /* Stack vertically */
+		gap: 1rem; /* Space between text and button */
 		justify-content: space-between;
-		align-items: center;
-		transition: border-color 0.3s;
+		align-items: stretch; /* Full width for children */
 	}
 
 	.research-card.researched {
@@ -138,18 +139,5 @@
 		opacity: 0.5;
 		cursor: not-allowed;
 		background: #333;
-		color: #666;
-	}
-
-	@media (max-width: 480px) {
-		.research-card {
-			flex-direction: column;
-			gap: 1rem;
-			align-items: stretch;
-		}
-
-		.buy-btn {
-			width: 100%;
-		}
 	}
 </style>

@@ -45,7 +45,7 @@
 		<h2>{$t('heavy_industry_ui.title')}</h2>
 		<div class="machine-list">
 			{#each productionLines as line}
-				{#if game.isProductionLineUnlocked(line)}
+				{#if game.isProductionLineUnlocked(line) && line.name !== 'Nanobot Factory'}
 					{@const count = game.machineProductionLines[line.name] || 0}
 					{@const cost = game.getMachineProductionLineCost(line.name, 1, count)}
 					{@const max = game.getMaxAffordableProductionLine(line.name, game.money, count)}
@@ -59,12 +59,23 @@
 							? $t('rubber_sources.' + line.machine)
 							: $t('machines.' + line.machine)}
 
+					{@const nanoSwarms = game.machines['Nano-Swarms'] || 0}
+					{@const nanoBoost = Math.floor(nanoSwarms * 0.01)}
+
 					<div class="industry-card">
 						<div class="info">
 							<h3>{$t('production_lines.' + line.name)}</h3>
 							<p>{tr('heavy_industry_ui.auto_produces', '{machine}', machineNameTranslated)}</p>
 							<p class="details">
-								{$t('common.production')}: {formatNumber(line.output, suffixes)}/⏱️
+								{$t('common.production')}: {formatNumber(
+									game.getProductionLineOutputPerUnit(line.name),
+									suffixes
+								)}/⏱️
+								{#if nanoBoost > 0}
+									<span style="color: #00f2fe; font-weight: bold;"
+										>(+{formatNumber(nanoBoost, suffixes)})</span
+									>
+								{/if}
 							</p>
 							<p class="owned">{$t('common.owned')}: {formatNumber(count, suffixes)}</p>
 						</div>

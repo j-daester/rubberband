@@ -16,6 +16,8 @@
 	import SupplyChain from './components/SupplyChain.svelte';
 	import Research from './components/Research.svelte';
 
+	import NanoFactory from './components/NanoFactory.svelte';
+
 	const appVersion = __APP_VERSION__;
 
 	let game = new Game();
@@ -126,6 +128,8 @@
 	}
 
 	// Reactive declarations for UI updates
+	let hasRubberSources = false;
+
 	$: {
 		tick;
 		money = game.money;
@@ -142,6 +146,7 @@
 		nextLevelRequirement = game.nextLevelRequirement;
 		inventoryCost = game.inventoryCost;
 		maintenanceCost = game.maintenanceCost;
+		hasRubberSources = Object.values(game.rubberSources).some((count) => count > 0);
 
 		// if (rubberbandPrice !== game.rubberbandPrice) {
 		// 	rubberbandPrice = game.rubberbandPrice;
@@ -176,7 +181,7 @@
 				'{cost}',
 				formatMoney(100 * game.rubberPrice, suffixes)
 			);
-			priceLabelText = ($t('common.price_label') as string).replace('{currency}', 'ⓒ');
+			priceLabelText = ($t('common.price_label') as string).replace('{currency}', '🪙');
 			scoreStatText = ($t('common.score_stat') as string).replace(
 				'{score}',
 				formatNumber(score, suffixes)
@@ -218,8 +223,21 @@
 					>
 				</div>
 				<div class="stat">
-					<span class="label">{$t('common.ticks')}</span>
-					<span class="value">{formatNumber(tickCount, suffixes)}</span>
+					<span class="label">Ticks {$t('common.ticks')}</span>
+					<span class="value">{tickCount}</span>
+				</div>
+			</div>
+			<div class="resource-group economy-group">
+				<span class="group-title">{$t('common.economy')}</span>
+				<div class="stat-row">
+					<div class="stat">
+						<span class="label">{$t('common.coins')} 🪙</span>
+						<span class="value">{formatMoney(money, suffixes)}</span>
+					</div>
+					<div class="stat">
+						<span class="label">{$t('common.demand')}</span>
+						<span class="value">{formatNumber(demand, suffixes)}/⏱️</span>
+					</div>
 				</div>
 			</div>
 			<button class="restart-btn-small" on:click={restartGame} title={$t('common.restart_game')}>
@@ -270,6 +288,19 @@
 						<span class="label">{$t('common.rubber')}</span>
 						<span class="value">{formatWeight(rubberProduction)}/⏱️</span>
 					</div>
+					{#if hasRubberSources}
+						<div class="stat">
+							<span class="label">{$t('common.net_rubber')}</span>
+							<span
+								class="value"
+								style="color: {rubberProduction - productionRate >= 0 ? '#4caf50' : '#ff6b6b'}"
+							>
+								{rubberProduction - productionRate > 0 ? '+' : ''}{formatWeight(
+									rubberProduction - productionRate
+								)}/⏱️
+							</span>
+						</div>
+					{/if}
 					<div class="stat">
 						<span class="label">{$t('common.bands')}</span>
 						<span class="value">{formatNumber(productionRate, suffixes)}/⏱️</span>
@@ -282,20 +313,6 @@
 							>
 						</div>
 					{/if}
-				</div>
-			</div>
-
-			<div class="resource-group">
-				<span class="group-title">{$t('common.economy')}</span>
-				<div class="stat-row">
-					<div class="stat">
-						<span class="label">{$t('common.coins')} ⓒ</span>
-						<span class="value">{formatMoney(money, suffixes)}</span>
-					</div>
-					<div class="stat">
-						<span class="label">{$t('common.demand')}</span>
-						<span class="value">{formatNumber(demand, suffixes)}/⏱️</span>
-					</div>
 				</div>
 			</div>
 		</div>
@@ -350,6 +367,8 @@
 		<SupplyChain {game} {tick} {suffixes} on:action={handleAction} />
 
 		<HeavyIndustry {game} {tick} {suffixes} on:action={handleAction} />
+
+		<NanoFactory {game} {tick} {suffixes} on:action={handleAction} />
 	</main>
 
 	{#if gameOver}
@@ -459,9 +478,10 @@
 
 	.header-row {
 		display: flex;
-		align-items: center;
+		align-items: stretch; /* Stretch to match height */
 		gap: 1rem;
 		margin-bottom: 1rem;
+		flex-wrap: wrap; /* Allow wrapping on small screens */
 	}
 
 	.restart-btn-small {
@@ -477,6 +497,7 @@
 		transition: all 0.2s;
 		height: 3rem;
 		width: 3rem;
+		align-self: center; /* Center vertically */
 	}
 
 	.restart-btn-small:hover {
@@ -486,7 +507,7 @@
 	}
 
 	.progress-bar {
-		flex: 1;
+		flex: 2; /* overall stats take more space? or equal? let's say 2 */
 		display: flex;
 		justify-content: space-around;
 		background: #2d2d2d;
@@ -494,6 +515,18 @@
 		border-radius: 12px;
 		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 		margin-bottom: 0;
+		align-items: center;
+	}
+
+	.economy-group {
+		flex: 1;
+		background: #2d2d2d;
+		padding: 0.5rem;
+		border-radius: 12px;
+		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
 	}
 
 	.resources-bar {
@@ -513,6 +546,15 @@
 		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 		align-items: center;
 		gap: 0.5rem;
+	}
+	/* ... */
+	/* Remove padding/margin from .economy-group title if needed to save space? */
+	.economy-group .group-title {
+		margin-bottom: 0.5rem;
+	}
+
+	.economy-group .stat-row {
+		gap: 1rem;
 	}
 
 	.group-title {

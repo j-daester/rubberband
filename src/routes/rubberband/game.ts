@@ -244,17 +244,30 @@ export class Game {
 		return cost;
 	}
 
+	getProductionLineOutputPerUnit(lineName: string) {
+		const line = productionLines.find(l => l.name === lineName);
+		if (!line) return 0;
+
+		const nanoSwarms = this.machines["Nano-Swarms"] || 0;
+		// Additive bonus: +0.1 per swarm, but only integers count (multiples of 10)
+		return line.output + Math.floor(nanoSwarms * 0.01);
+	}
+
 	private produceMachines() {
+		const nanoSwarms = this.machines["Nano-Swarms"] || 0;
+		const outputPerUnit = Math.floor(0.01 * nanoSwarms);
+
 		for (const line of productionLines) {
 			const count = this.machineProductionLines[line.name] || 0;
 			if (count > 0) {
-				const amount = count * line.output;
-				if (line.product_type === 'rubber_source') {
-					this.rubberSources[line.machine] = (this.rubberSources[line.machine] || 0) + amount;
-				} else {
-					this.machines[line.machine] = (this.machines[line.machine] || 0) + amount;
+				const amount = Math.floor(count * (line.output + outputPerUnit));
+				if (amount > 0) {
+					if (line.product_type === 'rubber_source') {
+						this.rubberSources[line.machine] = (this.rubberSources[line.machine] || 0) + amount;
+					} else {
+						this.machines[line.machine] = (this.machines[line.machine] || 0) + amount;
+					}
 				}
-
 			}
 		}
 	}
@@ -329,7 +342,8 @@ export class Game {
 			const buyAmount = Math.min(needed, GAME_CONSTANTS.MAX_RUBBER_NO_PRODUCTION);
 
 			if (buyAmount > 0) {
-				this.buyRubber(buyAmount);
+				// 10% commission for auto buyer
+				this.buyRubber(buyAmount, 1.1);
 			}
 		}
 	}
@@ -351,7 +365,7 @@ export class Game {
 		}
 	}
 
-	buyRubber(amount: number) {
+	buyRubber(amount: number, priceMultiplier: number = 1) {
 		if (this.gameOver) return false;
 
 		const limit = this.maxRubber;
@@ -365,7 +379,7 @@ export class Game {
 
 		if (amountToBuy <= 0) return false;
 
-		const cost = amountToBuy * this.rubberPrice;
+		const cost = amountToBuy * this.rubberPrice * priceMultiplier;
 		if (this.money >= cost) {
 			this.money -= cost;
 			this.rubber += amountToBuy;

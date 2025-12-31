@@ -1,10 +1,18 @@
 export function formatNumber(num: number, suffixes: string[] = ['', 'k', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc']): string {
+    if (num < 0) {
+        return '-' + formatNumber(-num, suffixes);
+    }
     if (num < 1000) {
-        if (Number.isInteger(num)) return num.toString();
-        return num.toFixed(2).replace(/\.00$/, '');
+        const val = Number.isInteger(num) ? num.toString() : num.toFixed(2).replace(/\.00$/, '');
+        return val + suffixes[0];
     }
 
     let suffixNum = Math.floor(Math.log10(num) / 3);
+
+    // Clamp to the last suffix if the number is too large
+    if (suffixNum >= suffixes.length) {
+        suffixNum = suffixes.length - 1;
+    }
 
     let shortValue = num / Math.pow(1000, suffixNum);
 
@@ -14,10 +22,6 @@ export function formatNumber(num: number, suffixes: string[] = ['', 'k', 'M', 'B
         suffixNum++;
     }
 
-    if (suffixNum >= suffixes.length) {
-        return num.toExponential(2);
-    }
-
     // Floor to 2 decimal places
     const floored = Math.floor(shortValue * 100) / 100;
     return floored.toFixed(2) + suffixes[suffixNum];
@@ -25,17 +29,18 @@ export function formatNumber(num: number, suffixes: string[] = ['', 'k', 'M', 'B
 
 export function formatMoney(num: number, suffixes?: string[]): string {
     if (num < 1000) {
-        return num.toFixed(2) + 'ⓒ';
+        return num.toFixed(2) + '🪙';
     }
 
-    return formatNumber(num, suffixes) + 'ⓒ';
+    return formatNumber(num, suffixes) + '🪙';
 }
 
-export function formatWeight(num: number, suffixes: string[] = ['t', 'kt', 'Mt', 'Gt', 'Tt', 'Pt', 'Et', 'Zt', 'Yt']): string {
-    if (num < 1000) {
+export function formatWeight(num: number, suffixes: string[] = ['t', 'kt', 'Mt', 'Gt', 'Tt', 'Pt', 'Et', 'Zt', 'Yt', 'Rt', 'Qt']): string {
+    const absNum = Math.abs(num);
+    if (absNum < 1000) {
         return Math.floor(num) + ' g';
     }
-    if (num < 1000000) {
+    if (absNum < 1000000) {
         return (num / 1000).toFixed(2) + ' kg';
     }
 

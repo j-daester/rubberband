@@ -106,37 +106,39 @@
 		{#if game.level >= GAME_CONSTANTS.BUYER_UNLOCK_LEVEL}
 			<div class="auto-buyer-section">
 				{#if !buyerHired}
-					<div class="hire-card">
-						<div class="info">
+					<div class="plantation-card">
+						<div class="plantation-info">
 							<h3>{$t('supply_chain_ui.auto_buyer')}</h3>
-							<p>{$t('supply_chain_ui.auto_buyer_desc')}</p>
+							<p class="details">{$t('supply_chain_ui.auto_buyer_desc')}</p>
 						</div>
-						<button class="buy-btn" disabled={money < 1000} on:click={hireBuyer}>
-							<span class="action-text">{$t('supply_chain_ui.hire_buyer')}</span>
-							<span class="price-text">{formatMoney(1000, suffixes)}</span>
-						</button>
+						<div class="actions">
+							<button class="buy-btn" disabled={money < 1000} on:click={hireBuyer}>
+								<span class="action-text">{$t('supply_chain_ui.hire_buyer')}</span>
+								<span class="price-text">{formatMoney(1000, suffixes)}</span>
+							</button>
+						</div>
 					</div>
 				{:else}
-					<div class="worker-card">
-						<div class="info">
+					<div class="plantation-card">
+						<div class="plantation-info">
 							<h3>{$t('supply_chain_ui.auto_buyer_active')}</h3>
-							<p>
+							<p class="details">
 								{tr(
 									'supply_chain_ui.auto_buyer_active_desc',
 									'{amount}',
 									formatNumber(currentBuyerThreshold, suffixes)
 								)}
 							</p>
-						</div>
-						<div class="controls">
-							<label for="threshold">{$t('supply_chain_ui.threshold_label')}</label>
-							<input
-								id="threshold"
-								type="number"
-								bind:value={buyerThreshold}
-								on:input={updateBuyerThreshold}
-								min="0"
-							/>
+							<div class="controls" style="margin-top: 1rem;">
+								<label for="threshold">{$t('supply_chain_ui.threshold_label')}</label>
+								<input
+									id="threshold"
+									type="number"
+									bind:value={buyerThreshold}
+									on:input={updateBuyerThreshold}
+									min="0"
+								/>
+							</div>
 						</div>
 					</div>
 				{/if}
@@ -331,17 +333,6 @@
 		margin-bottom: 1rem;
 	}
 
-	.hire-card,
-	.worker-card {
-		background: #252525;
-		padding: 1rem;
-		border-radius: 8px;
-		border: 1px solid #333;
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-	}
-
 	.controls {
 		display: flex;
 		gap: 1rem;
@@ -357,8 +348,7 @@
 	}
 
 	@media (max-width: 480px) {
-		.hire-card,
-		.worker-card {
+		.auto-buyer-section .plantation-card {
 			flex-direction: column;
 			gap: 1rem;
 			align-items: stretch;

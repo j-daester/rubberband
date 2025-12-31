@@ -80,7 +80,7 @@ export const researchList: ResearchType[] = [
 		name: 'Online Marketing',
 		description: 'Increases the effectivity of marketing significantly.',
 		cost: 5000,
-		unlock_level: 15
+		unlock_level: 10
 	},
 	{
 		id: 'hyperpersonalisation',
@@ -143,7 +143,7 @@ export const researchList: ResearchType[] = [
 		name: 'Nanotechnology',
 		description: 'Unlocks the ability to create self-replicating nanobots for manufacturing.',
 		cost: 10000000000,
-		unlock_level: 60
+		unlock_level: 55
 	},
 	{
 		id: 'quantum_mechanics',
@@ -195,7 +195,7 @@ export const machineTypes: MachineType[] = [
 	},
 	{
 		name: "Nano-Swarms",
-		output: 500000,
+		output: 0,
 		initial_cost: 50000000,
 		cost_factor: 1.6,
 		unlock_level: researchList.find(r => r.id === 'nanotechnology')?.unlock_level ?? 60,
@@ -248,7 +248,7 @@ export const productionLines: ProductionLine[] = [
 		machine: "Nano-Swarms",
 		output: 1,
 		initial_cost: 1000000000,
-		cost_factor: 1.6,
+		cost_factor: 2,
 		unlock_level: researchList.find(r => r.id === 'nanotechnology')?.unlock_level ?? 60,
 		required_research: 'nanotechnology'
 	},
@@ -283,7 +283,7 @@ export const rubberSources: RubberSource[] = [
 	},
 	{
 		name: "Black Hole Extruder",
-		output: 100000000,
+		output: 10000000000,
 		initial_cost: 1000000000000,
 		cost_factor: 2.0,
 		unlock_level: researchList.find(r => r.id === 'singularity_theory')?.unlock_level ?? 80,
@@ -307,7 +307,7 @@ export const GAME_CONSTANTS = {
 	MIN_RUBBERBAND_PRICE: 0.01,
 	MACHINES_UNLOCK_LEVEL: 2,
 	MARKETING_UNLOCK_LEVEL: 3,
-	LEVEL_DIFFICULTY_FACTOR: 1.25,
+	LEVEL_DIFFICULTY_FACTOR: 1.5,
 	LEVEL_REQ_BASE: 100,
 	LEVEL_REQ_OFFSET: 80,
 	MAX_RUBBER_NO_PRODUCTION: 1000,
