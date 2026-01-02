@@ -20,6 +20,10 @@ export interface GameState {
 	rubberSources: Record<string, number>;
 	purchasedRubberSources: Record<string, number>;
 	researched: string[];
+	gameStartTime: number;
+	totalRubberProduced: number;
+	totalNanoSwarmsProduced: number;
+	consumedResources: number;
 	gameOver: boolean;
 }
 
@@ -42,6 +46,10 @@ export class Game {
 	purchasedRubberSources!: Record<string, number>;
 	researched!: string[];
 	gameOver!: boolean;
+	gameStartTime!: number;
+	totalRubberProduced!: number;
+	totalNanoSwarmsProduced!: number;
+	consumedResources!: number;
 
 	/**
 	 * Create a game object from the player's cookie, or initialise a new game
@@ -68,7 +76,16 @@ export class Game {
 				this.purchasedRubberSources = data.purchasedRubberSources || (data as any).purchasedPlantations || { ...this.rubberSources };
 				this.researched = data.researched || [];
 				this.gameOver = data.gameOver || false;
+				this.gameStartTime = data.gameStartTime || Date.now();
+				this.totalRubberProduced = data.totalRubberProduced || 0;
+				this.totalNanoSwarmsProduced = data.totalNanoSwarmsProduced || 0;
+				this.consumedResources = data.consumedResources || 0;
+
 				// Migration from old save if needed
+				if ((data as any).consumedOil || (data as any).consumedEarthResources) {
+					this.consumedResources = ((data as any).consumedOil || 0) + ((data as any).consumedEarthResources || 0);
+				}
+
 				if ((data as any).machineProductionLineCount && !this.machineProductionLines["Bander 100 Line"]) {
 					this.machineProductionLines["Bander 100 Line"] = (data as any).machineProductionLineCount;
 				}
@@ -111,12 +128,15 @@ export class Game {
 		this.marketingLevel = GAME_CONSTANTS.INITIAL_MARKETING_LEVEL;
 		this.lastMarketingUpdateTick = 0;
 		this.tickCount = 0;
-		this.tickCount = 0;
 		this.machineProductionLines = {};
 		this.rubberSources = {};
 		this.purchasedRubberSources = {};
 		this.researched = [];
 		this.gameOver = false;
+		this.gameStartTime = Date.now();
+		this.totalRubberProduced = 0;
+		this.totalNanoSwarmsProduced = 0;
+		this.consumedResources = 0;
 	}
 
 	getMachineOutputPerUnit(machineName: string) {
@@ -148,31 +168,43 @@ export class Game {
 		return Math.floor(GAME_CONSTANTS.LEVEL_REQ_BASE * Math.pow(GAME_CONSTANTS.LEVEL_DIFFICULTY_FACTOR, this.level - 1) - GAME_CONSTANTS.LEVEL_REQ_OFFSET);
 	}
 
-	get demand() {
-		let basevalue = 1.1;
+	calculateDemand(price: number): number {
+		let basevalue = 1.5;
+		let priceSensitivity = 1.0;
+
+		// Marketing effectiveness (base value)
 		if (this.researched.includes('online_marketing')) {
-			basevalue *= 2;
+			basevalue += 0.8;
 		}
 		if (this.researched.includes('hyperpersonalisation')) {
-			basevalue *= 2;
+			basevalue += 1;
 		}
+
+		// Price sensitivity (flattening the curve)
 		if (this.researched.includes('brainwashing')) {
-			basevalue *= 2;
+			priceSensitivity *= 5.0;
+			basevalue *= 1.2;
 		}
 		if (this.researched.includes('hypnosis')) {
-			basevalue *= 2;
+			priceSensitivity *= 10.0;
+			basevalue *= 1.2;
 		}
 		if (this.researched.includes('mind_control')) {
-			basevalue *= 2;
+			priceSensitivity *= 100.0;
+			basevalue *= 1.2;
 		}
-		// Exponential demand curve: Demand ~ e^(-price)
-		// Calibrated with constant 30 to match previous values at reasonable prices (e.g., price ~1.0)
-		let demand = Math.floor(Math.pow(this.marketingLevel, basevalue) * 30 * Math.exp(-this.rubberbandPrice));
-		return demand;
+
+		// Exponential demand curve with price sensitivity
+		// Demand ~ e^(-price / sensitivity)
+		return Math.floor(Math.pow(this.marketingLevel, basevalue) * 50 * Math.exp(-price / priceSensitivity));
+	}
+
+	get demand() {
+		return this.calculateDemand(this.rubberbandPrice);
 	}
 
 	get marketingCost() {
-		return GAME_CONSTANTS.MARKETING_BASE_COST * Math.pow(1.5, this.marketingLevel);
+		return GAME_CONSTANTS.MARKETING_BASE_COST * Math.pow(1.2, this.marketingLevel);
 	}
 
 	get maintenanceCost() {
@@ -241,7 +273,24 @@ export class Game {
 		if (bandExcess > 0) {
 			cost += 0.001 * Math.pow(bandExcess / GAME_CONSTANTS.INVENTORY_COST_DIVISOR_RUBBERBANDS, GAME_CONSTANTS.INVENTORY_COST_EXPONENT);
 		}
+
+		if (this.researched.includes('interplanetary_logistics')) {
+			cost *= GAME_CONSTANTS.INTERPLANETARY_LOGISTICS_STORAGE_COST_FACTOR;
+		}
+
 		return cost;
+	}
+
+	get income() {
+		const rubberAvailable = this.rubber + this.rubberProductionRate;
+		const bandsProduced = Math.min(this.productionRate, rubberAvailable);
+		const bandsAvailable = this.rubberbands + bandsProduced;
+		const sold = Math.min(bandsAvailable, this.demand);
+		return sold * this.rubberbandPrice;
+	}
+
+	get profit() {
+		return this.income - this.maintenanceCost - this.inventoryCost;
 	}
 
 	getProductionLineOutputPerUnit(lineName: string) {
@@ -249,23 +298,82 @@ export class Game {
 		if (!line) return 0;
 
 		const nanoSwarms = this.machines["Nano-Swarms"] || 0;
-		// Additive bonus: +0.1 per swarm, but only integers count (multiples of 10)
-		return line.output + Math.floor(nanoSwarms * 0.01);
+		// Additive bonus: +0.01 per swarm for most, but reduced for Nanobot Factory
+		let bonus = Math.floor(nanoSwarms * 0.01);
+		if (lineName === "Nanobot Factory") {
+			bonus = Math.floor(nanoSwarms * 0.001);
+		}
+		return line.output + bonus;
+	}
+
+	get resourceLimit() {
+		if (this.researched.includes('interplanetary_logistics')) {
+			return GAME_CONSTANTS.GALACTIC_RESOURCE_LIMIT;
+		}
+		if (this.researched.includes('molecular_transformation')) {
+			return GAME_CONSTANTS.EARTH_RESOURCE_LIMIT;
+		}
+		return GAME_CONSTANTS.OIL_RESERVES_LIMIT;
+	}
+
+	get consumedOil() {
+		return this.consumedResources;
+	}
+
+	get consumedEarthResources() {
+		return this.consumedResources;
+	}
+
+	get resourceUnitName() {
+		if (this.researched.includes('interplanetary_logistics')) {
+			return "Galactic Resources";
+		}
+		if (this.researched.includes('molecular_transformation')) {
+			return "Earth Resources";
+		}
+		return "Oil (l)";
 	}
 
 	private produceMachines() {
 		const nanoSwarms = this.machines["Nano-Swarms"] || 0;
 		const outputPerUnit = Math.floor(0.01 * nanoSwarms);
+		const outputPerUnitForNanobots = Math.floor(0.001 * nanoSwarms);
+
+		const generalResourceLimit = this.resourceLimit;
 
 		for (const line of productionLines) {
 			const count = this.machineProductionLines[line.name] || 0;
 			if (count > 0) {
-				const amount = Math.floor(count * (line.output + outputPerUnit));
+				const boost = line.name === "Nanobot Factory" ? outputPerUnitForNanobots : outputPerUnit;
+				let maxProduction = Math.floor(count * (line.output + boost));
+
+				// Determine resource cost per unit
+				let unitResourceCost = GAME_CONSTANTS.RESOURCE_COST_MACHINE;
+				if (line.machine === "Nano-Swarms") {
+					unitResourceCost = GAME_CONSTANTS.RESOURCE_COST_NANO_SWARM;
+				}
+
+				// Check resource limit
+				const remainingResources = Math.max(0, generalResourceLimit - this.consumedResources);
+				const maxAllowed = Math.floor(remainingResources / unitResourceCost);
+
+				if (maxProduction > maxAllowed) {
+					maxProduction = maxAllowed;
+				}
+
+				const amount = maxProduction;
+
 				if (amount > 0) {
+					// Consume resources
+					this.consumedResources += amount * unitResourceCost;
+
 					if (line.product_type === 'rubber_source') {
 						this.rubberSources[line.machine] = (this.rubberSources[line.machine] || 0) + amount;
 					} else {
 						this.machines[line.machine] = (this.machines[line.machine] || 0) + amount;
+						if (line.machine === "Nano-Swarms") {
+							this.totalNanoSwarmsProduced += amount;
+						}
 					}
 				}
 			}
@@ -307,9 +415,34 @@ export class Game {
 	}
 
 	private produceRubberFromSources() {
-		const production = this.rubberProductionRate;
-		if (production > 0) {
-			this.rubber += production;
+		const generalResourceLimit = this.resourceLimit;
+
+		for (const source of rubberSources) {
+			const count = this.rubberSources[source.name] || 0;
+			if (count > 0) {
+				const output = this.getRubberSourceOutputPerUnit(source.name);
+				let amount = count * output;
+
+				// Special handling for Synthetic Rubber Factory consuming resources
+				if (source.name === "Synthetic Rubber Factory") {
+					const remainingResources = Math.max(0, generalResourceLimit - this.consumedResources);
+					// Cost is 0.01 per unit
+					const maxProduction = Math.floor(remainingResources / GAME_CONSTANTS.RESOURCE_COST_SYNTHETIC_RUBBER);
+
+					if (amount > maxProduction) {
+						amount = maxProduction;
+					}
+
+					if (amount > 0) {
+						this.consumedResources += amount * GAME_CONSTANTS.RESOURCE_COST_SYNTHETIC_RUBBER;
+					}
+				}
+
+				if (amount > 0) {
+					this.rubber += amount;
+					this.totalRubberProduced += amount;
+				}
+			}
 		}
 	}
 
@@ -377,12 +510,20 @@ export class Game {
 			amountToBuy = limit - this.rubber;
 		}
 
+		if (!this.researched.includes('interplanetary_logistics')) {
+			const remaining = Math.max(0, GAME_CONSTANTS.EARTH_RESOURCE_LIMIT - this.totalRubberProduced);
+			if (amountToBuy > remaining) {
+				amountToBuy = remaining;
+			}
+		}
+
 		if (amountToBuy <= 0) return false;
 
 		const cost = amountToBuy * this.rubberPrice * priceMultiplier;
 		if (this.money >= cost) {
 			this.money -= cost;
 			this.rubber += amountToBuy;
+			this.totalRubberProduced += amountToBuy;
 			return true;
 		}
 		return false;
@@ -648,6 +789,9 @@ export class Game {
 
 	isMachineUnlocked(machine: MachineType) {
 		if (machine.required_research) {
+			if (Array.isArray(machine.required_research)) {
+				return machine.required_research.every(id => this.researched.includes(id));
+			}
 			return this.researched.includes(machine.required_research);
 		}
 		return this.level >= machine.unlock_level;
@@ -672,6 +816,9 @@ export class Game {
 
 	isProductionLineUnlocked(line: ProductionLine) {
 		if (line.required_research) {
+			if (Array.isArray(line.required_research)) {
+				return line.required_research.every(id => this.researched.includes(id));
+			}
 			return this.researched.includes(line.required_research);
 		}
 		return this.level >= line.unlock_level;
@@ -679,6 +826,9 @@ export class Game {
 
 	isRubberSourceUnlocked(source: RubberSource) {
 		if (source.required_research) {
+			if (Array.isArray(source.required_research)) {
+				return source.required_research.every(id => this.researched.includes(id));
+			}
 			return this.researched.includes(source.required_research);
 		}
 		return this.level >= source.unlock_level;
@@ -703,7 +853,11 @@ export class Game {
 			rubberSources: this.rubberSources,
 			purchasedRubberSources: this.purchasedRubberSources,
 			researched: this.researched,
-			gameOver: this.gameOver
+			gameOver: this.gameOver,
+			gameStartTime: this.gameStartTime,
+			totalRubberProduced: this.totalRubberProduced,
+			totalNanoSwarmsProduced: this.totalNanoSwarmsProduced,
+			consumedResources: this.consumedResources
 		};
 	}
 

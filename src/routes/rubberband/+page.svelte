@@ -4,12 +4,13 @@
 
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
+	import { slide } from 'svelte/transition';
 	import { Game } from './game';
 	import { GAME_CONSTANTS } from './parameters';
 
 	export let params: any = undefined; // Silence unknown prop warning
 
-	import { formatNumber, formatMoney, formatWeight } from './utils';
+	import { formatNumber, formatMoney, formatWeight, formatVolume } from './utils';
 	import MachineShop from './components/MachineShop.svelte';
 	import Marketing from './components/Marketing.svelte';
 	import HeavyIndustry from './components/HeavyIndustry.svelte';
@@ -17,6 +18,7 @@
 	import Research from './components/Research.svelte';
 
 	import NanoFactory from './components/NanoFactory.svelte';
+	import DemandCurve from './components/DemandCurve.svelte';
 
 	const appVersion = __APP_VERSION__;
 
@@ -52,6 +54,10 @@
 	let nextLevelRequirement = game.nextLevelRequirement;
 	let inventoryCost = game.inventoryCost;
 	let maintenanceCost = game.maintenanceCost;
+	let totalRubberProduced = game.totalRubberProduced;
+	let consumedEarthResources = game.consumedEarthResources;
+	let consumedOil = game.consumedOil;
+	let researched = game.researched;
 
 	$: score = 100000 / tickCount;
 	// Construct share text using translations is tricky inside script because $t is reactive.
@@ -129,6 +135,7 @@
 
 	// Reactive declarations for UI updates
 	let hasRubberSources = false;
+	let showResourceGroup = false;
 
 	$: {
 		tick;
@@ -142,11 +149,19 @@
 		demand = game.demand;
 		tickCount = game.tickCount;
 		gameOver = game.gameOver;
-		gameOver = game.gameOver;
 		nextLevelRequirement = game.nextLevelRequirement;
 		inventoryCost = game.inventoryCost;
 		maintenanceCost = game.maintenanceCost;
+		totalRubberProduced = game.totalRubberProduced;
+		consumedEarthResources = game.consumedEarthResources;
+		consumedOil = game.consumedOil;
+		researched = game.researched;
 		hasRubberSources = Object.values(game.rubberSources).some((count) => count > 0);
+		showResourceGroup =
+			(researched.includes('synthetic_rubber') &&
+				!researched.includes('molecular_transformation')) ||
+			((researched.includes('nanotechnology') || researched.includes('molecular_transformation')) &&
+				!researched.includes('interplanetary_logistics'));
 
 		// if (rubberbandPrice !== game.rubberbandPrice) {
 		// 	rubberbandPrice = game.rubberbandPrice;
@@ -162,6 +177,12 @@
 		} catch (err) {
 			console.error('Error sharing:', err);
 		}
+	}
+
+	function handlePriceChange(e: CustomEvent) {
+		const p = Math.round(e.detail.price * 100) / 100;
+		game.rubberbandPrice = p;
+		rubberbandPrice = p;
 	}
 
 	// Reactive translations dependent on game state/tick
@@ -207,38 +228,24 @@
 <div class="game-container">
 	<header>
 		<h1>Rubberband Inc.</h1>
-		<div class="header-row">
-			<div class="progress-bar">
-				<div class="stat">
-					<span class="label">{$t('common.level')}</span>
-					<span class="value">{formatNumber(level, suffixes)}</span>
-				</div>
-				<div class="stat">
-					<span class="label">{$t('common.total_sold')}</span>
-					<span class="value"
-						>{formatNumber(totalSold, suffixes)} / {formatNumber(
-							nextLevelRequirement,
-							suffixes
-						)}</span
-					>
-				</div>
-				<div class="stat">
-					<span class="label">Ticks {$t('common.ticks')}</span>
-					<span class="value">{tickCount}</span>
-				</div>
+
+		<div class="progress-bar">
+			<div class="stat">
+				<span class="label">{$t('common.level')}</span>
+				<span class="value">{formatNumber(level, suffixes)}</span>
 			</div>
-			<div class="resource-group economy-group">
-				<span class="group-title">{$t('common.economy')}</span>
-				<div class="stat-row">
-					<div class="stat">
-						<span class="label">{$t('common.coins')} 🪙</span>
-						<span class="value">{formatMoney(money, suffixes)}</span>
-					</div>
-					<div class="stat">
-						<span class="label">{$t('common.demand')}</span>
-						<span class="value">{formatNumber(demand, suffixes)}/⏱️</span>
-					</div>
-				</div>
+			<div class="stat">
+				<span class="label">{$t('common.total_sold')}</span>
+				<span class="value"
+					>{formatNumber(totalSold, suffixes)} / {formatNumber(
+						nextLevelRequirement,
+						suffixes
+					)}</span
+				>
+			</div>
+			<div class="stat">
+				<span class="label">Ticks {$t('common.ticks')}</span>
+				<span class="value">{tickCount}</span>
 			</div>
 			<button class="restart-btn-small" on:click={restartGame} title={$t('common.restart_game')}>
 				<svg
@@ -258,61 +265,157 @@
 			</button>
 		</div>
 
-		<div class="resources-bar">
-			<div class="resource-group">
-				<span class="group-title">{$t('common.inventory')}</span>
-				<div class="stat-row">
-					<div class="stat">
-						<span class="label">{$t('common.rubber')}</span>
-						<span class="value">{formatWeight(rubber)}</span>
-					</div>
-					<div class="stat">
-						<span class="label">{$t('common.rubberbands')}</span>
-						<span class="value">{formatNumber(Math.floor(rubberbands), suffixes)}</span>
-					</div>
-					{#if inventoryCost > 0}
+		<div class="split-layout">
+			<div class="left-column">
+				<div class="resource-group">
+					<span class="group-title">{$t('common.inventory')}</span>
+					<div class="stat-row">
 						<div class="stat">
-							<span class="label">{$t('common.storage_cost')}</span>
-							<span class="value" style="color: #ff6b6b"
-								>-{formatMoney(inventoryCost, suffixes)}/⏱️</span
-							>
+							<span class="label">{$t('common.rubber')}</span>
+							<span class="value">{formatWeight(rubber)}</span>
 						</div>
-					{/if}
+						<div class="stat">
+							<span class="label">{$t('common.rubberbands')}</span>
+							<span class="value">{formatNumber(Math.floor(rubberbands), suffixes)}</span>
+						</div>
+						{#if inventoryCost > 0}
+							<div class="stat">
+								<span class="label">{$t('common.storage_cost')}</span>
+								<span class="value" style="color: #ff6b6b"
+									>-{formatMoney(inventoryCost, suffixes)}/⏱️</span
+								>
+							</div>
+						{/if}
+					</div>
 				</div>
+
+				<div class="resource-group">
+					<span class="group-title">{$t('common.production')}</span>
+					<div class="stat-row">
+						<div class="stat">
+							<span class="label">{$t('common.rubber')}</span>
+							<span class="value">{formatWeight(rubberProduction)}/⏱️</span>
+						</div>
+						{#if hasRubberSources}
+							<div class="stat">
+								<span class="label">{$t('common.net_rubber')}</span>
+								<span
+									class="value"
+									style="color: {rubberProduction - productionRate >= 0 ? '#4caf50' : '#ff6b6b'}"
+								>
+									{rubberProduction - productionRate > 0 ? '+' : ''}{formatWeight(
+										rubberProduction - productionRate
+									)}/⏱️
+								</span>
+							</div>
+						{/if}
+						<div class="stat">
+							<span class="label">{$t('common.bands')}</span>
+							<span class="value">{formatNumber(productionRate, suffixes)}/⏱️</span>
+						</div>
+						{#if maintenanceCost > 0}
+							<div class="stat">
+								<span class="label">{$t('common.maintenance')}</span>
+								<span class="value" style="color: #ff6b6b"
+									>-{formatMoney(maintenanceCost, suffixes)}/⏱️</span
+								>
+							</div>
+						{/if}
+					</div>
+				</div>
+
+				{#if showResourceGroup}
+					<div class="resource-group">
+						<span class="group-title">{$t('common.earth_resources')}</span>
+						<div
+							class="stat-row"
+							style="flex-direction: column; gap: 0.5rem; align-items: stretch;"
+						>
+							{#if researched.includes('synthetic_rubber') && !researched.includes('molecular_transformation')}
+								<div class="stat resource-stat" style="width: 100%">
+									<span class="label">{$t('common.oil_reserves')} 🛢️</span>
+									<div class="progress-bar-container">
+										<div
+											class="resource-progress-bar"
+											style="width: {Math.min(
+												100,
+												(consumedOil / GAME_CONSTANTS.OIL_RESERVES_LIMIT) * 100
+											)}%"
+										/>
+										<span class="progress-text"
+											>{formatVolume(consumedOil)} / {formatVolume(
+												GAME_CONSTANTS.OIL_RESERVES_LIMIT
+											)}</span
+										>
+									</div>
+								</div>
+							{/if}
+							{#if (researched.includes('nanotechnology') || researched.includes('molecular_transformation')) && !researched.includes('interplanetary_logistics')}
+								<div class="stat resource-stat" style="width: 100%">
+									<span class="label">{$t('common.earth_resources')} 🌍</span>
+									<div class="progress-bar-container">
+										<div
+											class="resource-progress-bar"
+											style="width: {Math.min(
+												100,
+												(consumedEarthResources / GAME_CONSTANTS.EARTH_RESOURCE_LIMIT) * 100
+											)}%"
+										/>
+										<span class="progress-text"
+											>{formatWeight(consumedEarthResources, suffixes)} / {formatWeight(
+												GAME_CONSTANTS.EARTH_RESOURCE_LIMIT,
+												suffixes
+											)}</span
+										>
+									</div>
+								</div>
+							{/if}
+						</div>
+					</div>
+				{/if}
 			</div>
 
-			<div class="resource-group">
-				<span class="group-title">{$t('common.production')}</span>
-				<div class="stat-row">
-					<div class="stat">
-						<span class="label">{$t('common.rubber')}</span>
-						<span class="value">{formatWeight(rubberProduction)}/⏱️</span>
-					</div>
-					{#if hasRubberSources}
-						<div class="stat">
-							<span class="label">{$t('common.net_rubber')}</span>
-							<span
-								class="value"
-								style="color: {rubberProduction - productionRate >= 0 ? '#4caf50' : '#ff6b6b'}"
+			<div class="right-column">
+				<div class="resource-group economy-group">
+					<span class="group-title">{$t('common.economy')}</span>
+					<div class="stat-row">
+						<div class="stat coin-stat">
+							<span class="label">{$t('common.coins')} 🪙</span>
+							<span class="value" style="color: {money < 0 ? '#ff6b6b' : ''}"
+								>{formatMoney(money, suffixes)}</span
 							>
-								{rubberProduction - productionRate > 0 ? '+' : ''}{formatWeight(
-									rubberProduction - productionRate
-								)}/⏱️
-							</span>
+							<div class="financial-details">
+								{#if maintenanceCost > 0}
+									<div class="detail-row">
+										<span class="detail-label">{$t('common.maintenance')}</span>
+										<span class="detail-value negative"
+											>-{formatMoney(maintenanceCost, suffixes)}/⏱️</span
+										>
+									</div>
+								{/if}
+								{#if inventoryCost > 0}
+									<div class="detail-row">
+										<span class="detail-label">{$t('common.storage_cost')}</span>
+										<span class="detail-value negative"
+											>-{formatMoney(inventoryCost, suffixes)}/⏱️</span
+										>
+									</div>
+								{/if}
+								<div class="detail-row profit-row">
+									<span class="detail-label">{$t('common.profit')}</span>
+									<span class="detail-value {game.profit >= 0 ? 'positive' : 'negative'}">
+										{game.profit >= 0 ? '+' : ''}{formatMoney(game.profit, suffixes)}/⏱️
+									</span>
+								</div>
+							</div>
 						</div>
-					{/if}
-					<div class="stat">
-						<span class="label">{$t('common.bands')}</span>
-						<span class="value">{formatNumber(productionRate, suffixes)}/⏱️</span>
+						<div class="economy-main-content chart-container">
+							<!-- Chart now self-contained -->
+							<div class="chart-input-row">
+								<DemandCurve {game} {tick} {suffixes} on:priceChange={handlePriceChange} />
+							</div>
+						</div>
 					</div>
-					{#if maintenanceCost > 0}
-						<div class="stat">
-							<span class="label">{$t('common.maintenance')}</span>
-							<span class="value" style="color: #ff6b6b"
-								>-{formatMoney(maintenanceCost, suffixes)}/⏱️</span
-							>
-						</div>
-					{/if}
 				</div>
 			</div>
 		</div>
@@ -332,29 +435,6 @@
 				>
 					{@html buyRubberText}
 				</button>
-			</div>
-		</section>
-
-		<section class="sales">
-			<h2>{$t('common.sales_strategy')}</h2>
-			<div class="sales-card">
-				<div class="info">
-					<h3>{$t('common.price_setting_title')}</h3>
-					<p>{$t('common.price_setting_desc')}</p>
-				</div>
-				<div class="controls">
-					<div class="controls">
-						<label for="price">{priceLabelText}</label>
-						<input
-							id="price"
-							type="number"
-							bind:value={rubberbandPrice}
-							on:input={updateRubberbandPrice}
-							min="0.01"
-							step="0.01"
-						/>
-					</div>
-				</div>
 			</div>
 		</section>
 
@@ -440,11 +520,19 @@
 	:global(body) {
 		background-color: #1a1a1a;
 		color: #e0e0e0;
-		font-family: 'Inter', sans-serif;
+		font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+		margin: 0;
+	}
+
+	:global(*),
+	:global(*::before),
+	:global(*::after) {
+		box-sizing: border-box;
 	}
 
 	.game-container {
-		width: 90%;
+		width: 100%;
+		max-width: 120rem;
 		margin: 0 auto;
 		padding: 2rem;
 		display: flex;
@@ -467,37 +555,30 @@
 	}
 
 	h1 {
+		text-align: center;
+		margin-bottom: 2rem;
+		color: #fff;
 		font-size: var(--font-size-3xl);
-		font-weight: var(--font-weight-heavy);
-		margin-bottom: 1.5rem;
-		background: linear-gradient(45deg, #ff6b6b, #feca57);
-		background-clip: text;
+		text-transform: uppercase;
+		letter-spacing: 2px;
+		background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
 		-webkit-background-clip: text;
 		-webkit-text-fill-color: transparent;
 	}
 
-	.header-row {
-		display: flex;
-		align-items: stretch; /* Stretch to match height */
-		gap: 1rem;
-		margin-bottom: 1rem;
-		flex-wrap: wrap; /* Allow wrapping on small screens */
-	}
-
 	.restart-btn-small {
 		background: #333;
-		border: 1px solid #444;
-		color: #e0e0e0;
-		padding: 0.75rem;
-		border-radius: 50%;
+		border: none;
+		color: #888;
 		cursor: pointer;
+		padding: 0.5rem;
+		border-radius: 50%;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		transition: all 0.2s;
 		height: 3rem;
 		width: 3rem;
-		align-self: center; /* Center vertically */
 	}
 
 	.restart-btn-small:hover {
@@ -506,38 +587,56 @@
 		color: #ff6b6b;
 	}
 
+	.economy-main-content {
+		display: flex;
+		flex-direction: column;
+		width: 100%;
+		margin-top: 0.5rem;
+		gap: 0.5rem;
+	}
+
+	/* Chart legend / price control styles removed */
+
 	.progress-bar {
-		flex: 2; /* overall stats take more space? or equal? let's say 2 */
 		display: flex;
 		justify-content: space-around;
 		background: #2d2d2d;
 		padding: 1rem;
 		border-radius: 12px;
 		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-		margin-bottom: 0;
+		margin-bottom: 1rem;
 		align-items: center;
 	}
 
+	.split-layout {
+		display: grid;
+		grid-template-columns: 1fr 1.5fr; /* Give more space to economy/chart */
+		gap: 1rem;
+	}
+
+	.left-column {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.right-column {
+		display: flex;
+		flex-direction: column; /* economy group expands to fill */
+	}
+
 	.economy-group {
-		flex: 1;
 		background: #2d2d2d;
 		padding: 0.5rem;
 		border-radius: 12px;
 		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 		display: flex;
 		flex-direction: column;
-		justify-content: center;
-	}
-
-	.resources-bar {
-		display: flex;
-		justify-content: space-between;
-		gap: 1rem;
-		margin-bottom: 1rem;
+		height: 100%;
 	}
 
 	.resource-group {
-		flex: 1;
+		/* Flex 1 removed as it's now in column */
 		display: flex;
 		flex-direction: column;
 		background: #2d2d2d;
@@ -555,6 +654,19 @@
 
 	.economy-group .stat-row {
 		gap: 1rem;
+	}
+
+	.coin-stat {
+		flex: 1;
+		min-width: 0; /* Allow shrinking if needed */
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+	}
+
+	.chart-container {
+		flex: 1.5; /* 2/3rds width */
+		min-width: 0;
 	}
 
 	.group-title {
@@ -591,7 +703,7 @@
 	}
 
 	.value {
-		font-size: var(--font-size-xl);
+		font-size: var(--font-size-lg);
 		font-weight: var(--font-weight-bold);
 		color: var(--color-text-primary);
 	}
@@ -640,41 +752,7 @@
 		cursor: not-allowed;
 	}
 
-	.sales-card {
-		background: #252525;
-		padding: 1rem;
-		border-radius: 8px;
-		border: 1px solid #333;
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-	}
-
-	.info h3 {
-		margin: 0 0 0.5rem 0;
-		font-size: var(--font-size-lg);
-		color: var(--color-text-primary);
-	}
-
-	.info p {
-		color: var(--color-text-muted);
-		font-size: var(--font-size-sm);
-		margin: 0;
-	}
-
-	.controls {
-		display: flex;
-		gap: 1rem;
-		align-items: center;
-	}
-
-	input {
-		background: #333;
-		border: 1px solid #444;
-		color: #fff;
-		padding: 0.5rem;
-		border-radius: 4px;
-	}
+	/* input style removed */
 
 	.modal-overlay {
 		position: fixed;
@@ -764,13 +842,46 @@
 		justify-content: center;
 	}
 
-	.share-btn {
+	.financial-details {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		margin-top: 0.5rem;
+		width: 100%;
+		font-size: var(--font-size-sm);
+	}
+
+	.detail-row {
+		display: flex;
+		justify-content: space-between;
+		padding: 0 0.5rem;
+	}
+
+	.detail-label {
+		color: var(--color-text-muted);
+	}
+
+	.detail-value.negative {
+		color: #ff6b6b;
+	}
+
+	.detail-value.positive {
+		color: #4caf50;
+	}
+
+	.profit-row {
+		border-top: 1px solid #444;
+		margin-top: 0.25rem;
+		padding-top: 0.25rem;
+		font-weight: bold;
+	}
+
+	.coin-stat {
 		padding: 0.5rem 1rem;
 		border-radius: 4px;
 		color: white;
 		font-weight: 500;
 		transition: opacity 0.2s;
-		display: inline-block;
 		border: none;
 		cursor: pointer;
 		font-size: 1rem;
@@ -818,8 +929,7 @@
 			margin-bottom: 1.5rem;
 		}
 
-		.progress-bar,
-		.resources-bar {
+		.progress-bar {
 			padding: 0.5rem;
 			gap: 0.5rem;
 			flex-wrap: wrap;
@@ -832,11 +942,6 @@
 		.label {
 			font-size: 0.7rem;
 		}
-
-		.value {
-			font-size: 1.1rem;
-		}
-
 		.value {
 			font-size: 1.1rem;
 		}
@@ -849,25 +954,39 @@
 		.button-group {
 			flex-direction: column;
 		}
+	}
 
-		.sales-card {
-			flex-direction: column;
-			gap: 1rem;
-			align-items: stretch;
-		}
+	.resource-stat {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		min-width: 200px;
+	}
 
-		.controls {
-			justify-content: space-between;
-		}
+	.progress-bar-container {
+		width: 100%;
+		height: 1.2rem;
+		background: rgba(255, 255, 255, 0.1);
+		border-radius: 4px;
+		overflow: hidden;
+		position: relative;
+		border: 1px solid rgba(255, 255, 255, 0.2);
+	}
 
-		.modal {
-			padding: 1.5rem;
-			width: 90%;
-		}
+	.resource-progress-bar {
+		height: 100%;
+		background: linear-gradient(90deg, #4ecdc4, #556270);
+		transition: width 0.3s ease;
+	}
 
-		.modal {
-			padding: 1.5rem;
-			width: 90%;
-		}
+	.progress-text {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		font-size: 0.75rem;
+		color: white;
+		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+		white-space: nowrap;
 	}
 </style>

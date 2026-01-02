@@ -1,4 +1,7 @@
 export function formatNumber(num: number, suffixes: string[] = ['', 'k', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc']): string {
+    if (!Number.isFinite(num)) {
+        return '0' + suffixes[0];
+    }
     if (num < 0) {
         return '-' + formatNumber(-num, suffixes);
     }
@@ -28,7 +31,7 @@ export function formatNumber(num: number, suffixes: string[] = ['', 'k', 'M', 'B
 }
 
 export function formatMoney(num: number, suffixes?: string[]): string {
-    if (num < 1000) {
+    if (Math.abs(num) < 1000) {
         return num.toFixed(2) + '🪙';
     }
 
@@ -47,4 +50,9 @@ export function formatWeight(num: number, suffixes: string[] = ['t', 'kt', 'Mt',
     // For tonnes and above, we start dividing by 1,000,000
     // 1,000,000 g = 1 t
     return formatNumber(num / 1000000, suffixes);
+}
+
+export function formatVolume(num: number): string {
+    const suffixes = ['L', 'kL', 'ML', 'GL', 'TL', 'PL', 'EL', 'ZL', 'YL'];
+    return formatNumber(num, suffixes);
 }

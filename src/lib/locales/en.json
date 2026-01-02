@@ -13,6 +13,9 @@
         "maintenance": "Maintenance",
         "economy": "Economy",
         "coins": "Coins",
+        "profit": "Net Profit",
+        "income": "Income",
+        "expenses": "Expenses",
         "demand": "Demand",
         "operations": "Operations",
         "make_rubberband": "Make Rubberband",
@@ -39,7 +42,11 @@
         "supply_chain": "Supply Chain",
         "heavy_industry": "Heavy Industry",
         "locked": "Locked",
-        "unlocks_at_level": "Unlocks at level {level}"
+        "unlocks_at_level": "Unlocks at level {level}",
+        "price": "Price",
+        "current": "Current",
+        "earth_resources": "Earth Resources",
+        "oil_reserves": "Oil Reserves"
     },
     "marketing_ui": {
         "title": "Marketing",
@@ -148,6 +155,10 @@
             "name": "Mind Control",
             "desc": "Uses mind control to compel customers to buy rubberbands."
         },
+        "molecular_transformation": {
+            "name": "Molecular Transformation",
+            "desc": "Allows creating synthetic rubber from any earth matter, bypassing oil limits."
+        },
         "nanotechnology": {
             "name": "Nanotechnology",
             "desc": "Unlocks the ability to create self-replicating nanobots for manufacturing."
@@ -159,6 +170,10 @@
         "singularity_theory": {
             "name": "Singularity Theory",
             "desc": "Harnessing the power of a black hole for material extrusion."
+        },
+        "interplanetary_logistics": {
+            "name": "Interplanetary Logistics",
+            "desc": "Nano swarms will be able to travel to other planets to gather resources. Reduces storage costs by 99.99%."
         },
         "time_travel": {
             "name": "Time Travel",

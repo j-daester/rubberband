@@ -13,6 +13,9 @@
         "maintenance": "Wartung",
         "economy": "Wirtschaft",
         "coins": "Münzen",
+        "profit": "Nettogewinn",
+        "income": "Einkommen",
+        "expenses": "Ausgaben",
         "demand": "Nachfrage",
         "operations": "Betrieb",
         "make_rubberband": "Gummiband herstellen",
@@ -39,13 +42,17 @@
         "supply_chain": "Lieferkette",
         "heavy_industry": "Schwerindustrie",
         "locked": "Gesperrt",
-        "unlocks_at_level": "Freigeschaltet ab Level {level}"
+        "unlocks_at_level": "Freigeschaltet ab Level {level}",
+        "price": "Preis",
+        "current": "Aktuell",
+        "earth_resources": "Erdressourcen",
+        "oil_reserves": "Ölreserven"
     },
     "marketing_ui": {
         "title": "Marketing",
         "campaign_title": "Marketingkampagne (Lvl {level})",
         "desc_base": "Erhöht die Nachfrage nach Gummibändern.",
-        "no_decay": "Obsolet durch KI.",
+        "no_decay": "Kein Verfall durch KI.",
         "decays_in": "Verfällt in {ticks} ⏱️.",
         "buy_campaign": "Kampagne kaufen"
     },
@@ -148,6 +155,10 @@
             "name": "Gedankenkontrolle",
             "desc": "Nutzt Gedankenkontrolle, um Kunden zum Kauf von Gummibändern zu zwingen."
         },
+        "molecular_transformation": {
+            "name": "Molekulare Transformation",
+            "desc": "Ermöglicht die Herstellung von synthetischem Gummi aus jeglicher Erdmasse und umgeht so die Öl-Limits."
+        },
         "nanotechnology": {
             "name": "Nanotechnologie",
             "desc": "Schaltet die Fähigkeit frei, selbstreplizierende Nanobots für die Fertigung zu erstellen."
@@ -159,6 +170,10 @@
         "singularity_theory": {
             "name": "Singularitätstheorie",
             "desc": "Nutzung der Kraft eines Schwarzen Lochs zur Materialextrusion."
+        },
+        "interplanetary_logistics": {
+            "name": "Interplanetare Logistik",
+            "desc": "Nano-Schwärme können zu anderen Planeten reisen, um Ressourcen zu sammeln. Reduziert Lagerkosten um 99,99%."
         },
         "time_travel": {
             "name": "Zeitreisen",
