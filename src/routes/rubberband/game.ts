@@ -26,6 +26,7 @@ export interface GameState {
 	consumedResources: number;
 	upgrades: Record<string, boolean>;
 	gameOver: boolean;
+	netIncome: number;
 }
 
 export class Game {
@@ -52,6 +53,7 @@ export class Game {
 	totalRubberProduced!: number;
 	totalNanoSwarmsProduced!: number;
 	consumedResources!: number;
+	netIncome!: number;
 
 	/**
 	 * Create a game object from the player's cookie, or initialise a new game
@@ -83,6 +85,7 @@ export class Game {
 				this.totalRubberProduced = data.totalRubberProduced || 0;
 				this.totalNanoSwarmsProduced = data.totalNanoSwarmsProduced || 0;
 				this.consumedResources = data.consumedResources || 0;
+				this.netIncome = data.netIncome || 0;
 
 				// Migration from old save if needed
 				if ((data as any).consumedOil || (data as any).consumedEarthResources) {
@@ -141,6 +144,7 @@ export class Game {
 		this.totalRubberProduced = 0;
 		this.totalNanoSwarmsProduced = 0;
 		this.consumedResources = 0;
+		this.netIncome = 0;
 	}
 
 	getMachineOutputPerUnit(machineName: string) {
@@ -173,7 +177,7 @@ export class Game {
 	}
 
 	calculateDemand(price: number): number {
-		let basevalue = 1.5;
+		let basevalue = 1.2;
 		let priceSensitivity = 1.0;
 
 		// Marketing effectiveness (base value)
@@ -206,7 +210,7 @@ export class Game {
 
 		// Exponential demand curve with price sensitivity
 		// Demand ~ e^(-price / sensitivity)
-		return Math.floor(Math.pow(this.marketingLevel, basevalue) * 50 * Math.exp(-price / priceSensitivity));
+		return Math.floor(Math.pow(this.marketingLevel, basevalue) * 100 * Math.exp(-price / priceSensitivity));
 	}
 
 	get demand() {
@@ -234,6 +238,8 @@ export class Game {
 
 	tick() {
 		if (this.gameOver) return;
+
+		const startMoney = this.money;
 
 		if (this.consumedResources >= GAME_CONSTANTS.UNIVERSE_RESOURCE_LIMIT) {
 			this.gameOver = true;
@@ -270,6 +276,8 @@ export class Game {
 			this.money -= invCost;
 		}
 		this.money -= this.maintenanceCost;
+
+		this.netIncome = this.money - startMoney;
 	}
 
 	get inventoryCost() {
@@ -978,7 +986,8 @@ export class Game {
 			gameStartTime: this.gameStartTime,
 			totalRubberProduced: this.totalRubberProduced,
 			totalNanoSwarmsProduced: this.totalNanoSwarmsProduced,
-			consumedResources: this.consumedResources
+			consumedResources: this.consumedResources,
+			netIncome: this.netIncome
 		};
 	}
 

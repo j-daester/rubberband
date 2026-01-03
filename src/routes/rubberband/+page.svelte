@@ -57,6 +57,7 @@
 	let totalRubberProduced = game.totalRubberProduced;
 	let consumedEarthResources = game.consumedEarthResources;
 	let consumedOil = game.consumedOil;
+	let netIncome = game.netIncome;
 	let researched = game.researched;
 	let resourceLimit = game.resourceLimit;
 	let resourceUnitNameKey = 'common.earth_resources';
@@ -161,6 +162,7 @@
 		totalRubberProduced = game.totalRubberProduced;
 		consumedEarthResources = game.consumedEarthResources;
 		consumedOil = game.consumedOil;
+		netIncome = game.netIncome;
 		researched = game.researched;
 		resourceLimit = game.resourceLimit;
 		resourceUnitNameKey = researched.includes('interplanetary_logistics')
@@ -395,8 +397,8 @@
 								{/if}
 								<div class="detail-row profit-row">
 									<span class="detail-label">{$t('common.profit')}</span>
-									<span class="detail-value {game.profit >= 0 ? 'positive' : 'negative'}">
-										{game.profit >= 0 ? '+' : ''}{formatMoney(game.profit, suffixes)}/⏱️
+									<span class="detail-value {netIncome >= 0 ? 'positive' : 'negative'}">
+										{netIncome >= 0 ? '+' : ''}{formatMoney(netIncome, suffixes)}/⏱️
 									</span>
 								</div>
 							</div>
