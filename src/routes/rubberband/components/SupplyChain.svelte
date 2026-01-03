@@ -76,11 +76,6 @@
 		dispatch('action');
 	}
 
-	const minUnlockLevel = Math.min(
-		...rubberSources.map((p) => p.unlock_level),
-		GAME_CONSTANTS.BUYER_UNLOCK_LEVEL
-	);
-
 	$: autoBuyerActiveParams = {
 		amount: formatNumber(currentBuyerThreshold, suffixes)
 	} as any;
@@ -90,7 +85,7 @@
 	}
 </script>
 
-{#if game.level >= minUnlockLevel}
+{#if game.researched.includes('optimize_production')}
 	<section class="supply-chain">
 		<h2>{$t('supply_chain_ui.title')}</h2>
 
@@ -103,7 +98,7 @@
 			</div>
 		{/if}
 
-		{#if game.level >= GAME_CONSTANTS.BUYER_UNLOCK_LEVEL}
+		{#if game.researched.includes(GAME_CONSTANTS.BUYER_UNLOCK_RESEARCH)}
 			<div class="auto-buyer-section">
 				{#if !buyerHired}
 					<div class="plantation-card">

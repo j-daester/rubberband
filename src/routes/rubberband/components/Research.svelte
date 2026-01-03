@@ -23,44 +23,58 @@
 		}
 	}
 
-	const minUnlockLevel = Math.min(...researchList.map((r) => r.unlock_level));
+	// Reactive filter for visible research
+	$: visibleResearch = researchList.filter(
+		(r) => !r.precondition_research || game.researched.includes(r.precondition_research)
+	);
 </script>
 
-{#if game.level >= minUnlockLevel}
-	<section class="research">
-		<h2>{$t('research_ui.title')}</h2>
-		<div class="research-list">
-			{#each researchList as research}
-				{#if game.level >= research.unlock_level}
-					{@const isResearched = game.researched.includes(research.id)}
-					<div class="research-card" class:researched={isResearched}>
-						<div class="info">
-							<h3>{$t('research.' + research.id + '.name')}</h3>
-							<p>{$t('research.' + research.id + '.desc')}</p>
-							{#if !isResearched}
-								<!-- Price removed from here -->
-							{:else}
-								<p class="status">{$t('research_ui.researched')}</p>
-							{/if}
-						</div>
-						<div class="actions">
-							{#if !isResearched}
-								<button
-									class="buy-btn"
-									disabled={game.money < research.cost}
-									on:click={() => buyResearch(research.id)}
-								>
-									<span class="action-text">{$t('research_ui.research_btn')}</span>
-									<span class="price-text">{formatMoney(research.cost, suffixes)}</span>
-								</button>
-							{/if}
-						</div>
+<section class="research">
+	<h2>{$t('research_ui.title')}</h2>
+
+	<!-- Available Research -->
+	<div class="research-list">
+		{#each visibleResearch as research (research.id)}
+			{@const isResearched = game.researched.includes(research.id)}
+			{#if !isResearched}
+				<div class="research-card">
+					<div class="info">
+						<h3>{$t('research.' + research.id + '.name')}</h3>
+						<p>{$t('research.' + research.id + '.desc')}</p>
 					</div>
-				{/if}
-			{/each}
+					<div class="actions">
+						<button
+							class="buy-btn"
+							disabled={game.money < research.cost}
+							on:click={() => buyResearch(research.id)}
+						>
+							<span class="action-text">{$t('research_ui.research_btn')}</span>
+							<span class="price-text">{formatMoney(research.cost, suffixes)}</span>
+						</button>
+					</div>
+				</div>
+			{/if}
+		{/each}
+	</div>
+
+	<!-- Completed Research -->
+	{#if game.researched.length > 0}
+		<div class="completed-research">
+			<h3>{$t('research_ui.researched')}</h3>
+			<ul class="completed-list">
+				{#each game.researched as researchId}
+					{@const research = researchList.find((r) => r.id === researchId)}
+					{#if research}
+						<li class="completed-item">
+							<span class="completed-name">{$t('research.' + researchId + '.name')}</span>
+							<span class="completed-desc-tooltip">{$t('research.' + researchId + '.desc')}</span>
+						</li>
+					{/if}
+				{/each}
+			</ul>
 		</div>
-	</section>
-{/if}
+	{/if}
+</section>
 
 <style>
 	section {
@@ -85,11 +99,6 @@
 		align-items: stretch; /* Full width for children */
 	}
 
-	.research-card.researched {
-		border-color: #4caf50;
-		opacity: 0.8;
-	}
-
 	.info h3 {
 		margin: 0 0 0.5rem 0;
 		font-size: var(--font-size-lg);
@@ -100,12 +109,6 @@
 		color: var(--color-text-muted);
 		font-size: var(--font-size-sm);
 		margin: 0;
-	}
-
-	.status {
-		color: #4caf50;
-		font-weight: bold;
-		margin-top: 0.5rem !important;
 	}
 
 	.buy-btn {
@@ -139,5 +142,61 @@
 		opacity: 0.5;
 		cursor: not-allowed;
 		background: #333;
+	}
+
+	.completed-research {
+		margin-top: 1rem;
+		background: #444;
+		padding: 1rem;
+		border-radius: 8px;
+		border: 1px solid #555;
+	}
+
+	.completed-research h3 {
+		font-size: var(--font-size-md);
+		color: #fff;
+		margin-bottom: 0.5rem;
+		margin-top: 0;
+	}
+
+	.completed-list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+
+	.completed-item {
+		background: #1e1e1e;
+		border: 1px solid #4caf50;
+		border-radius: 4px;
+		padding: 0.25rem 0.5rem;
+		font-size: var(--font-size-sm);
+		color: #ddd;
+		position: relative;
+		cursor: help;
+	}
+
+	.completed-desc-tooltip {
+		display: none;
+		position: absolute;
+		bottom: 100%;
+		left: 50%;
+		transform: translateX(-50%);
+		background: #333;
+		color: #fff;
+		padding: 0.5rem;
+		border-radius: 4px;
+		width: 200px;
+		z-index: 10;
+		font-size: var(--font-size-xs);
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+		pointer-events: none;
+	}
+
+	.completed-item:hover .completed-desc-tooltip {
+		display: block;
 	}
 </style>

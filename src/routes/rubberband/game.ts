@@ -1,4 +1,4 @@
-import { machineTypes, productionLines, rubberSources, researchList, GAME_CONSTANTS, getCost, getMaxAffordable, type RubberSource, type ResearchType, type MachineType, type ProductionLine } from './parameters';
+import { machineTypes, productionLines, rubberSources, researchList, GAME_CONSTANTS, getCost, getMaxAffordable, type PurchasableItem, type RubberSource, type ResearchType, type MachineType, type ProductionLine } from './parameters';
 
 export type MachineName = typeof machineTypes[number]['name'];
 
@@ -24,6 +24,7 @@ export interface GameState {
 	totalRubberProduced: number;
 	totalNanoSwarmsProduced: number;
 	consumedResources: number;
+	upgrades: Record<string, boolean>;
 	gameOver: boolean;
 }
 
@@ -45,6 +46,7 @@ export class Game {
 	rubberSources!: Record<string, number>;
 	purchasedRubberSources!: Record<string, number>;
 	researched!: string[];
+	upgrades!: Record<string, boolean>;
 	gameOver!: boolean;
 	gameStartTime!: number;
 	totalRubberProduced!: number;
@@ -75,6 +77,7 @@ export class Game {
 				this.purchasedMachines = data.purchasedMachines || { ...this.machines };
 				this.purchasedRubberSources = data.purchasedRubberSources || (data as any).purchasedPlantations || { ...this.rubberSources };
 				this.researched = data.researched || [];
+				this.upgrades = data.upgrades || {};
 				this.gameOver = data.gameOver || false;
 				this.gameStartTime = data.gameStartTime || Date.now();
 				this.totalRubberProduced = data.totalRubberProduced || 0;
@@ -132,6 +135,7 @@ export class Game {
 		this.rubberSources = {};
 		this.purchasedRubberSources = {};
 		this.researched = [];
+		this.upgrades = {};
 		this.gameOver = false;
 		this.gameStartTime = Date.now();
 		this.totalRubberProduced = 0;
@@ -159,13 +163,13 @@ export class Game {
 	}
 
 	get level() {
-		const thresholdLvl2 = GAME_CONSTANTS.LEVEL_REQ_BASE - GAME_CONSTANTS.LEVEL_REQ_OFFSET;
-		if (this.totalRubberbandsSold < thresholdLvl2) return 1;
-		return 2 + Math.floor(Math.log((this.totalRubberbandsSold + GAME_CONSTANTS.LEVEL_REQ_OFFSET) / GAME_CONSTANTS.LEVEL_REQ_BASE) / Math.log(GAME_CONSTANTS.LEVEL_DIFFICULTY_FACTOR));
+		// Level system removed, return fixed value or null if needed, but better to remove usage.
+		// Kept as 1 for compatibility if strictly needed by UI, but goal is to remove.
+		return 1;
 	}
 
 	get nextLevelRequirement() {
-		return Math.floor(GAME_CONSTANTS.LEVEL_REQ_BASE * Math.pow(GAME_CONSTANTS.LEVEL_DIFFICULTY_FACTOR, this.level - 1) - GAME_CONSTANTS.LEVEL_REQ_OFFSET);
+		return Infinity;
 	}
 
 	calculateDemand(price: number): number {
@@ -173,6 +177,11 @@ export class Game {
 		let priceSensitivity = 1.0;
 
 		// Marketing effectiveness (base value)
+		if (this.researched.includes('painless_marketing') || this.researched.includes('basic_marketing')) {
+			// Basic marketing logic handled by unlock, but maybe boost?
+			// The original logic checked online_marketing.
+		}
+
 		if (this.researched.includes('online_marketing')) {
 			basevalue += 0.8;
 		}
@@ -181,16 +190,17 @@ export class Game {
 		}
 
 		// Price sensitivity (flattening the curve)
-		if (this.researched.includes('brainwashing')) {
-			priceSensitivity *= 5.0;
+		if (this.researched.includes('automated_ai_marketing')) {
+			priceSensitivity *= 1.2;
 			basevalue *= 1.2;
 		}
+
 		if (this.researched.includes('hypnosis')) {
-			priceSensitivity *= 10.0;
+			priceSensitivity *= 2;
 			basevalue *= 1.2;
 		}
 		if (this.researched.includes('mind_control')) {
-			priceSensitivity *= 100.0;
+			priceSensitivity *= 2;
 			basevalue *= 1.2;
 		}
 
@@ -225,7 +235,7 @@ export class Game {
 	tick() {
 		if (this.gameOver) return;
 
-		if (this.level >= 100) {
+		if (this.consumedResources >= GAME_CONSTANTS.UNIVERSE_RESOURCE_LIMIT) {
 			this.gameOver = true;
 			return;
 		}
@@ -299,16 +309,16 @@ export class Game {
 
 		const nanoSwarms = this.machines["Nano-Swarms"] || 0;
 		// Additive bonus: +0.01 per swarm for most, but reduced for Nanobot Factory
-		let bonus = Math.floor(nanoSwarms * 0.01);
+		let bonus = Math.floor(nanoSwarms * 0.1);
 		if (lineName === "Nanobot Factory") {
-			bonus = Math.floor(nanoSwarms * 0.001);
+			bonus = Math.floor(nanoSwarms * 0.1);
 		}
 		return line.output + bonus;
 	}
 
 	get resourceLimit() {
 		if (this.researched.includes('interplanetary_logistics')) {
-			return GAME_CONSTANTS.GALACTIC_RESOURCE_LIMIT;
+			return GAME_CONSTANTS.UNIVERSE_RESOURCE_LIMIT;
 		}
 		if (this.researched.includes('molecular_transformation')) {
 			return GAME_CONSTANTS.EARTH_RESOURCE_LIMIT;
@@ -326,7 +336,7 @@ export class Game {
 
 	get resourceUnitName() {
 		if (this.researched.includes('interplanetary_logistics')) {
-			return "Galactic Resources";
+			return "Universe Resources";
 		}
 		if (this.researched.includes('molecular_transformation')) {
 			return "Earth Resources";
@@ -591,7 +601,8 @@ export class Game {
 
 	hireBuyer() {
 		if (this.gameOver) return false;
-		if (this.level >= GAME_CONSTANTS.BUYER_UNLOCK_LEVEL && !this.buyerHired && this.money >= GAME_CONSTANTS.BUYER_COST) {
+		// Check research now instead of level
+		if (this.researched.includes(GAME_CONSTANTS.BUYER_UNLOCK_RESEARCH) && !this.buyerHired && this.money >= GAME_CONSTANTS.BUYER_COST) {
 			this.money -= GAME_CONSTANTS.BUYER_COST;
 			this.buyerHired = true;
 			return true;
@@ -605,6 +616,9 @@ export class Game {
 
 	buyMarketing() {
 		if (this.gameOver) return false;
+		// Check research precondition (basic_marketing)
+		if (!this.researched.includes(GAME_CONSTANTS.MARKETING_UNLOCK_RESEARCH)) return false;
+
 		const cost = this.marketingCost;
 		if (this.money >= cost) {
 			this.money -= cost;
@@ -697,38 +711,7 @@ export class Game {
 		const currentCount = this.machines[machineName] || 0;
 		if (currentCount < amount) return false;
 
-		// Calculate refund: 50% of the cost of the LAST 'amount' machines
-		// The cost to buy the *existing* PRODUCED machines... wait.
-		// If we are selling, we are reducing the count. The user wants the price to be "frozen" during production.
-		// But sell is disabled during production. So "frozen price" is only for READ purposes during production.
-		// When selling, we are OUT of production.
-		// So we need to calculate refund based on PURCHASED count, because we only sell purchased machines (conceptually we sell any, but price scales on purchased).
-		// Wait, if I have 100 machines (1 purchased, 99 produced).
-		// Price is at level 1. I sell 1.
-		// Refund should probably be based on level 1.
-		// If I sell 1, purchased count goes to 0. Price drops to level 0.
-
 		const purchasedCount = this.purchasedMachines[machineName] || 0;
-		// Refund is based on purchased count logic?
-		// "price continues to grow from the frozen price onwards for each bought machine afterwards"
-		// If I sell, price should shrink.
-		// Standard game logic: selling gives 50% of what it would cost to buy them back.
-		// Cost to buy back is based on PURCHASED count.
-
-		// We need to figure out how much refund.
-		// getCost uses purchasedMachines count now.
-		// So `getCost(machine, amount, purchasedCount - amount)` is the cost of the last `amount` purchased machines.
-		// But what if I sell more than I purchased? e.g. Sell produced machines?
-		// The prompt doesn't explicitly say what happens to produced machines price-wise.
-		// But since price ONLY scales with manual purchases, produced machines effectively have "0 cost" impact on price.
-		// So we shouldn't get refund for produced machines? Or we get refund based on current price?
-		// Use case: I buy 1 machine (cost 100). Produced 10 machines. Total 11.
-		// Sell 1. Refund 50. Total 10. Purchased 0.
-		// Sell 1 again. Refund 50? Or 0?
-		// If I sell a produced machine, I probably shouldn't get money back as if I bought it?
-		// "Sell ... at half their purchase price". Produced machines have 0 purchase price.
-		// So I only get refund if I decrement `purchased` count?
-		// Let's assume yes. Refund is only for purchased items.
 
 		const sellAmountFromPurchased = Math.min(amount, purchasedCount);
 
@@ -788,13 +771,11 @@ export class Game {
 	}
 
 	isMachineUnlocked(machine: MachineType) {
-		if (machine.required_research) {
-			if (Array.isArray(machine.required_research)) {
-				return machine.required_research.every(id => this.researched.includes(id));
-			}
-			return this.researched.includes(machine.required_research);
+		if (machine.precondition_research) {
+			return this.researched.includes(machine.precondition_research);
 		}
-		return this.level >= machine.unlock_level;
+		// If no precondition, it's unlocked by default (like Bander was level 2, now requires Basic Manufacturing)
+		return true;
 	}
 
 	buyResearch(researchId: string) {
@@ -804,7 +785,7 @@ export class Game {
 		const research = researchList.find(r => r.id === researchId);
 		if (!research) return false;
 
-		if (this.level < research.unlock_level) return false;
+		if (research.precondition_research && !this.researched.includes(research.precondition_research)) return false;
 
 		if (this.money >= research.cost) {
 			this.money -= research.cost;
@@ -815,23 +796,162 @@ export class Game {
 	}
 
 	isProductionLineUnlocked(line: ProductionLine) {
-		if (line.required_research) {
-			if (Array.isArray(line.required_research)) {
-				return line.required_research.every(id => this.researched.includes(id));
-			}
-			return this.researched.includes(line.required_research);
+		if (line.precondition_research) {
+			return this.researched.includes(line.precondition_research);
 		}
-		return this.level >= line.unlock_level;
+		return true;
+	}
+
+	isItemVisible(item: PurchasableItem): boolean {
+		// 1. Must be unlocked
+		if (item.required_research) {
+			const reqs = Array.isArray(item.required_research) ? item.required_research : [item.required_research];
+			if (!reqs.every(r => this.researched.includes(r))) return false;
+		} else if (item.precondition_research && !this.researched.includes(item.precondition_research)) {
+			return false;
+		}
+
+		// 2. If it has been upgraded FROM (it is the base), hide if upgraded
+		if (this.upgrades[item.name]) return false;
+
+		// 3. If it is an upgrade TO (it is the upgraded version), hide if base NOT upgraded
+		if (item.upgraded_from && !this.upgrades[item.upgraded_from]) return false;
+
+		return true;
+	}
+
+	getUpgradeCost(item: PurchasableItem): number {
+		if (!item.upgrade_definition) return Infinity;
+
+		let unitCount = 0;
+		// Check type of item
+		if (machineTypes.some(m => m.name === item.name)) {
+			// Machine
+			unitCount = this.machines[item.name] || 0;
+		} else if (productionLines.some(p => p.name === item.name)) {
+			// Production Line
+			unitCount = this.machineProductionLines[item.name] || 0;
+			// Specific logic for Factory Line -> Source count
+			const pItem = item as ProductionLine;
+			if (pItem.product_type === 'rubber_source') {
+				unitCount += this.rubberSources[pItem.machine] || 0;
+			}
+		}
+
+		return item.upgrade_definition.project_cost + (item.upgrade_definition.unit_cost * unitCount);
+	}
+
+	upgradeItem(itemName: string) {
+		if (this.gameOver) return false;
+
+		// Find item in machines or productionLines
+		let item: PurchasableItem | undefined = machineTypes.find(m => m.name === itemName);
+		let type = 'machine';
+		if (!item) {
+			item = productionLines.find(p => p.name === itemName);
+			type = 'productionLine';
+		}
+
+		if (!item || !item.upgrade_definition) return false;
+
+		const cost = this.getUpgradeCost(item);
+		if (this.money < cost) return false;
+
+		// Check for synchronized production line upgrade
+		let linkedLine: ProductionLine | undefined;
+		let lineUpgradeCost = 0;
+		if (type === 'machine') {
+			linkedLine = productionLines.find(p => p.machine === item!.name);
+			if (linkedLine && linkedLine.upgrade_definition) {
+				// Check if the target line is unlocked (or if the upgrade logic allows it)
+				// Generally if we can upgrade the machine, we probably can upgrade the line if we have the money
+				// But we should verify affordablity separately
+				lineUpgradeCost = this.getUpgradeCost(linkedLine);
+			}
+		}
+
+		// Execute upgrade
+		// If we found a linked line and can afford BOTH, do both.
+		if (linkedLine && this.money >= cost + lineUpgradeCost) {
+			this.money -= (cost + lineUpgradeCost);
+			this.upgrades[itemName] = true;
+			this.upgrades[linkedLine.name] = true;
+
+			// Perform Machine Transfer
+			const targetName = item.upgrade_definition.target;
+			const count = this.machines[itemName] || 0;
+			const purchased = this.purchasedMachines[itemName] || 0;
+
+			this.machines[targetName] = (this.machines[targetName] || 0) + count;
+			this.purchasedMachines[targetName] = (this.purchasedMachines[targetName] || 0) + purchased;
+			this.machines[itemName] = 0;
+			this.purchasedMachines[itemName] = 0;
+
+			// Perform Line Transfer
+			const lineTargetName = linkedLine.upgrade_definition!.target;
+			const lineCount = this.machineProductionLines[linkedLine.name] || 0;
+
+			this.machineProductionLines[lineTargetName] = (this.machineProductionLines[lineTargetName] || 0) + lineCount;
+			this.machineProductionLines[linkedLine.name] = 0;
+
+			return true;
+		}
+
+		// Default fallback: Upgrade only the item (either it's a line, or we can't afford the sync)
+		this.money -= cost;
+		this.upgrades[itemName] = true;
+
+		const targetName = item.upgrade_definition.target;
+
+		if (type === 'machine') {
+			const count = this.machines[itemName] || 0;
+			const purchased = this.purchasedMachines[itemName] || 0;
+
+			// Transfer to new type
+			this.machines[targetName] = (this.machines[targetName] || 0) + count;
+			this.purchasedMachines[targetName] = (this.purchasedMachines[targetName] || 0) + purchased;
+
+			// Clear old
+			this.machines[itemName] = 0;
+			this.purchasedMachines[itemName] = 0;
+
+		} else if (type === 'productionLine') {
+			const pItem = item as ProductionLine;
+			const count = this.machineProductionLines[itemName] || 0;
+
+			// Transfer Line count
+			this.machineProductionLines[targetName] = (this.machineProductionLines[targetName] || 0) + count;
+			this.machineProductionLines[itemName] = 0;
+
+			// Special handling for Factory Line -> Upgrade Sources too
+			if (pItem.product_type === 'rubber_source') {
+				const sourceName = pItem.machine;
+				// Need to find the target source name from the target line?
+				// The target line is defined in parameters. 
+				const targetLine = productionLines.find(p => p.name === targetName);
+				if (targetLine && targetLine.product_type === 'rubber_source') {
+					const targetSourceName = targetLine.machine;
+
+					const sourceCount = this.rubberSources[sourceName] || 0;
+					const purchasedSource = this.purchasedRubberSources[sourceName] || 0;
+
+					this.rubberSources[targetSourceName] = (this.rubberSources[targetSourceName] || 0) + sourceCount;
+					this.purchasedRubberSources[targetSourceName] = (this.purchasedRubberSources[targetSourceName] || 0) + purchasedSource;
+
+					this.rubberSources[sourceName] = 0;
+					this.purchasedRubberSources[sourceName] = 0;
+				}
+			}
+		}
+
+		return true;
 	}
 
 	isRubberSourceUnlocked(source: RubberSource) {
-		if (source.required_research) {
-			if (Array.isArray(source.required_research)) {
-				return source.required_research.every(id => this.researched.includes(id));
-			}
-			return this.researched.includes(source.required_research);
+		if (source.precondition_research) {
+			return this.researched.includes(source.precondition_research);
 		}
-		return this.level >= source.unlock_level;
+		return true;
 	}
 
 	toJSON(): GameState {
@@ -853,6 +973,7 @@ export class Game {
 			rubberSources: this.rubberSources,
 			purchasedRubberSources: this.purchasedRubberSources,
 			researched: this.researched,
+			upgrades: this.upgrades,
 			gameOver: this.gameOver,
 			gameStartTime: this.gameStartTime,
 			totalRubberProduced: this.totalRubberProduced,

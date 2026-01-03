@@ -135,52 +135,60 @@
 	}
 
 	.machine-list {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-		gap: 1rem;
+		display: flex;
+		flex-direction: column;
+		width: 100%;
 	}
 
 	.industry-card {
 		background: #252525;
-		padding: 1rem;
+		padding: 1.5rem;
 		border-radius: 8px;
 		border: 1px solid #333;
 		display: flex;
-		flex-direction: column;
+		flex-direction: row; /* Horizontal layout */
 		justify-content: space-between;
+		align-items: center;
+		gap: 2rem;
+	}
+
+	.info {
+		flex: 1;
 	}
 
 	.info h3 {
 		margin: 0 0 0.5rem 0;
-		font-size: var(--font-size-lg);
+		font-size: var(--font-size-xl); /* Larger title */
 		color: var(--color-text-primary);
 	}
 
 	.info p {
 		color: var(--color-text-muted);
-		font-size: var(--font-size-sm);
-		margin: 0;
+		font-size: var(--font-size-md);
+		margin: 0 0 0.5rem 0;
 	}
 
 	.details {
 		color: var(--color-text-muted);
-		font-size: var(--font-size-sm);
+		font-size: var(--font-size-md);
 		margin: 0;
 	}
 
 	.owned {
 		color: var(--color-text-highlight);
 		font-weight: var(--font-weight-bold);
-		margin: 0.5rem 0 0.5rem 0;
+		margin: 0.5rem 0 0 0;
+		font-size: var(--font-size-lg);
 	}
 
 	.actions {
 		display: flex;
 		gap: 0.5rem;
+		min-width: 200px;
 	}
 
 	.buy-btn {
-		padding: 0.5rem;
+		padding: 1rem 2rem; /* Larger button */
 		border: none;
 		border-radius: 6px;
 		background: #444;
@@ -191,16 +199,17 @@
 		flex-direction: column;
 		justify-content: center;
 		align-items: center;
-		min-height: 3.5rem;
 		width: 100%;
 	}
 
 	.action-text {
 		font-weight: bold;
+		font-size: 1.1rem;
 	}
 
 	.price-text {
 		font-weight: normal;
+		font-size: 1rem;
 	}
 
 	.buy-btn:hover:not(:disabled) {

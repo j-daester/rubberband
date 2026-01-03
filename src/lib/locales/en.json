@@ -46,6 +46,7 @@
         "price": "Price",
         "current": "Current",
         "earth_resources": "Earth Resources",
+        "universe_resources": "Universe Resources",
         "oil_reserves": "Oil Reserves"
     },
     "marketing_ui": {
@@ -145,7 +146,19 @@
         },
         "brainwashing": {
             "name": "Brainwashing",
-            "desc": "Uses Brainwashing to compel customers to buy rubberbands."
+            "desc": "Uses brainwashing to compel customers to buy rubberbands."
+        },
+        "basic_manufacturing": {
+            "name": "Basic Manufacturing",
+            "desc": "Unlocks the ability to purchase machines."
+        },
+        "basic_marketing": {
+            "name": "Basic Marketing",
+            "desc": "Unlocks marketing campaigns."
+        },
+        "sales_management": {
+            "name": "Sales Management",
+            "desc": "Unlocks the ability to hire an auto-buyer."
         },
         "hypnosis": {
             "name": "Hypnosis",

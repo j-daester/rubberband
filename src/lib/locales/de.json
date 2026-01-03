@@ -46,6 +46,7 @@
         "price": "Preis",
         "current": "Aktuell",
         "earth_resources": "Erdressourcen",
+        "universe_resources": "Universum-Ressourcen",
         "oil_reserves": "Ölreserven"
     },
     "marketing_ui": {
@@ -146,6 +147,18 @@
         "brainwashing": {
             "name": "Gehirnwäsche",
             "desc": "Nutzt Gehirnwäsche, um Kunden zum Kauf von Gummibändern zu zwingen."
+        },
+        "basic_manufacturing": {
+            "name": "Grundlegende Fertigung",
+            "desc": "Schaltet den Kauf von Maschinen frei."
+        },
+        "basic_marketing": {
+            "name": "Grundlegendes Marketing",
+            "desc": "Schaltet Marketingkampagnen frei."
+        },
+        "sales_management": {
+            "name": "Vertriebsmanagement",
+            "desc": "Schaltet die Möglichkeit frei, einen Autokäufer einzustellen."
         },
         "hypnosis": {
             "name": "Hypnose",

@@ -46,6 +46,7 @@
         "price": "Prix",
         "current": "Actuel",
         "earth_resources": "Ressources Terrestres",
+        "universe_resources": "Ressources de l'Univers",
         "oil_reserves": "Réserves de Pétrole"
     },
     "marketing_ui": {
@@ -146,6 +147,18 @@
         "brainwashing": {
             "name": "Lavage de cerveau",
             "desc": "Utilise le lavage de cerveau pour obliger les clients à acheter des élastiques."
+        },
+        "basic_manufacturing": {
+            "name": "Fabrication de Base",
+            "desc": "Débloque la possibilité d'acheter des machines."
+        },
+        "basic_marketing": {
+            "name": "Marketing de Base",
+            "desc": "Débloque les campagnes marketing."
+        },
+        "sales_management": {
+            "name": "Gestion des Ventes",
+            "desc": "Débloque la possibilité d'engager un acheteur automatique."
         },
         "hypnosis": {
             "name": "Hypnose",

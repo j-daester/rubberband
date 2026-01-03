@@ -29,8 +29,6 @@
 		}
 	}
 
-	const minUnlockLevel = Math.min(...productionLines.map((p) => p.unlock_level));
-
 	function anyParams(p: any): any {
 		return p;
 	}
@@ -38,14 +36,19 @@
 	function tr(key: string, search: string, replace: string) {
 		return ($t(key) as string).replace(search, replace);
 	}
+	function handleUpgrade(machineName: string) {
+		if (game.upgradeItem(machineName)) {
+			dispatch('action');
+		}
+	}
 </script>
 
-{#if game.level >= minUnlockLevel}
+{#if game.researched.includes('synthetic_rubber')}
 	<section class="heavy-industry">
 		<h2>{$t('heavy_industry_ui.title')}</h2>
 		<div class="machine-list">
 			{#each productionLines as line}
-				{#if game.isProductionLineUnlocked(line) && line.name !== 'Nanobot Factory'}
+				{#if game.isItemVisible(line) && line.name !== 'Nanobot Factory'}
 					{@const count = game.machineProductionLines[line.name] || 0}
 					{@const cost = game.getMachineProductionLineCost(line.name, 1, count)}
 					{@const max = game.getMaxAffordableProductionLine(line.name, game.money, count)}
@@ -96,6 +99,70 @@
 								<span class="action-text">{$t('common.sell')}</span>
 								<span class="price-text">{formatMoney(sellPrice, suffixes)}</span>
 							</button>
+
+							{#if line.upgrade_definition}
+								{@const upgradeCost = game.getUpgradeCost(line)}
+								{@const upgradeTarget = $t('production_lines.' + line.upgrade_definition.target)}
+								{#if line.upgrade_definition?.target}
+									{@const targetLine = productionLines.find(
+										(p) => p.name === line.upgrade_definition?.target
+									)}
+									{#if targetLine}
+										{@const isResearchMissing = !game.isProductionLineUnlocked(targetLine)}
+										<div
+											style="width: 100%; margin-top: 0.5rem; flex-basis: 100%; {isResearchMissing
+												? 'opacity: 0.5;'
+												: ''}"
+										>
+											<hr style="border: 0; border-top: 1px solid #444; margin: 0.5rem 0 1rem 0;" />
+											<p
+												style="margin: 0 0 0.5rem 0; color: {isResearchMissing
+													? '#aaa'
+													: '#fff'}; font-size: 0.9em; text-align: center; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;"
+											>
+												{$t('common.upgrade_available', {
+													default: 'Upgrade to ' + upgradeTarget
+												})}
+											</p>
+											{#if isResearchMissing && targetLine.precondition_research}
+												<p
+													style="margin: 0 0 0.5rem 0; color: #ff6b6b; font-size: 0.8em; text-align: center; font-weight: bold;"
+												>
+													Requires the research of {$t(
+														'research.' + targetLine.precondition_research + '.name'
+													)}
+												</p>
+											{/if}
+
+											<!-- Upgrade Stats -->
+											<div
+												style="display: flex; justify-content: space-around; font-size: 0.8em; color: #ccc; margin-bottom: 0.5rem;"
+											>
+												<span>
+													{$t('common.production')}:
+													{formatNumber(game.getProductionLineOutputPerUnit(line.name), suffixes)} &rarr;
+													<span style="color: #4caf50;"
+														>{formatNumber(
+															game.getProductionLineOutputPerUnit(targetLine.name),
+															suffixes
+														)}</span
+													>/⏱️
+												</span>
+											</div>
+											<button
+												class="buy-btn upgrade-btn"
+												disabled={game.money < upgradeCost || isResearchMissing}
+												on:click={() => handleUpgrade(line.name)}
+												style="background: #a27b00; width: 100%;"
+												title={isResearchMissing ? 'Research required' : ''}
+											>
+												<span class="action-text">Upgrade</span>
+												<span class="price-text">{formatMoney(upgradeCost, suffixes)}</span>
+											</button>
+										</div>
+									{/if}
+								{/if}
+							{/if}
 						</div>
 					</div>
 				{/if}
@@ -152,6 +219,7 @@
 	.actions {
 		display: flex;
 		gap: 0.5rem;
+		flex-wrap: wrap;
 	}
 
 	.buy-btn {

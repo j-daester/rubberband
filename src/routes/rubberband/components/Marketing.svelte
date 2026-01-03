@@ -35,7 +35,7 @@
 	}
 </script>
 
-{#if game.level >= GAME_CONSTANTS.MARKETING_UNLOCK_LEVEL}
+{#if game.researched.includes(GAME_CONSTANTS.MARKETING_UNLOCK_RESEARCH)}
 	<section class="marketing">
 		<h2>{$t('marketing_ui.title')}</h2>
 		<div class="marketing-card">

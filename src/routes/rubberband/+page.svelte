@@ -46,18 +46,20 @@
 	let productionRate = game.productionRate;
 	let rubberProduction = game.rubberProductionRate;
 	let totalSold = game.totalRubberbandsSold;
-	let level = game.level;
 	let demand = game.demand;
 	let rubberbandPrice = game.rubberbandPrice;
 	let tickCount = game.tickCount;
+
 	let gameOver = game.gameOver;
-	let nextLevelRequirement = game.nextLevelRequirement;
+
 	let inventoryCost = game.inventoryCost;
 	let maintenanceCost = game.maintenanceCost;
 	let totalRubberProduced = game.totalRubberProduced;
 	let consumedEarthResources = game.consumedEarthResources;
 	let consumedOil = game.consumedOil;
 	let researched = game.researched;
+	let resourceLimit = game.resourceLimit;
+	let resourceUnitNameKey = 'common.earth_resources';
 
 	$: score = 100000 / tickCount;
 	// Construct share text using translations is tricky inside script because $t is reactive.
@@ -71,9 +73,10 @@
 	$: shareTextRaw = `I just scored ${formatNumber(
 		score,
 		suffixes
-	)} Points in Rubberband Inc. (Version ${appVersion})! ${$t(
-		'common.level'
-	)} ${level} reached with ${formatNumber(totalSold, suffixes)} rubberbands sold in ${formatNumber(
+	)} Points in Rubberband Inc. (Version ${appVersion})! ${formatNumber(
+		totalSold,
+		suffixes
+	)} rubberbands sold in ${formatNumber(
 		tickCount,
 		suffixes
 	)} ticks! Try to beat my score! https://rubberband.realnet.ch`;
@@ -135,7 +138,10 @@
 
 	// Reactive declarations for UI updates
 	let hasRubberSources = false;
+	let totalMachines = 0;
 	let showResourceGroup = false;
+	let showOperationsSection = true;
+	let showButtons = true;
 
 	$: {
 		tick;
@@ -145,23 +151,37 @@
 		productionRate = game.productionRate;
 		rubberProduction = game.rubberProductionRate;
 		totalSold = game.totalRubberbandsSold;
-		level = game.level;
+		totalSold = game.totalRubberbandsSold;
 		demand = game.demand;
 		tickCount = game.tickCount;
 		gameOver = game.gameOver;
-		nextLevelRequirement = game.nextLevelRequirement;
+
 		inventoryCost = game.inventoryCost;
 		maintenanceCost = game.maintenanceCost;
 		totalRubberProduced = game.totalRubberProduced;
 		consumedEarthResources = game.consumedEarthResources;
 		consumedOil = game.consumedOil;
 		researched = game.researched;
+		resourceLimit = game.resourceLimit;
+		resourceUnitNameKey = researched.includes('interplanetary_logistics')
+			? 'common.universe_resources'
+			: 'common.earth_resources';
 		hasRubberSources = Object.values(game.rubberSources).some((count) => count > 0);
+		totalMachines = Object.values(game.machines).reduce((a, b) => a + b, 0);
 		showResourceGroup =
 			(researched.includes('synthetic_rubber') &&
 				!researched.includes('molecular_transformation')) ||
-			((researched.includes('nanotechnology') || researched.includes('molecular_transformation')) &&
-				!researched.includes('interplanetary_logistics'));
+			researched.includes('molecular_transformation');
+
+		// Buttons are visible if their conditions are met
+		// Make Rubberband: totalMachines === 0
+		// Buy Rubber: !hasRubberSources
+		const showMakeBtn = totalMachines === 0;
+		const showBuyBtn = !hasRubberSources;
+		showButtons = showMakeBtn || showBuyBtn;
+
+		const marketingUnlocked = researched.includes(GAME_CONSTANTS.MARKETING_UNLOCK_RESEARCH);
+		showOperationsSection = showButtons || marketingUnlocked;
 
 		// if (rubberbandPrice !== game.rubberbandPrice) {
 		// 	rubberbandPrice = game.rubberbandPrice;
@@ -231,17 +251,8 @@
 
 		<div class="progress-bar">
 			<div class="stat">
-				<span class="label">{$t('common.level')}</span>
-				<span class="value">{formatNumber(level, suffixes)}</span>
-			</div>
-			<div class="stat">
 				<span class="label">{$t('common.total_sold')}</span>
-				<span class="value"
-					>{formatNumber(totalSold, suffixes)} / {formatNumber(
-						nextLevelRequirement,
-						suffixes
-					)}</span
-				>
+				<span class="value">{formatNumber(totalSold, suffixes)}</span>
 			</div>
 			<div class="stat">
 				<span class="label">Ticks {$t('common.ticks')}</span>
@@ -278,14 +289,6 @@
 							<span class="label">{$t('common.rubberbands')}</span>
 							<span class="value">{formatNumber(Math.floor(rubberbands), suffixes)}</span>
 						</div>
-						{#if inventoryCost > 0}
-							<div class="stat">
-								<span class="label">{$t('common.storage_cost')}</span>
-								<span class="value" style="color: #ff6b6b"
-									>-{formatMoney(inventoryCost, suffixes)}/⏱️</span
-								>
-							</div>
-						{/if}
 					</div>
 				</div>
 
@@ -313,14 +316,6 @@
 							<span class="label">{$t('common.bands')}</span>
 							<span class="value">{formatNumber(productionRate, suffixes)}/⏱️</span>
 						</div>
-						{#if maintenanceCost > 0}
-							<div class="stat">
-								<span class="label">{$t('common.maintenance')}</span>
-								<span class="value" style="color: #ff6b6b"
-									>-{formatMoney(maintenanceCost, suffixes)}/⏱️</span
-								>
-							</div>
-						{/if}
 					</div>
 				</div>
 
@@ -350,22 +345,19 @@
 									</div>
 								</div>
 							{/if}
-							{#if (researched.includes('nanotechnology') || researched.includes('molecular_transformation')) && !researched.includes('interplanetary_logistics')}
+							{#if researched.includes('molecular_transformation')}
 								<div class="stat resource-stat" style="width: 100%">
-									<span class="label">{$t('common.earth_resources')} 🌍</span>
+									<span class="label">{$t(resourceUnitNameKey)} 🌍</span>
 									<div class="progress-bar-container">
 										<div
 											class="resource-progress-bar"
 											style="width: {Math.min(
 												100,
-												(consumedEarthResources / GAME_CONSTANTS.EARTH_RESOURCE_LIMIT) * 100
+												(consumedEarthResources / resourceLimit) * 100
 											)}%"
 										/>
 										<span class="progress-text"
-											>{formatWeight(consumedEarthResources, suffixes)} / {formatWeight(
-												GAME_CONSTANTS.EARTH_RESOURCE_LIMIT,
-												suffixes
-											)}</span
+											>{formatWeight(consumedEarthResources)} / {formatWeight(resourceLimit)}</span
 										>
 									</div>
 								</div>
@@ -422,31 +414,49 @@
 	</header>
 
 	<main>
-		<section class="actions">
-			<h2>{$t('common.operations')}</h2>
-			<div class="button-group">
-				<button class="action-btn primary" on:click={makeRubberband} disabled={rubber < 1}>
-					{$t('common.make_rubberband')}
-				</button>
-				<button
-					class="action-btn secondary"
-					on:click={buyRubber}
-					disabled={money < 100 * game.rubberPrice}
-				>
-					{@html buyRubberText}
-				</button>
+		{#if showOperationsSection}
+			<section class="actions">
+				{#if showButtons}
+					<h2>{$t('common.operations')}</h2>
+					<div class="button-group">
+						{#if totalMachines === 0}
+							<button class="action-btn primary" on:click={makeRubberband} disabled={rubber < 1}>
+								{$t('common.make_rubberband')}
+							</button>
+						{/if}
+						{#if !hasRubberSources}
+							<button
+								class="action-btn secondary"
+								on:click={buyRubber}
+								disabled={money < 100 * game.rubberPrice}
+							>
+								{@html buyRubberText}
+							</button>
+						{/if}
+					</div>
+				{/if}
+
+				<!-- Merged Marketing into Operations/Actions area -->
+				<Marketing {game} {tick} {suffixes} on:action={handleAction} />
+			</section>
+		{/if}
+
+		<!-- Duplicate Marketing removed from here -->
+
+		<div class="main-game-row">
+			<div class="game-column">
+				<Research {game} {tick} {suffixes} on:action={handleAction} />
 			</div>
-		</section>
-
-		<Marketing {game} {tick} {suffixes} on:action={handleAction} />
-
-		<Research {game} {tick} {suffixes} on:action={handleAction} />
-
-		<MachineShop {game} {tick} {suffixes} on:action={handleAction} />
-
-		<SupplyChain {game} {tick} {suffixes} on:action={handleAction} />
-
-		<HeavyIndustry {game} {tick} {suffixes} on:action={handleAction} />
+			<div class="game-column">
+				<MachineShop {game} {tick} {suffixes} on:action={handleAction} />
+			</div>
+			<div class="game-column">
+				<SupplyChain {game} {tick} {suffixes} on:action={handleAction} />
+			</div>
+			<div class="game-column">
+				<HeavyIndustry {game} {tick} {suffixes} on:action={handleAction} />
+			</div>
+		</div>
 
 		<NanoFactory {game} {tick} {suffixes} on:action={handleAction} />
 	</main>
@@ -524,6 +534,20 @@
 		margin: 0;
 	}
 
+	/* Global Section Styling for Prettier Headings */
+	:global(section h2) {
+		font-size: 0.85rem;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+		color: #888;
+		font-weight: bold;
+		border-bottom: 1px solid #333;
+		padding-bottom: 0.5rem;
+		margin-bottom: 1rem;
+		background: none;
+		padding-left: 0;
+	}
+
 	:global(*),
 	:global(*::before),
 	:global(*::after) {
@@ -563,6 +587,7 @@
 		letter-spacing: 2px;
 		background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
 		-webkit-background-clip: text;
+		background-clip: text;
 		-webkit-text-fill-color: transparent;
 	}
 
@@ -618,6 +643,32 @@
 		display: flex;
 		flex-direction: column;
 		gap: 1rem;
+	}
+
+	.main-game-row {
+		display: flex;
+		flex-direction: row;
+		gap: 1.5rem;
+		align-items: flex-start;
+		width: 100%;
+		margin-bottom: 2rem;
+	}
+
+	.game-column {
+		flex: 1;
+		min-width: 300px; /* Ensure columns don't get too squished */
+		display: flex;
+		flex-direction: column;
+	}
+
+	@media (max-width: 1000px) {
+		.main-game-row {
+			flex-direction: column;
+		}
+
+		.game-column {
+			width: 100%;
+		}
 	}
 
 	.right-column {

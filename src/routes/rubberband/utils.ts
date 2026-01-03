@@ -38,21 +38,15 @@ export function formatMoney(num: number, suffixes?: string[]): string {
     return formatNumber(num, suffixes) + '🪙';
 }
 
-export function formatWeight(num: number, suffixes: string[] = ['t', 'kt', 'Mt', 'Gt', 'Tt', 'Pt', 'Et', 'Zt', 'Yt', 'Rt', 'Qt']): string {
-    const absNum = Math.abs(num);
-    if (absNum < 1000) {
-        return Math.floor(num) + ' g';
-    }
-    if (absNum < 1000000) {
-        return (num / 1000).toFixed(2) + ' kg';
-    }
-
-    // For tonnes and above, we start dividing by 1,000,000
-    // 1,000,000 g = 1 t
-    return formatNumber(num / 1000000, suffixes);
+export function formatWeight(num: number): string {
+    // User requested "Gramm" as unit.
+    // We will use standard metric prefixes for grams: g, kg, Mg, Gg, Tg, Pg, Eg, Zg, Yg
+    const suffixes = ['g', 'kg', 'Mg', 'Gg', 'Tg', 'Pg', 'Eg', 'Zg', 'Yg'];
+    return formatNumber(num, suffixes);
 }
 
 export function formatVolume(num: number): string {
-    const suffixes = ['L', 'kL', 'ML', 'GL', 'TL', 'PL', 'EL', 'ZL', 'YL'];
+    // User requested "Liter" as unit.
+    const suffixes = ['l', 'kl', 'Ml', 'Gl', 'Tl', 'Pl', 'El', 'Zl', 'Yl'];
     return formatNumber(num, suffixes);
 }
