@@ -143,7 +143,7 @@ export const researchList: ResearchType[] = [
 		name: 'Robotics',
 		description: 'Makes machines more efficient and allows for the production of more machines.',
 		cost: 5_000_000,
-		precondition_research: 'synthetic_rubber'
+		precondition_research: 'optimize_production'
 	},
 	{
 		id: 'hypnosis',

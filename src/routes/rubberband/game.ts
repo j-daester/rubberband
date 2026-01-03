@@ -204,8 +204,8 @@ export class Game {
 			basevalue *= 1.2;
 		}
 		if (this.researched.includes('mind_control')) {
-			priceSensitivity *= 2;
-			basevalue *= 1.2;
+			priceSensitivity *= 100;
+			basevalue *= 100;
 		}
 
 		// Exponential demand curve with price sensitivity
@@ -354,8 +354,8 @@ export class Game {
 
 	private produceMachines() {
 		const nanoSwarms = this.machines["Nano-Swarms"] || 0;
-		const outputPerUnit = Math.floor(0.01 * nanoSwarms);
-		const outputPerUnitForNanobots = Math.floor(0.001 * nanoSwarms);
+		const outputPerUnit = Math.floor(0.1 * nanoSwarms);
+		const outputPerUnitForNanobots = Math.floor(0.01 * nanoSwarms);
 
 		const generalResourceLimit = this.resourceLimit;
 
