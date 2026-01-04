@@ -8,6 +8,7 @@
         "net_rubber": "Net Rubber",
         "rubberbands": "Rubberbands",
         "storage_cost": "Storage Cost",
+        "storage_limit": "Storage Space",
         "production": "Production",
         "bands": "Bands",
         "maintenance": "Maintenance",
@@ -18,6 +19,8 @@
         "expenses": "Expenses",
         "demand": "Demand",
         "operations": "Operations",
+        "logistics": "Resources & Storage",
+        "earth_resources": "Resources & Storage",
         "make_rubberband": "Make Rubberband",
         "buy_rubber": "Buy Rubber (100 g for <span class=\"small-text\">{cost}</span>)",
         "sales_strategy": "Sales Strategy",
@@ -45,7 +48,6 @@
         "unlocks_at_level": "Unlocks at level {level}",
         "price": "Price",
         "current": "Current",
-        "earth_resources": "Earth Resources",
         "universe_resources": "Universe Resources",
         "oil_reserves": "Oil Reserves"
     },
@@ -93,7 +95,17 @@
         "Sp",
         "Oc",
         "No",
-        "Dc"
+        "Dc",
+        "Ud",
+        "Dd",
+        "Td",
+        "Qad",
+        "Qid",
+        "Sxd",
+        "Spd",
+        "Ocd",
+        "Nod",
+        "Vg"
     ],
     "machines": {
         "Bander": "Bander",
@@ -104,15 +116,16 @@
         "Temporal Press": "Temporal Press"
     },
     "production_lines": {
-        "Synthetic Rubber Factory Line": "Synthetic Rubber Factory Line",
+        "Synthetic Rubber Mixer Line": "Synthetic Rubber Mixer Line",
         "MEGA-Bander Line": "MEGA-Bander Line",
         "Nanobot Factory": "Nanobot Factory",
         "Quantum Bander Line": "Quantum Bander Line",
-        "Bander 100 Line": "Bander 100 Line"
+        "Temporal Press Line": "Temporal Press Line",
+        "Black Hole Extruder Line": "Black Hole Extruder Line"
     },
     "rubber_sources": {
         "Rubbertree Plantation": "Rubbertree Plantation",
-        "Synthetic Rubber Factory": "Synthetic Rubber Factory",
+        "Synthetic Rubber Mixer": "Synthetic Rubber Mixer",
         "Black Hole Extruder": "Black Hole Extruder"
     },
     "research": {
@@ -182,7 +195,7 @@
         },
         "singularity_theory": {
             "name": "Singularity Theory",
-            "desc": "Harnessing the power of a black hole for material extrusion."
+            "desc": "Harnessing the power of a black hole for material extrusion. Eliminates all storage limits and costs."
         },
         "interplanetary_logistics": {
             "name": "Interplanetary Logistics",

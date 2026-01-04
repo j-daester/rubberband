@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Rubberband Demand Visualizer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+            max-width: 600px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        input {
+            padding: 4px;
+        }
+
+        #chart-container {
+            position: relative;
+            height: 60vh;
+            width: 80vw;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Demand Logic Visualizer</h2>
+    <div class="controls">
+        <div class="control-group">
+            <label>Marketing Level (M)</label>
+            <input type="number" id="marketingLevel" value="10" onchange="updateChart()">
+        </div>
+        <div class="control-group">
+            <label>Base Value Exponent (b)</label>
+            <input type="number" id="baseValue" value="1.2" step="0.1" onchange="updateChart()">
+        </div>
+        <div class="control-group">
+            <label>Price Sensitivity (S)</label>
+            <input type="number" id="priceSensitivity" value="1.0" step="0.1" onchange="updateChart()">
+        </div>
+        <div class="control-group">
+            <label>Demand Multiplier (K)</label>
+            <input type="number" id="demandMultiplier" value="1" step="0.1" onchange="updateChart()">
+        </div>
+        <div class="control-group">
+            <label>Max Price to Plot (X-Axis)</label>
+            <input type="number" id="maxPrice" value="50" onchange="updateChart()">
+        </div>
+    </div>
+
+    <div>
+        <strong>Formula:</strong> <code>Demand = floor( (M ^ b) * 100 * exp(-Price / S) * K )</code>
+    </div>
+    <div id="chart-container">
+        <canvas id="demandChart"></canvas>
+    </div>
+    <script>
+        let chart;
+        function calculateDemand(price, m, b, s, k) {
+            // formula: Math.floor(Math.pow(this.marketingLevel, basevalue) * 100 * Math.exp(-price / priceSensitivity) * demandMultiplier);
+            return Math.floor(Math.pow(m, b) * 100 * Math.exp(-price / s) * k);
+        }
+        function updateChart() {
+            const m = parseFloat(document.getElementById('marketingLevel').value);
+            const b = parseFloat(document.getElementById('baseValue').value);
+            const s = parseFloat(document.getElementById('priceSensitivity').value);
+            const k = parseFloat(document.getElementById('demandMultiplier').value);
+            const maxPrice = parseFloat(document.getElementById('maxPrice').value);
+            const labels = [];
+            const data = [];
+            // Generate 100 points
+            const step = maxPrice / 100;
+            for (let p = 0; p <= maxPrice; p += step) {
+                labels.push(p.toFixed(2));
+                data.push(calculateDemand(p, m, b, s, k));
+            }
+            if (chart) {
+                chart.destroy();
+            }
+            const ctx = document.getElementById('demandChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Demand',
+                        data: data,
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1,
+                        fill: true,
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Price' }
+                        },
+                        y: {
+                            title: { display: true, text: 'Demand (Rubberbands/Tick)' },
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return `Price: ${context.label}, Demand: ${context.raw}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        // Init
+        updateChart();
+    </script>
+</body>
+
+</html>

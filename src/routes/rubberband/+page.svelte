@@ -8,9 +8,7 @@
 	import { Game } from './game';
 	import { GAME_CONSTANTS } from './parameters';
 
-	export let params: any = undefined; // Silence unknown prop warning
-
-	import { formatNumber, formatMoney, formatWeight, formatVolume } from './utils';
+	import { formatNumber, formatMoney, formatWeight, formatVolume, formatArea } from './utils';
 	import MachineShop from './components/MachineShop.svelte';
 	import Marketing from './components/Marketing.svelte';
 	import HeavyIndustry from './components/HeavyIndustry.svelte';
@@ -43,7 +41,7 @@
 
 	let rubberbands = game.rubberbands;
 	let rubber = game.rubber;
-	let productionRate = game.productionRate;
+	let productionRate = game.machineProductionRate;
 	let rubberProduction = game.rubberProductionRate;
 	let totalSold = game.totalRubberbandsSold;
 	let demand = game.demand;
@@ -60,6 +58,7 @@
 	let netIncome = game.netIncome;
 	let researched = game.researched;
 	let resourceLimit = game.resourceLimit;
+	let storageLimit = game.storageLimit;
 	let resourceUnitNameKey = 'common.earth_resources';
 
 	$: score = 100000 / tickCount;
@@ -140,6 +139,8 @@
 	// Reactive declarations for UI updates
 	let hasRubberSources = false;
 	let totalMachines = 0;
+	let theoreticalConsumption = 0;
+	let usedStorageSpace = 0;
 	let showResourceGroup = false;
 	let showOperationsSection = true;
 	let showButtons = true;
@@ -149,8 +150,9 @@
 		money = game.money;
 		rubberbands = game.rubberbands;
 		rubber = game.rubber;
-		productionRate = game.productionRate;
+		productionRate = game.machineProductionRate;
 		rubberProduction = game.rubberProductionRate;
+		theoreticalConsumption = game.theoreticalRubberConsumptionRate;
 		totalSold = game.totalRubberbandsSold;
 		totalSold = game.totalRubberbandsSold;
 		demand = game.demand;
@@ -159,17 +161,43 @@
 
 		inventoryCost = game.inventoryCost;
 		maintenanceCost = game.maintenanceCost;
-		totalRubberProduced = game.totalRubberProduced;
-		consumedEarthResources = game.consumedEarthResources;
-		consumedOil = game.consumedOil;
 		netIncome = game.netIncome;
+		totalRubberProduced = game.totalRubberProduced;
+		resourceLimit = game.resourceLimit;
+
+		usedStorageSpace = game.usedStorageSpace;
+
+		consumedOil = game.consumedOil;
+		consumedEarthResources = game.consumedResources;
 		researched = game.researched;
 		resourceLimit = game.resourceLimit;
+		storageLimit = game.storageLimit;
 		resourceUnitNameKey = researched.includes('interplanetary_logistics')
 			? 'common.universe_resources'
 			: 'common.earth_resources';
-		hasRubberSources = Object.values(game.rubberSources).some((count) => count > 0);
-		totalMachines = Object.values(game.machines).reduce((a, b) => a + b, 0);
+		hasRubberSources = (game.producers['rubber_sources'] || []).some((count) => count > 0);
+
+		// Calculate total machines for "Make Rubberband" button logic
+		// Only count 'machine' type families? Or all entities?
+		// Original logic was "machines" map values sum.
+		// Machines are now families with type='machine'.
+		// We probably only care about "Bander" style machines for manual clicking?
+		// Or literally any machine owned?
+		// Let's sum all tiers of all families of type 'machine'.
+		// Bander is type='machine'. Nano is type='machine'.
+		// Wait, Nano shouldn't hide the button?
+		// Original: totalMachines > 0 hides the button.
+		// This includes Banders.
+		// We'll mimic that.
+		totalMachines = 0;
+		// Ideally export entityFamilies from +page, but we don't import it here directly in script usually?
+		// We can just iterate game.entities keys? No, we don't know types.
+		// But `game` has helper properties or we can import `entityFamilies`.
+		// Let's just check 'bander' family for now as it's the main one.
+		// Or import entityFamilies.
+		const banderCounts = game.producers['bander'] || [];
+		totalMachines = banderCounts.reduce((a, b) => a + b, 0);
+
 		showResourceGroup =
 			(researched.includes('synthetic_rubber') &&
 				!researched.includes('molecular_transformation')) ||
@@ -306,10 +334,12 @@
 								<span class="label">{$t('common.net_rubber')}</span>
 								<span
 									class="value"
-									style="color: {rubberProduction - productionRate >= 0 ? '#4caf50' : '#ff6b6b'}"
+									style="color: {rubberProduction - theoreticalConsumption >= 0
+										? '#4caf50'
+										: '#ff6b6b'}"
 								>
-									{rubberProduction - productionRate > 0 ? '+' : ''}{formatWeight(
-										rubberProduction - productionRate
+									{rubberProduction - theoreticalConsumption > 0 ? '+' : ''}{formatWeight(
+										rubberProduction - theoreticalConsumption
 									)}/⏱️
 								</span>
 							</div>
@@ -323,11 +353,27 @@
 
 				{#if showResourceGroup}
 					<div class="resource-group">
-						<span class="group-title">{$t('common.earth_resources')}</span>
+						<span class="group-title">{$t('common.logistics')}</span>
 						<div
 							class="stat-row"
 							style="flex-direction: column; gap: 0.5rem; align-items: stretch;"
 						>
+							<div class="stat resource-stat" style="width: 100%">
+								<span class="label">{$t('common.storage_limit')} 📦</span>
+								<div class="progress-bar-container">
+									<div
+										class="resource-progress-bar"
+										style="width: {Math.min(
+											100,
+											(usedStorageSpace / storageLimit) * 100
+										)}%; background-color: #ff9800;"
+									/>
+									<span class="progress-text"
+										>{formatArea(usedStorageSpace)} / {formatArea(storageLimit)}</span
+									>
+								</div>
+							</div>
+
 							{#if researched.includes('synthetic_rubber') && !researched.includes('molecular_transformation')}
 								<div class="stat resource-stat" style="width: 100%">
 									<span class="label">{$t('common.oil_reserves')} 🛢️</span>

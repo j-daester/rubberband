@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Game } from '../game';
-	import { productionLines } from '../parameters';
+	import { producerFamilies, type Producer } from '../parameters';
 	import { formatNumber, formatMoney } from '../utils';
 	import { createEventDispatcher } from 'svelte';
 	import { t } from 'svelte-i18n';
@@ -9,7 +9,7 @@
 	export let tick: number;
 	export let suffixes: string[] = [];
 
-	const dispatch = createEventDispatcher();
+	let buyAmount = 1;
 
 	// Reactive trigger
 	$: {
@@ -17,152 +17,177 @@
 		game = game;
 	}
 
-	function buyMachineProductionLine(machineName: string, amount: number = 1) {
-		if (game.buyMachineProductionLine(machineName, amount)) {
+	// Filter Production Lines
+	$: productionLineFamilies = producerFamilies.filter((f) => f.type === 'production_line');
+
+	const dispatch = createEventDispatcher();
+
+	function handleBuy(familyId: string, tierIndex: number, amount: number = 1) {
+		if (game.buyProducer(familyId, tierIndex, amount)) {
 			dispatch('action');
 		}
 	}
 
-	function sellMachineProductionLine(machineName: string, amount: number = 1) {
-		if (game.sellMachineProductionLine(machineName, amount)) {
+	function handleSell(familyId: string, tierIndex: number, amount: number = 1) {
+		if (game.sellProducer(familyId, tierIndex, amount)) {
 			dispatch('action');
 		}
 	}
 
-	function anyParams(p: any): any {
-		return p;
+	function handleUpgrade(familyId: string, tierIndex: number, amount: number = 1) {
+		if (game.upgradeProducer(familyId, tierIndex, amount)) {
+			dispatch('action');
+		}
 	}
 
 	function tr(key: string, search: string, replace: string) {
 		return ($t(key) as string).replace(search, replace);
 	}
-	function handleUpgrade(machineName: string) {
-		if (game.upgradeItem(machineName)) {
-			dispatch('action');
-		}
-	}
 </script>
 
 {#if game.researched.includes('synthetic_rubber')}
 	<section class="heavy-industry">
-		<h2>{$t('heavy_industry_ui.title')}</h2>
+		<div class="header-row">
+			<h2>{$t('heavy_industry_ui.title')}</h2>
+			<div class="buy-controls">
+				<button class:active={buyAmount === 1} on:click={() => (buyAmount = 1)}>1</button>
+				<button class:active={buyAmount === 10} on:click={() => (buyAmount = 10)}>10</button>
+				<button class:active={buyAmount === -1} on:click={() => (buyAmount = -1)}>Max</button>
+			</div>
+		</div>
+
 		<div class="machine-list">
-			{#each productionLines as line}
-				{#if game.isItemVisible(line) && line.name !== 'Nanobot Factory'}
-					{@const count = game.machineProductionLines[line.name] || 0}
-					{@const cost = game.getMachineProductionLineCost(line.name, 1, count)}
-					{@const max = game.getMaxAffordableProductionLine(line.name, game.money, count)}
-					{@const sellPrice =
-						count > 0
-							? Math.floor(0.5 * game.getMachineProductionLineCost(line.name, 1, count - 1))
-							: 0}
-
-					{@const machineNameTranslated =
-						line.product_type === 'rubber_source'
-							? $t('rubber_sources.' + line.machine)
-							: $t('machines.' + line.machine)}
-
-					{@const nanoSwarms = game.machines['Nano-Swarms'] || 0}
-					{@const nanoBoost = Math.floor(nanoSwarms * 0.01)}
-
+			{#each productionLineFamilies as family}
+				{@const baseLine = family.tiers[0]}
+				{#if game.isProducerVisible(baseLine)}
 					<div class="industry-card">
-						<div class="info">
-							<h3>{$t('production_lines.' + line.name)}</h3>
-							<p>{tr('heavy_industry_ui.auto_produces', '{machine}', machineNameTranslated)}</p>
-							<p class="details">
-								{$t('common.production')}: {formatNumber(
-									game.getProductionLineOutputPerUnit(line.name),
-									suffixes
-								)}/⏱️
-								{#if nanoBoost > 0}
-									<span style="color: #00f2fe; font-weight: bold;"
-										>(+{formatNumber(nanoBoost, suffixes)})</span
-									>
-								{/if}
-							</p>
-							<p class="owned">{$t('common.owned')}: {formatNumber(count, suffixes)}</p>
+						<div class="family-header">
+							<h3>{$t('production_lines.' + baseLine.name)}</h3>
 						</div>
-						<div class="actions">
-							<button
-								class="buy-btn"
-								disabled={game.money < cost}
-								on:click={() => buyMachineProductionLine(line.name)}
-							>
-								<span class="action-text">{$t('common.buy')}</span>
-								<span class="price-text">{formatMoney(cost, suffixes)}</span>
-							</button>
-							<button
-								class="buy-btn sell-btn"
-								disabled={count <= 0}
-								on:click={() => sellMachineProductionLine(line.name)}
-							>
-								<span class="action-text">{$t('common.sell')}</span>
-								<span class="price-text">{formatMoney(sellPrice, suffixes)}</span>
-							</button>
 
-							{#if line.upgrade_definition}
-								{@const upgradeCost = game.getUpgradeCost(line)}
-								{@const upgradeTarget = $t('production_lines.' + line.upgrade_definition.target)}
-								{#if line.upgrade_definition?.target}
-									{@const targetLine = productionLines.find(
-										(p) => p.name === line.upgrade_definition?.target
-									)}
-									{#if targetLine}
-										{@const isResearchMissing = !game.isProductionLineUnlocked(targetLine)}
-										<div
-											style="width: 100%; margin-top: 0.5rem; flex-basis: 100%; {isResearchMissing
-												? 'opacity: 0.5;'
-												: ''}"
-										>
-											<hr style="border: 0; border-top: 1px solid #444; margin: 0.5rem 0 1rem 0;" />
-											<p
-												style="margin: 0 0 0.5rem 0; color: {isResearchMissing
-													? '#aaa'
-													: '#fff'}; font-size: 0.9em; text-align: center; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;"
-											>
-												{$t('common.upgrade_available', {
-													default: 'Upgrade to ' + upgradeTarget
-												})}
+						<div class="tiers-container">
+							{#each family.tiers as line, index}
+								{@const count = game.producers[family.id]?.[index] || 0}
+								{#if game.isProducerVisible(line) || count > 0}
+									{@const isBeingProduced = false}
+									<!-- Lines are not produced by other lines usually -->
+									{@const nextTier = family.tiers[index + 1]}
+									{@const canUpgrade = !!(nextTier && game.isProducerVisible(nextTier))}
+
+									{@const machineNameTranslated =
+										line.production.output.resource === 'rubber' // Fallback check
+											? $t('rubber_sources.' + line.name)
+											: (() => {
+													const targetFamilyId = line.production.output.familyId;
+													const targetTierIndex = line.production.output.tierIndex || 0;
+													const targetFamily = producerFamilies.find(
+														(f) => f.id === targetFamilyId
+													);
+													const targetTier = targetFamily?.tiers[targetTierIndex];
+
+													if (targetFamily?.type === 'rubber_source')
+														return targetTier ? $t('rubber_sources.' + targetTier.name) : '';
+													return targetTier ? $t('machines.' + targetTier.name) : '';
+											  })()}
+
+									{@const nanoSwarms = game.producers['nanoswarm']?.[0] || 0}
+
+									<!-- Boost is calculated inside getEntityOutput, we just display the base+boost diff if we want, or just Total.
+                                         Original code showed (+Boost).
+                                         Let's calc boost for display.
+                                    -->
+									{@const totalOutput = game.getProducerOutput(family.id, index)}
+									{@const baseOutput = line.production.output.amount}
+									{@const boost = totalOutput - baseOutput}
+
+									<div class="tier-row">
+										<div class="info">
+											<h4>{$t('production_lines.' + line.name)}</h4>
+											<p class="desc">
+												{tr('heavy_industry_ui.auto_produces', '{machine}', machineNameTranslated)}
 											</p>
-											{#if isResearchMissing && targetLine.precondition_research}
-												<p
-													style="margin: 0 0 0.5rem 0; color: #ff6b6b; font-size: 0.8em; text-align: center; font-weight: bold;"
+
+											<div class="stats">
+												<span class="stat">
+													{$t('common.production')}:
+													<span class="val">{formatNumber(totalOutput, suffixes)}/⏱️</span>
+													{#if boost > 0}
+														<span class="boost">(+{formatNumber(boost, suffixes)})</span>
+													{/if}
+												</span>
+												<span class="stat"
+													>{$t('common.owned')}:
+													<span class="val highlight">{formatNumber(count, suffixes)}</span></span
 												>
-													Requires the research of {$t(
-														'research.' + targetLine.precondition_research + '.name'
-													)}
-												</p>
+											</div>
+										</div>
+
+										<div class="actions">
+											<!-- Buy / Sell Base Tier -->
+											{#if line.allow_manual_purchase !== false}
+												{@const purchased = game.purchasedProducers[family.id]?.[index] || 0}
+												{@const maxBuy = game.getMaxAffordableProducer(
+													family.id,
+													index,
+													game.money,
+													purchased
+												)}
+												{@const currentBuyAmount =
+													buyAmount === -1 ? Math.max(1, maxBuy) : buyAmount}
+												{@const buyCost = game.getProducerCost(
+													family.id,
+													index,
+													currentBuyAmount,
+													purchased
+												)}
+												{@const canAffordBuy = game.money >= buyCost}
+
+												<div class="action-group">
+													<button
+														class="btn buy"
+														disabled={(!canAffordBuy && buyAmount !== -1) ||
+															(buyAmount === -1 && maxBuy === 0)}
+														on:click={() => handleBuy(family.id, index, currentBuyAmount)}
+													>
+														Buy {currentBuyAmount} <br />
+														<small>{formatMoney(buyCost, suffixes)}</small>
+													</button>
+													<button
+														class="btn sell"
+														disabled={count <= 0}
+														on:click={() => handleSell(family.id, index)}
+													>
+														Sell
+													</button>
+												</div>
 											{/if}
 
-											<!-- Upgrade Stats -->
-											<div
-												style="display: flex; justify-content: space-around; font-size: 0.8em; color: #ccc; margin-bottom: 0.5rem;"
-											>
-												<span>
-													{$t('common.production')}:
-													{formatNumber(game.getProductionLineOutputPerUnit(line.name), suffixes)} &rarr;
-													<span style="color: #4caf50;"
-														>{formatNumber(
-															game.getProductionLineOutputPerUnit(targetLine.name),
-															suffixes
-														)}</span
-													>/⏱️
-												</span>
-											</div>
-											<button
-												class="buy-btn upgrade-btn"
-												disabled={game.money < upgradeCost || isResearchMissing}
-												on:click={() => handleUpgrade(line.name)}
-												style="background: #a27b00; width: 100%;"
-												title={isResearchMissing ? 'Research required' : ''}
-											>
-												<span class="action-text">Upgrade</span>
-												<span class="price-text">{formatMoney(upgradeCost, suffixes)}</span>
-											</button>
+											<!-- Upgrade -->
+											{#if canUpgrade}
+												{@const upgradeUnitCost = line.upgrade_cost_unit || 0}
+												{@const maxAffordableUpgrades = Math.floor(game.money / upgradeUnitCost)}
+												{@const maxUpgrade = Math.min(count, maxAffordableUpgrades)}
+												{@const currentUpgradeAmount =
+													buyAmount === -1 ? Math.max(1, maxUpgrade) : Math.min(buyAmount, count)}
+												{@const upgradeCost = currentUpgradeAmount * upgradeUnitCost}
+												{@const canAffordUpgrade = game.money >= upgradeCost}
+
+												<div class="action-group upgrade-group">
+													<button
+														class="btn upgrade"
+														disabled={currentUpgradeAmount <= 0 || !canAffordUpgrade}
+														on:click={() => handleUpgrade(family.id, index, currentUpgradeAmount)}
+														title="Upgrade to {$t('production_lines.' + nextTier.name)}"
+													>
+														Upgrade {currentUpgradeAmount} &rarr; <br />
+														<small>{formatMoney(upgradeCost, suffixes)}</small>
+													</button>
+												</div>
+											{/if}
 										</div>
-									{/if}
+									</div>
 								{/if}
-							{/if}
+							{/each}
 						</div>
 					</div>
 				{/if}
@@ -172,14 +197,39 @@
 {/if}
 
 <style>
-	section {
+	section.heavy-industry {
 		margin-bottom: 2rem;
+		color: #eee;
+	}
+
+	.header-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 1rem;
+	}
+	.header-row h2 {
+		margin: 0;
+	}
+
+	.buy-controls button {
+		background: #333;
+		border: 1px solid #555;
+		color: #aaa;
+		padding: 0.25rem 0.75rem;
+		cursor: pointer;
+		border-radius: 4px;
+	}
+	.buy-controls button.active {
+		background: #007bff;
+		color: white;
+		border-color: #007bff;
 	}
 
 	.machine-list {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-		gap: 1rem;
+		grid-template-columns: 1fr;
+		gap: 1.5rem;
 	}
 
 	.industry-card {
@@ -187,85 +237,118 @@
 		padding: 1rem;
 		border-radius: 8px;
 		border: 1px solid #333;
+	}
+	.family-header h3 {
+		margin-top: 0;
+		border-bottom: 1px solid #333;
+		padding-bottom: 0.5rem;
+		color: #fff;
+	}
+
+	.tiers-container {
 		display: flex;
 		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.tier-row {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
 		justify-content: space-between;
+		background: #303030;
+		padding: 0.5rem;
+		border-radius: 6px;
+		gap: 1rem;
 	}
 
-	.info h3 {
-		margin: 0 0 0.5rem 0;
-		font-size: var(--font-size-lg);
-		color: var(--color-text-primary);
+	.info {
+		flex: 1;
+		min-width: 250px;
+	}
+	.info h4 {
+		margin: 0 0 0.25rem 0;
+		font-size: 1rem;
+		color: #ddd;
+	}
+	.info .desc {
+		color: #aaa;
+		font-size: 0.8rem;
+		margin-bottom: 0.25rem;
 	}
 
-	.info p {
-		color: var(--color-text-muted);
-		font-size: var(--font-size-sm);
-		margin: 0;
+	.stats {
+		font-size: 0.85rem;
+		color: #aaa;
+		display: flex;
+		gap: 1rem;
 	}
-
-	.details {
-		color: var(--color-text-muted);
-		font-size: var(--font-size-sm);
-		margin: 0;
+	.stat .val {
+		color: #fff;
 	}
-
-	.owned {
-		color: var(--color-text-highlight);
-		font-weight: var(--font-weight-bold);
-		margin: 0.5rem 0 0.5rem 0;
+	.stat .val.highlight {
+		color: #4caf50;
+		font-weight: bold;
+	}
+	.boost {
+		color: #00f2fe;
+		font-weight: bold;
+		font-size: 0.9em;
 	}
 
 	.actions {
 		display: flex;
-		gap: 0.5rem;
-		flex-wrap: wrap;
+		gap: 1rem;
 	}
 
-	.buy-btn {
-		padding: 0.5rem;
-		border: none;
-		border-radius: 6px;
-		background: #444;
-		color: #fff;
-		cursor: pointer;
-		transition: background 0.2s;
+	.action-group {
 		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		align-items: center;
-		min-height: 3.5rem;
+		gap: 2px;
 	}
 
-	.action-text {
-		font-weight: bold;
+	.btn {
+		border: none;
+		border-radius: 4px;
+		padding: 0.4rem 0.8rem;
+		cursor: pointer;
+		color: white;
+		font-size: 0.8rem;
+		line-height: 1.2;
+		text-align: center;
+		min-width: 80px;
+	}
+	.btn small {
+		display: block;
+		opacity: 0.8;
+		font-size: 0.75em;
 	}
 
-	.price-text {
-		font-weight: normal;
+	.btn.buy {
+		background: #444;
 	}
-
-	.buy-btn:hover:not(:disabled) {
+	.btn.buy:hover:not(:disabled) {
 		background: #555;
 	}
 
-	.buy-btn:disabled {
-		opacity: 0.5;
+	.btn.sell {
+		background: #5a3030;
+		opacity: 0.8;
+	}
+	.btn.sell:hover:not(:disabled) {
+		background: #7a4040;
+		opacity: 1;
+	}
+
+	.btn.upgrade {
+		background: #a27b00;
+	}
+	.btn.upgrade:hover:not(:disabled) {
+		background: #c29b00;
+	}
+
+	.btn:disabled {
+		opacity: 0.4;
 		cursor: not-allowed;
-		background: #333;
-		color: #666;
-	}
-
-	.buy-btn:not(.sell-btn) {
-		flex: 2;
-	}
-
-	.sell-btn {
-		background: #663333;
-		flex: 1;
-	}
-
-	.sell-btn:hover:not(:disabled) {
-		background: #884444;
+		filter: grayscale(0.5);
 	}
 </style>

@@ -104,15 +104,16 @@
         "Temporal Press": "Temporale Presse"
     },
     "production_lines": {
-        "Synthetic Rubber Factory Line": "Synthetische Gummifabrik-Linie",
+        "Synthetic Rubber Mixer Line": "Synthetische Gummi-Mischer-Linie",
         "MEGA-Bander Line": "MEGA-Bander-Linie",
         "Nanobot Factory": "Nanobot-Fabrik",
         "Quantum Bander Line": "Quanten-Bander-Linie",
-        "Bander 100 Line": "Bander 100 Linie"
+        "Temporal Press Line": "Temporale Presse-Linie",
+        "Black Hole Extruder Line": "Schwarzes Loch Extruder-Linie"
     },
     "rubber_sources": {
         "Rubbertree Plantation": "Gummibaum-Plantage",
-        "Synthetic Rubber Factory": "Synthetische Gummifabrik",
+        "Synthetic Rubber Mixer": "Synthetischer Gummi-Mischer",
         "Black Hole Extruder": "Schwarzes Loch Extruder"
     },
     "research": {

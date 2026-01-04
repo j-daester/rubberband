@@ -104,15 +104,16 @@
         "Temporal Press": "Presse Temporelle"
     },
     "production_lines": {
-        "Synthetic Rubber Factory Line": "Ligne d'usine de caoutchouc synthétique",
+        "Synthetic Rubber Mixer Line": "Ligne de Mélangeur de Caoutchouc Synthétique",
         "MEGA-Bander Line": "Ligne MEGA-Bander",
         "Nanobot Factory": "Usine de nanobots",
         "Quantum Bander Line": "Ligne Bander Quantique",
-        "Bander 100 Line": "Ligne Bander 100"
+        "Temporal Press Line": "Ligne de Presse Temporelle",
+        "Black Hole Extruder Line": "Ligne d'Extrudeuse Trou Noir"
     },
     "rubber_sources": {
         "Rubbertree Plantation": "Plantation d'hévéas",
-        "Synthetic Rubber Factory": "Usine de caoutchouc synthétique",
+        "Synthetic Rubber Mixer": "Mélangeur de Caoutchouc Synthétique",
         "Black Hole Extruder": "Extrudeuse Trou Noir"
     },
     "research": {

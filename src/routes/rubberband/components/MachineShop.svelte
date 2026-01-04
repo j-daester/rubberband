@@ -1,7 +1,8 @@
 <script lang="ts">
 	import type { Game } from '../game';
-	import { machineTypes } from '../parameters';
+	import { producerFamilies, type Producer } from '../parameters';
 	import { formatNumber, formatMoney } from '../utils';
+	import { createEventDispatcher } from 'svelte';
 	import { t } from 'svelte-i18n';
 
 	export let game: Game;
@@ -13,36 +14,28 @@
 	// Reactive declarations to keep UI in sync with game state
 	$: {
 		tick;
-		// Trigger reactivity for machines
 		game = game;
 	}
 
-	function buyMachine(machineName: string) {
-		if (game.buyMachine(machineName)) {
-			// Logic handled below via dispatch
-		}
-	}
+	// Filter for Machines
+	$: machineFamilies = producerFamilies.filter((f) => f.type === 'machine');
 
-	// To handle the "tick++" from the parent for immediate UI updates,
-	// we can accept a callback or dispatch an event.
-	// For now, let's assume the parent passes a function or we dispatch.
-	import { createEventDispatcher } from 'svelte';
 	const dispatch = createEventDispatcher();
 
-	function handleBuy(machineName: string, amount: number = 1) {
-		if (game.buyMachine(machineName, amount)) {
+	function handleBuy(familyId: string, tierIndex: number, amount: number = 1) {
+		if (game.buyProducer(familyId, tierIndex, amount)) {
 			dispatch('action');
 		}
 	}
 
-	function handleSell(machineName: string, amount: number = 1) {
-		if (game.sellMachine(machineName, amount)) {
+	function handleSell(familyId: string, tierIndex: number, amount: number = 1) {
+		if (game.sellProducer(familyId, tierIndex, amount)) {
 			dispatch('action');
 		}
 	}
 
-	function handleUpgrade(machineName: string) {
-		if (game.upgradeItem(machineName)) {
+	function handleUpgrade(familyId: string, tierIndex: number, amount: number = 1) {
+		if (game.upgradeProducer(familyId, tierIndex, amount)) {
 			dispatch('action');
 		}
 	}
@@ -50,147 +43,128 @@
 
 {#if game.researched.includes('basic_manufacturing')}
 	<section class="shop">
-		<h2>{$t('common.machine_shop')}</h2>
-		<!-- Buy Amount Toggle could be added here if needed, but for now hardcoded to 1 in logic or we can add UI -->
+		<div class="header-row">
+			<h2>{$t('common.machine_shop')}</h2>
+			<div class="buy-controls">
+				<button class:active={buyAmount === 1} on:click={() => (buyAmount = 1)}>1</button>
+				<button class:active={buyAmount === 10} on:click={() => (buyAmount = 10)}>10</button>
+				<button class:active={buyAmount === -1} on:click={() => (buyAmount = -1)}>Max</button>
+			</div>
+		</div>
 
 		<div class="machine-list">
-			{#each machineTypes as machine}
-				{#if game.isItemVisible(machine)}
-					{@const owned = game.machines[machine.name] || 0}
-					{@const purchased = game.purchasedMachines[machine.name] || 0}
-					{@const max = game.getMaxAffordable(machine.name, game.money, purchased)}
-					{@const amount = buyAmount === -1 ? Math.max(1, max) : buyAmount}
-					{@const cost = game.getMachineCost(machine.name, amount, purchased)}
-					{@const canAfford = game.money >= cost}
-					{@const isBeingProduced = game.isBeingProduced(machine.name)}
-					{@const isDisplayOnly = machine.allow_manual_purchase === false}
-					{@const sellPrice =
-						purchased > 0
-							? Math.floor(0.5 * game.getMachineCost(machine.name, 1, purchased - 1))
-							: 0}
-
-					<div class="machine-card">
-						<div class="machine-info">
-							<h3>{$t('machines.' + machine.name)}</h3>
-							<p class="details">
-								{$t('common.production')}: {formatNumber(
-									game.getMachineOutputPerUnit(machine.name),
-									suffixes
-								)}/⏱️
-							</p>
-							<p class="details">
-								{$t('common.maintenance')}: {formatMoney(machine.maintenance_cost, suffixes)}/⏱️
-							</p>
-							<p class="owned">{$t('common.owned')}: {formatNumber(owned, suffixes)}</p>
-							<p class="details">
-								Total {$t('common.maintenance')}: {formatMoney(
-									owned * machine.maintenance_cost,
-									suffixes
-								)}/⏱️
-							</p>
+			{#each machineFamilies as family}
+				{@const baseMachine = family.tiers[0]}
+				<!-- Only show family if base is unlocked/visible based on research -->
+				{#if game.isProducerVisible(baseMachine)}
+					<div class="family-card">
+						<!-- Family Header -->
+						<div class="family-header">
+							<h3>
+								{$t('machines.' + baseMachine.name + '_family', { default: baseMachine.name })}
+							</h3>
 						</div>
-						<div class="actions">
-							{#if !isDisplayOnly}
-								<button
-									class="buy-btn"
-									disabled={(!canAfford && buyAmount !== -1) ||
-										(buyAmount === -1 && max === 0) ||
-										isBeingProduced}
-									on:click={() => handleBuy(machine.name)}
-									title={isBeingProduced ? 'Cannot buy while being produced by heavy industry' : ''}
-								>
-									<span class="action-text">{$t('common.buy')}</span>
-									<span class="price-text">{formatMoney(cost, suffixes)}</span>
-								</button>
-								<button
-									class="buy-btn sell-btn"
-									disabled={owned <= 0 || isBeingProduced}
-									on:click={() => handleSell(machine.name)}
-									title={isBeingProduced
-										? 'Cannot sell while being produced by heavy industry'
-										: ''}
-								>
-									<span class="action-text">{$t('common.sell')}</span>
-									<span class="price-text">{formatMoney(sellPrice, suffixes)}</span>
-								</button>
 
-								{#if machine.upgrade_definition}
-									{@const upgradeCost = game.getUpgradeCost(machine)}
-									{@const upgradeTarget = $t('machines.' + machine.upgrade_definition.target)}
-									<!-- Upgrade Stats -->
-									{#if machine.upgrade_definition?.target}
-										{@const targetMachine = machineTypes.find(
-											(m) => m.name === machine.upgrade_definition?.target
-										)}
-										{#if targetMachine}
-											{@const isResearchMissing = !game.isMachineUnlocked(targetMachine)}
-											<div
-												style="width: 100%; margin-top: 0.5rem; flex-basis: 100%; {isResearchMissing
-													? 'opacity: 0.5;'
-													: ''}"
-											>
-												<hr
-													style="border: 0; border-top: 1px solid #444; margin: 0.5rem 0 1rem 0;"
-												/>
-												<p
-													style="margin: 0 0 0.5rem 0; color: {isResearchMissing
-														? '#aaa'
-														: '#fff'}; font-size: 0.9em; text-align: center; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;"
-												>
-													{$t('common.upgrade_available', {
-														default: 'Upgrade to ' + upgradeTarget
-													})}
-												</p>
-												{#if isResearchMissing && targetMachine.precondition_research}
-													<p
-														style="margin: 0 0 0.5rem 0; color: #ff6b6b; font-size: 0.8em; text-align: center; font-weight: bold;"
-													>
-														Requires the research of {$t(
-															'research.' + targetMachine.precondition_research + '.name'
-														)}
-													</p>
-												{/if}
-												<div
-													style="display: flex; justify-content: space-around; font-size: 0.8em; color: #ccc; margin-bottom: 0.5rem;"
-												>
-													<span>
-														{$t('common.production')}:
-														{formatNumber(game.getMachineOutputPerUnit(machine.name), suffixes)} &rarr;
-														<span style="color: #4caf50;"
-															>{formatNumber(
-																game.getMachineOutputPerUnit(targetMachine.name),
-																suffixes
-															)}</span
-														>/⏱️
-													</span>
-												</div>
-												<div
-													style="display: flex; justify-content: space-around; font-size: 0.8em; color: #ccc; margin-bottom: 0.5rem;"
-												>
-													<span>
-														{$t('common.maintenance')}:
-														{formatMoney(machine.maintenance_cost, suffixes)} &rarr;
-														<span style="color: #ff9800;"
-															>{formatMoney(targetMachine.maintenance_cost, suffixes)}</span
-														>/⏱️
-													</span>
-												</div>
+						<div class="tiers-container">
+							{#each family.tiers as machine, index}
+								<!-- Show tier if it's Research Unlocked OR if we own some (legacy/edge case) -->
+								{@const owned = game.producers[family.id]?.[index] || 0}
+								{#if game.isProducerVisible(machine) || owned > 0}
+									{@const purchased = game.purchasedProducers[family.id]?.[index] || 0}
+									{@const isBeingProduced = game.isProducerBeingProduced(family.id, index)}
+									{@const nextTier = family.tiers[index + 1]}
+									<!-- Can upgrade if next tier exists and is visible -->
+									{@const canUpgrade = !!(nextTier && game.isProducerVisible(nextTier))}
 
-												<button
-													class="buy-btn upgrade-btn"
-													disabled={game.money < upgradeCost || isResearchMissing}
-													on:click={() => handleUpgrade(machine.name)}
-													style="background: #a27b00; width: 100%;"
-													title={isResearchMissing ? 'Research required' : ''}
+									<div class="tier-row">
+										<div class="tier-info">
+											<h4>{$t('machines.' + machine.name)}</h4>
+											<div class="stats">
+												<span class="stat"
+													>{$t('common.production')}:
+													<span class="val"
+														>{formatNumber(
+															game.getProducerOutput(family.id, index),
+															suffixes
+														)}/⏱️</span
+													></span
 												>
-													<span class="action-text">Upgrade</span>
-													<span class="price-text">{formatMoney(upgradeCost, suffixes)}</span>
-												</button>
+												<span class="stat"
+													>{$t('common.owned')}:
+													<span class="val highlight">{formatNumber(owned, suffixes)}</span></span
+												>
 											</div>
-										{/if}
-									{/if}
+										</div>
+
+										<div class="tier-actions">
+											<!-- Buy / Sell Base Tier -->
+											{#if machine.allow_manual_purchase !== false}
+												{@const maxBuy = game.getMaxAffordableProducer(
+													family.id,
+													index,
+													game.money,
+													purchased
+												)}
+												{@const currentBuyAmount =
+													buyAmount === -1 ? Math.max(1, maxBuy) : buyAmount}
+												{@const buyCost = game.getProducerCost(
+													family.id,
+													index,
+													currentBuyAmount,
+													purchased
+												)}
+												{@const canAffordBuy = game.money >= buyCost}
+
+												<div class="action-group">
+													<button
+														class="btn buy"
+														disabled={(!canAffordBuy && buyAmount !== -1) ||
+															(buyAmount === -1 && maxBuy === 0) ||
+															isBeingProduced}
+														on:click={() => handleBuy(family.id, index, currentBuyAmount)}
+													>
+														Buy {currentBuyAmount} <br />
+														<small>{formatMoney(buyCost, suffixes)}</small>
+													</button>
+													<button
+														class="btn sell"
+														disabled={owned <= 0 || isBeingProduced}
+														on:click={() => handleSell(family.id, index)}
+													>
+														Sell
+													</button>
+												</div>
+											{/if}
+
+											<!-- Upgrade Action -->
+											{#if canUpgrade}
+												<!-- Max upgrades limited by Owned Count and Money -->
+												{@const upgradeUnitCost = machine.upgrade_cost_unit || 0}
+												{@const maxAffordableUpgrades = Math.floor(game.money / upgradeUnitCost)}
+												<!-- Max possible is min(owned, affordable) -->
+												{@const maxUpgrade = Math.min(owned, maxAffordableUpgrades)}
+
+												{@const currentUpgradeAmount =
+													buyAmount === -1 ? Math.max(1, maxUpgrade) : Math.min(buyAmount, owned)}
+												{@const upgradeCost = currentUpgradeAmount * upgradeUnitCost}
+												{@const canAffordUpgrade = game.money >= upgradeCost}
+
+												<div class="action-group upgrade-group">
+													<button
+														class="btn upgrade"
+														disabled={currentUpgradeAmount <= 0 || !canAffordUpgrade}
+														on:click={() => handleUpgrade(family.id, index, currentUpgradeAmount)}
+														title="Upgrade to {$t('machines.' + nextTier.name)}"
+													>
+														Upgrade {currentUpgradeAmount} &rarr; <br />
+														<small>{formatMoney(upgradeCost, suffixes)}</small>
+													</button>
+												</div>
+											{/if}
+										</div>
+									</div>
 								{/if}
-							{/if}
+							{/each}
 						</div>
 					</div>
 				{/if}
@@ -200,98 +174,151 @@
 {/if}
 
 <style>
-	section {
+	section.shop {
 		margin-bottom: 2rem;
+		color: #eee;
 	}
 
-	section {
-		margin-bottom: 2rem;
+	.header-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 1rem;
+	}
+
+	.header-row h2 {
+		margin: 0;
+	}
+
+	.buy-controls button {
+		background: #333;
+		border: 1px solid #555;
+		color: #aaa;
+		padding: 0.25rem 0.75rem;
+		cursor: pointer;
+		border-radius: 4px;
+	}
+	.buy-controls button.active {
+		background: #007bff;
+		color: white;
+		border-color: #007bff;
 	}
 
 	.machine-list {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+		grid-template-columns: 1fr;
+		gap: 1.5rem;
+	}
+
+	.family-card {
+		background: #1e1e1e;
+		border: 1px solid #333;
+		border-radius: 8px;
+		padding: 1rem;
+	}
+
+	.family-header h3 {
+		margin-top: 0;
+		border-bottom: 1px solid #333;
+		padding-bottom: 0.5rem;
+		color: #fff;
+	}
+
+	.tiers-container {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.tier-row {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		background: #252525;
+		padding: 0.5rem;
+		border-radius: 6px;
 		gap: 1rem;
 	}
 
-	.machine-card {
-		background: #252525;
-		padding: 1rem;
-		border-radius: 8px;
-		border: 1px solid #333;
+	.tier-info {
+		flex: 1;
+		min-width: 200px;
+	}
+	.tier-info h4 {
+		margin: 0 0 0.25rem 0;
+		font-size: 1rem;
+		color: #ddd;
+	}
+
+	.stats {
+		font-size: 0.85rem;
+		color: #aaa;
 		display: flex;
-		flex-direction: column;
-		justify-content: space-between;
+		gap: 1rem;
 	}
 
-	.machine-info h3 {
-		margin: 0 0 0.5rem 0;
-		font-size: var(--font-size-lg);
-		color: var(--color-text-primary);
-	}
-
-	.details {
-		color: var(--color-text-muted);
-		font-size: var(--font-size-sm);
-		margin: 0;
-	}
-
-	.owned {
-		color: var(--color-text-highlight);
-		font-weight: var(--font-weight-bold);
-		margin: 0.5rem 0 0.5rem 0;
-	}
-
-	.actions {
-		display: flex;
-		gap: 0.5rem;
-		flex-wrap: wrap;
-	}
-
-	.buy-btn {
-		padding: 0.5rem;
-		border: none;
-		border-radius: 6px;
-		background: #444;
+	.stat .val {
 		color: #fff;
-		cursor: pointer;
-		transition: background 0.2s;
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		align-items: center;
-		min-height: 3.5rem;
 	}
-
-	.action-text {
+	.stat .val.highlight {
+		color: #4caf50;
 		font-weight: bold;
 	}
 
-	.price-text {
-		font-weight: normal;
+	.tier-actions {
+		display: flex;
+		gap: 1rem;
 	}
 
-	.buy-btn:hover:not(:disabled) {
+	.action-group {
+		display: flex;
+		gap: 2px;
+	}
+
+	.btn {
+		border: none;
+		border-radius: 4px;
+		padding: 0.4rem 0.8rem;
+		cursor: pointer;
+		color: white;
+		font-size: 0.8rem;
+		line-height: 1.2;
+		text-align: center;
+		min-width: 80px;
+	}
+	.btn small {
+		display: block;
+		opacity: 0.8;
+		font-size: 0.75em;
+	}
+
+	.btn.buy {
+		background: #444;
+	}
+	.btn.buy:hover:not(:disabled) {
 		background: #555;
 	}
 
-	.buy-btn:disabled {
-		opacity: 0.5;
+	.btn.sell {
+		background: #5a3030;
+		opacity: 0.8;
+	}
+	.btn.sell:hover:not(:disabled) {
+		background: #7a4040;
+		opacity: 1;
+	}
+
+	.btn.upgrade {
+		background: #a27b00;
+	}
+	.btn.upgrade:hover:not(:disabled) {
+		background: #c29b00;
+	}
+
+	.btn:disabled {
+		opacity: 0.4;
 		cursor: not-allowed;
-		background: #333;
-		color: #666;
-	}
-
-	.buy-btn:not(.sell-btn) {
-		flex: 2;
-	}
-
-	.sell-btn {
-		background: #663333;
-		flex: 1;
-	}
-
-	.sell-btn:hover:not(:disabled) {
-		background: #884444;
+		filter: grayscale(0.5);
 	}
 </style>

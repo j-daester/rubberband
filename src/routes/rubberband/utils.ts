@@ -1,4 +1,6 @@
 export function formatNumber(num: number, suffixes: string[] = ['', 'k', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc']): string {
+    if (num === Infinity) return '∞';
+    if (Number.isNaN(num)) return 'NaN';
     if (!Number.isFinite(num)) {
         return '0' + suffixes[0];
     }
@@ -12,9 +14,9 @@ export function formatNumber(num: number, suffixes: string[] = ['', 'k', 'M', 'B
 
     let suffixNum = Math.floor(Math.log10(num) / 3);
 
-    // Clamp to the last suffix if the number is too large
+    // If number is too large for suffixes, use scientific notation
     if (suffixNum >= suffixes.length) {
-        suffixNum = suffixes.length - 1;
+        return num.toExponential(2);
     }
 
     let shortValue = num / Math.pow(1000, suffixNum);
@@ -49,4 +51,9 @@ export function formatVolume(num: number): string {
     // User requested "Liter" as unit.
     const suffixes = ['l', 'kl', 'Ml', 'Gl', 'Tl', 'Pl', 'El', 'Zl', 'Yl'];
     return formatNumber(num, suffixes);
+}
+
+export function formatArea(num: number): string {
+    const suffixes = ['', 'k', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc'];
+    return formatNumber(num, suffixes) + ' m²';
 }

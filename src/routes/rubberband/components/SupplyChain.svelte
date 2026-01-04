@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Game } from '../game';
-	import { rubberSources, GAME_CONSTANTS } from '../parameters';
+	import { producerFamilies, GAME_CONSTANTS } from '../parameters';
 	import { formatNumber, formatMoney, formatWeight } from '../utils';
 	import { createEventDispatcher } from 'svelte';
 	import { t, locale } from 'svelte-i18n';
@@ -12,12 +12,10 @@
 	let buyAmount = 1;
 	let buyerThreshold = game.buyerThreshold;
 
-	// Reactive declarations to keep UI in sync with game state
+	// Reactive declarations
 	$: {
 		tick;
-		// Trigger reactivity for plantations
 		game = game;
-		// Sync local threshold if game updates it externally (optional, but good for consistency)
 		if (
 			game.buyerThreshold !== buyerThreshold &&
 			!document.activeElement?.id?.includes('threshold')
@@ -26,14 +24,14 @@
 		}
 	}
 
+	// Filter Rubber Source Families
+	$: rubberSourceFamilies = producerFamilies.filter((f) => f.type === 'rubber_source');
+
 	$: money = game.money;
 	$: buyerHired = game.buyerHired;
 	$: currentBuyerThreshold = game.buyerThreshold;
 
 	$: warningMessage = (() => {
-		// Ensure $t is available/reactive
-		// We depend on tick/game, but simpler to depend on t explicitly if needed?
-		// Svelte handles $t reactivity automatically.
 		const suggestions = [$t('supply_chain_ui.suggestion_increase_production')];
 		if (!game.buyerHired) {
 			suggestions.push($t('supply_chain_ui.suggestion_hire_buyer'));
@@ -53,14 +51,20 @@
 
 	const dispatch = createEventDispatcher();
 
-	function handleBuy(sourceName: string, amount: number = 1) {
-		if (game.buyRubberSource(sourceName, amount)) {
+	function handleBuy(familyId: string, tierIndex: number, amount: number = 1) {
+		if (game.buyProducer(familyId, tierIndex, amount)) {
 			dispatch('action');
 		}
 	}
 
-	function handleSell(sourceName: string, amount: number = 1) {
-		if (game.sellRubberSource(sourceName, amount)) {
+	function handleSell(familyId: string, tierIndex: number, amount: number = 1) {
+		if (game.sellProducer(familyId, tierIndex, amount)) {
+			dispatch('action');
+		}
+	}
+
+	function handleUpgrade(familyId: string, tierIndex: number, amount: number = 1) {
+		if (game.upgradeProducer(familyId, tierIndex, amount)) {
 			dispatch('action');
 		}
 	}
@@ -141,73 +145,102 @@
 		{/if}
 
 		<div class="plantation-list">
-			{#each rubberSources as source}
-				{#if game.isRubberSourceUnlocked(source)}
-					{@const owned = game.rubberSources[source.name] || 0}
-					{@const purchased = game.purchasedRubberSources[source.name] || 0}
-					{@const max = game.getMaxAffordableRubberSource(source.name, game.money, purchased)}
-					{@const amount = buyAmount === -1 ? Math.max(1, max) : buyAmount}
-					{@const cost = game.getRubberSourceCost(source.name, amount, purchased)}
-					{@const canAfford = game.money >= cost}
-					{@const isBeingProduced = game.isBeingProduced(source.name)}
+			{#each rubberSourceFamilies as family}
+				<!-- Show family if any tier is unlocked? Usually just check iterating tiers. -->
+				<!-- Since rubber sources are now tires, we iterate them similarly to machines -->
+				<div class="family-wrapper">
+					{#each family.tiers as source, index}
+						{#if game.isProducerVisible(source)}
+							{@const owned = game.producers[family.id]?.[index] || 0}
+							{@const purchased = game.purchasedProducers[family.id]?.[index] || 0}
+							{@const max = game.getMaxAffordableProducer(family.id, index, game.money, purchased)}
+							{@const amount = buyAmount === -1 ? Math.max(1, max) : buyAmount}
+							{@const cost = game.getProducerCost(family.id, index, amount, purchased)}
+							{@const canAfford = game.money >= cost}
+							{@const isBeingProduced = game.isProducerBeingProduced(family.id, index)}
 
-					{@const isDisplayOnly = source.allow_manual_purchase === false}
-					{@const sellPrice =
-						purchased > 0
-							? Math.floor(0.5 * game.getRubberSourceCost(source.name, 1, purchased - 1))
-							: 0}
+							{@const isDisplayOnly = source.allow_manual_purchase === false}
+							{@const sellPrice =
+								purchased > 0
+									? Math.floor(0.5 * game.getProducerCost(family.id, index, 1, purchased - 1))
+									: 0}
 
-					<div class="plantation-card">
-						<div class="plantation-info">
-							<h3>{$t('rubber_sources.' + source.name)}</h3>
-							<p class="details">
-								{$t('common.production')}: {formatWeight(
-									game.getRubberSourceOutputPerUnit(source.name)
-								)}
-								{$t('common.rubber')}/⏱️
-							</p>
-							<p class="details">
-								{$t('common.maintenance')}: {formatMoney(source.maintenance_cost, suffixes)}/⏱️
-							</p>
-							<p class="owned">{$t('common.owned')}: {formatNumber(owned, suffixes)}</p>
-							<p class="details">
-								Total {$t('common.maintenance')}: {formatMoney(
-									owned * source.maintenance_cost,
-									suffixes
-								)}/⏱️
-							</p>
-							{#if !isDisplayOnly}
-								<!-- Price removed -->
-							{/if}
-						</div>
-						<div class="actions">
-							{#if !isDisplayOnly}
-								<button
-									class="buy-btn"
-									disabled={(!canAfford && buyAmount !== -1) ||
-										(buyAmount === -1 && max === 0) ||
-										isBeingProduced}
-									on:click={() => handleBuy(source.name)}
-									title={isBeingProduced ? 'Cannot buy while being produced by heavy industry' : ''}
-								>
-									<span class="action-text">{$t('common.buy')}</span>
-									<span class="price-text">{formatMoney(cost, suffixes)}</span>
-								</button>
-								<button
-									class="buy-btn sell-btn"
-									disabled={owned <= 0 || isBeingProduced}
-									on:click={() => handleSell(source.name)}
-									title={isBeingProduced
-										? 'Cannot sell while being produced by heavy industry'
-										: ''}
-								>
-									<span class="action-text">{$t('common.sell')}</span>
-									<span class="price-text">{formatMoney(sellPrice, suffixes)}</span>
-								</button>
-							{/if}
-						</div>
-					</div>
-				{/if}
+							{@const nextTier = family.tiers[index + 1]}
+							{@const canUpgrade = !!(nextTier && game.isProducerVisible(nextTier))}
+
+							<div class="plantation-card">
+								<div class="plantation-info">
+									<h3>{$t('rubber_sources.' + source.name)}</h3>
+									<p class="details">
+										{$t('common.production')}: {formatWeight(
+											game.getProducerOutput(family.id, index)
+										)}
+										{$t('common.rubber')}/⏱️
+									</p>
+									<p class="details">
+										{$t('common.maintenance')}: {formatMoney(
+											source.maintenance_cost || 0,
+											suffixes
+										)}/⏱️
+									</p>
+									<p class="owned">{$t('common.owned')}: {formatNumber(owned, suffixes)}</p>
+								</div>
+								<div class="actions">
+									{#if !isDisplayOnly}
+										<div class="action-column">
+											<div class="buy-sell-row">
+												<button
+													class="buy-btn"
+													disabled={(!canAfford && buyAmount !== -1) ||
+														(buyAmount === -1 && max === 0) ||
+														isBeingProduced}
+													on:click={() => handleBuy(family.id, index, amount)}
+													title={isBeingProduced
+														? 'Cannot buy while being produced by heavy industry'
+														: ''}
+												>
+													<span class="action-text">{$t('common.buy')}</span>
+													<span class="price-text">{formatMoney(cost, suffixes)}</span>
+												</button>
+												<button
+													class="buy-btn sell-btn"
+													disabled={owned <= 0 || isBeingProduced}
+													on:click={() => handleSell(family.id, index)}
+													title={isBeingProduced
+														? 'Cannot sell while being produced by heavy industry'
+														: ''}
+												>
+													<span class="action-text">{$t('common.sell')}</span>
+													<span class="price-text">{formatMoney(sellPrice, suffixes)}</span>
+												</button>
+											</div>
+
+											{#if canUpgrade}
+												<!-- Upgrade Button Logic -->
+												{@const upgradeUnitCost = source.upgrade_cost_unit || 0}
+												{@const maxAffordableUpgrades = Math.floor(game.money / upgradeUnitCost)}
+												{@const maxUpgrade = Math.min(owned, maxAffordableUpgrades)}
+												{@const currentUpgradeAmount =
+													buyAmount === -1 ? Math.max(1, maxUpgrade) : Math.min(buyAmount, owned)}
+												{@const upgradeCost = currentUpgradeAmount * upgradeUnitCost}
+												{@const canAffordUpgrade = game.money >= upgradeCost}
+
+												<button
+													class="buy-btn upgrade-btn"
+													disabled={currentUpgradeAmount <= 0 || !canAffordUpgrade}
+													on:click={() => handleUpgrade(family.id, index, currentUpgradeAmount)}
+												>
+													<span class="action-text">Upgrade &rarr;</span>
+													<span class="price-text">{formatMoney(upgradeCost, suffixes)}</span>
+												</button>
+											{/if}
+										</div>
+									{/if}
+								</div>
+							</div>
+						{/if}
+					{/each}
+				</div>
 			{/each}
 		</div>
 	</section>
@@ -219,6 +252,12 @@
 	}
 
 	.plantation-list {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.family-wrapper {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
 		gap: 1rem;
@@ -254,6 +293,19 @@
 
 	.actions {
 		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		margin-top: 1rem;
+	}
+
+	.action-column {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.buy-sell-row {
+		display: flex;
 		gap: 0.5rem;
 	}
 
@@ -270,6 +322,7 @@
 		justify-content: center;
 		align-items: center;
 		min-height: 3.5rem;
+		flex: 1;
 	}
 
 	.action-text {
@@ -294,13 +347,17 @@
 		color: #666;
 	}
 
-	.buy-btn:not(.sell-btn) {
-		flex: 2;
+	.buy-btn.upgrade-btn {
+		background: #a27b00;
+		width: 100%;
+		margin-top: 0.25rem;
+	}
+	.buy-btn.upgrade-btn:hover:not(:disabled) {
+		background: #c29b00;
 	}
 
 	.sell-btn {
 		background: #663333;
-		flex: 1;
 	}
 
 	.sell-btn:hover:not(:disabled) {
