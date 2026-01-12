@@ -34,12 +34,6 @@
 		}
 	}
 
-	function handleUpgrade(familyId: string, tierIndex: number, amount: number = 1) {
-		if (game.upgradeProducer(familyId, tierIndex, amount)) {
-			dispatch('action');
-		}
-	}
-
 	function tr(key: string, search: string, replace: string) {
 		return ($t(key) as string).replace(search, replace);
 	}
@@ -163,27 +157,6 @@
 											{/if}
 
 											<!-- Upgrade -->
-											{#if canUpgrade}
-												{@const upgradeUnitCost = line.upgrade_cost_unit || 0}
-												{@const maxAffordableUpgrades = Math.floor(game.money / upgradeUnitCost)}
-												{@const maxUpgrade = Math.min(count, maxAffordableUpgrades)}
-												{@const currentUpgradeAmount =
-													buyAmount === -1 ? Math.max(1, maxUpgrade) : Math.min(buyAmount, count)}
-												{@const upgradeCost = currentUpgradeAmount * upgradeUnitCost}
-												{@const canAffordUpgrade = game.money >= upgradeCost}
-
-												<div class="action-group upgrade-group">
-													<button
-														class="btn upgrade"
-														disabled={currentUpgradeAmount <= 0 || !canAffordUpgrade}
-														on:click={() => handleUpgrade(family.id, index, currentUpgradeAmount)}
-														title="Upgrade to {$t('production_lines.' + nextTier.name)}"
-													>
-														Upgrade {currentUpgradeAmount} &rarr; <br />
-														<small>{formatMoney(upgradeCost, suffixes)}</small>
-													</button>
-												</div>
-											{/if}
 										</div>
 									</div>
 								{/if}
@@ -337,13 +310,6 @@
 	.btn.sell:hover:not(:disabled) {
 		background: #7a4040;
 		opacity: 1;
-	}
-
-	.btn.upgrade {
-		background: #a27b00;
-	}
-	.btn.upgrade:hover:not(:disabled) {
-		background: #c29b00;
 	}
 
 	.btn:disabled {

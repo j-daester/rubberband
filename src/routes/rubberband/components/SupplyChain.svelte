@@ -63,12 +63,6 @@
 		}
 	}
 
-	function handleUpgrade(familyId: string, tierIndex: number, amount: number = 1) {
-		if (game.upgradeProducer(familyId, tierIndex, amount)) {
-			dispatch('action');
-		}
-	}
-
 	function hireBuyer() {
 		if (game.hireBuyer()) {
 			dispatch('action');
@@ -214,26 +208,6 @@
 													<span class="price-text">{formatMoney(sellPrice, suffixes)}</span>
 												</button>
 											</div>
-
-											{#if canUpgrade}
-												<!-- Upgrade Button Logic -->
-												{@const upgradeUnitCost = source.upgrade_cost_unit || 0}
-												{@const maxAffordableUpgrades = Math.floor(game.money / upgradeUnitCost)}
-												{@const maxUpgrade = Math.min(owned, maxAffordableUpgrades)}
-												{@const currentUpgradeAmount =
-													buyAmount === -1 ? Math.max(1, maxUpgrade) : Math.min(buyAmount, owned)}
-												{@const upgradeCost = currentUpgradeAmount * upgradeUnitCost}
-												{@const canAffordUpgrade = game.money >= upgradeCost}
-
-												<button
-													class="buy-btn upgrade-btn"
-													disabled={currentUpgradeAmount <= 0 || !canAffordUpgrade}
-													on:click={() => handleUpgrade(family.id, index, currentUpgradeAmount)}
-												>
-													<span class="action-text">Upgrade &rarr;</span>
-													<span class="price-text">{formatMoney(upgradeCost, suffixes)}</span>
-												</button>
-											{/if}
 										</div>
 									{/if}
 								</div>
@@ -345,15 +319,6 @@
 		cursor: not-allowed;
 		background: #333;
 		color: #666;
-	}
-
-	.buy-btn.upgrade-btn {
-		background: #a27b00;
-		width: 100%;
-		margin-top: 0.25rem;
-	}
-	.buy-btn.upgrade-btn:hover:not(:disabled) {
-		background: #c29b00;
 	}
 
 	.sell-btn {

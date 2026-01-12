@@ -21,6 +21,8 @@ export interface GameState {
 	consumedResources: number;
 	gameOver: boolean;
 	netIncome: number;
+	nanoSwarmCount: number;
+	nanobotFactoryCount: number;
 }
 
 export class Game {
@@ -45,6 +47,8 @@ export class Game {
 	totalRubberProduced!: number;
 	totalNanoSwarmsProduced!: number;
 	consumedResources!: number;
+	nanoSwarmCount!: number;
+	nanobotFactoryCount!: number;
 
 
 	// Runtime Stats for UI
@@ -62,6 +66,8 @@ export class Game {
 				this.money = data.money;
 				this.rubberbands = data.rubberbands;
 				this.rubber = data.rubber;
+				this.nanoSwarmCount = data.nanoSwarmCount || 0;
+				this.nanobotFactoryCount = data.nanobotFactoryCount || 0;
 
 				const raw = data as any;
 				this.producers = raw.producers || raw.entities || {};
@@ -80,7 +86,18 @@ export class Game {
 				this.gameStartTime = data.gameStartTime;
 				this.totalRubberProduced = data.totalRubberProduced;
 				this.totalNanoSwarmsProduced = data.totalNanoSwarmsProduced;
+				this.totalNanoSwarmsProduced = data.totalNanoSwarmsProduced;
 				this.consumedResources = data.consumedResources;
+
+				// Migration for Nano Refactor
+				if (this.producers['nanoswarm'] && this.producers['nanoswarm'][0] > 0) {
+					this.nanoSwarmCount += this.producers['nanoswarm'][0];
+					this.producers['nanoswarm'][0] = 0; // Clear legacy
+				}
+				if (this.producers['nanobot_factory'] && this.producers['nanobot_factory'][0] > 0) {
+					this.nanobotFactoryCount += this.producers['nanobot_factory'][0];
+					this.producers['nanobot_factory'][0] = 0; // Clear legacy
+				}
 			} catch (e) {
 				console.error('Failed to parse save game', e);
 				this.reset();
@@ -116,6 +133,8 @@ export class Game {
 		this.totalRubberProduced = 0;
 		this.totalNanoSwarmsProduced = 0;
 		this.consumedResources = 0;
+		this.nanoSwarmCount = 0;
+		this.nanobotFactoryCount = 0;
 	}
 
 	// --- EFFECT HELPERS ---
@@ -199,6 +218,9 @@ export class Game {
 		// --- PHASE 4: Industrial Construction (Producers) ---
 		this.runIndustryPhase(globalSpeedMultiplier);
 
+		// --- PHASE 5: Nano Phase ---
+		this.runNanoPhase();
+
 		this.handleAutoBuy();
 		this.handleAutoSell();
 
@@ -237,6 +259,11 @@ export class Game {
 					if (eff.target.producerType === f.type || eff.target.familyId === f.id) {
 						multiplier += eff.addend;
 					}
+				}
+
+				// Nano Swarm Bonus for Rubber Sources (Hardcoded Rule per Request)
+				if (f.type === 'rubber_source') {
+					multiplier += this.nanoSwarmCount * 0.01;
 				}
 
 				let amount = baseAmount * multiplier;
@@ -385,8 +412,14 @@ export class Game {
 				// Apply Flat Additions (e.g. Nano Swarms)
 				for (const eff of flatAdditions) {
 					if (eff.target.familyId === f.id) {
-						totalAmount += eff.amount;
+						totalAmount += eff.amount * counts[i];
 					}
+				}
+
+				// Nano Swarm Bonus for Production Lines (Hardcoded Rule)
+				// +0.1 per Swarm per Line
+				if (f.type === 'production_line') {
+					totalAmount += (this.nanoSwarmCount * 0.1) * counts[i];
 				}
 
 				totalAmount = Math.floor(totalAmount);
@@ -407,8 +440,32 @@ export class Game {
 					this.producers[targetId][targetIdx] = (this.producers[targetId][targetIdx] || 0) + totalAmount;
 					this.purchasedProducers[targetId][targetIdx] = (this.purchasedProducers[targetId][targetIdx] || 0) + totalAmount;
 
-					if (targetId === 'nanoswarm') this.totalNanoSwarmsProduced += totalAmount;
+					this.purchasedProducers[targetId][targetIdx] = (this.purchasedProducers[targetId][targetIdx] || 0) + totalAmount;
 				}
+			}
+		}
+	}
+
+	private runNanoPhase() {
+		if (this.nanobotFactoryCount > 0) {
+			const production = this.nanobotFactoryCount * 1; // 1 Swarm per Factory per tick
+
+			// Resource Cost?
+			// Previously Nano Swarm cost 100 resources.
+			// "unitResCost = GAME_CONSTANTS.RESOURCE_COST_NANO_SWARM;" in runIndustryPhase.
+			const unitResCost = GAME_CONSTANTS.RESOURCE_COST_NANO_SWARM;
+			const generalResourceLimit = this.resourceLimit;
+
+			const remaining = Math.max(0, generalResourceLimit - this.consumedResources);
+			let possible = production;
+			const maxAllowed = Math.floor(remaining / unitResCost);
+
+			if (possible > maxAllowed) possible = maxAllowed;
+
+			if (possible > 0) {
+				this.consumedResources += possible * unitResCost;
+				this.nanoSwarmCount += possible;
+				this.totalNanoSwarmsProduced += possible;
 			}
 		}
 	}
@@ -464,9 +521,12 @@ export class Game {
 		}
 
 		if (family.type === 'production_line') {
-			const activeSwarms = this.producers['nanoswarm']?.[0] || 0;
+			const activeSwarms = this.nanoSwarmCount;
 			if (tier.name === "Nanobot Factory") {
-				base += Math.floor(activeSwarms * 0.01);
+				// No bonus from swarms for Nano Factory itself? Or yes?
+				// "Boost Heavy Industry... target: { familyId: 'nanobot_factory' }" was in params.
+				// So yes.
+				base += Math.floor(activeSwarms * 0.1);
 			} else {
 				base += Math.floor(activeSwarms * 0.1);
 			}
@@ -803,44 +863,26 @@ export class Game {
 		return true;
 	}
 
-	getUpgradeCost(tier: Producer, amount: number = 1): number {
-		if (!tier.upgrade_cost_unit) return Infinity;
-		return tier.upgrade_cost_unit * amount;
+	// --- NANO SYSTEM ACTIONS ---
+
+	get nanobotFactoryCost() {
+		// Initial Cost: 1,000,000,000
+		// Factor: 2.0
+		const count = this.nanobotFactoryCount;
+		return Math.floor(1_000_000_000 * Math.pow(2.0, count));
 	}
 
-	upgradeProducer(familyId: string, currentTierIndex: number, amount: number = 1) {
+	buyNanobotFactory() {
 		if (this.gameOver) return false;
+		if (!this.researched.includes('nanotechnology')) return false;
 
-		const family = producerFamilies.find(f => f.id === familyId);
-		if (!family) return false;
-
-		const tier = family.tiers[currentTierIndex];
-		const nextTier = family.tiers[currentTierIndex + 1];
-
-		if (!tier || !nextTier) return false;
-
-		const availableCount = this.producers[familyId]?.[currentTierIndex] || 0;
-		if (amount > availableCount) amount = availableCount;
-		if (amount <= 0) return false;
-
-		if (!this.isProducerVisible(nextTier)) return false;
-
-		const cost = this.getUpgradeCost(tier, amount);
-		if (this.money < cost) return false;
-
-		this.money -= cost;
-
-		this.producers[familyId][currentTierIndex] -= amount;
-		this.producers[familyId][currentTierIndex + 1] = (this.producers[familyId][currentTierIndex + 1] || 0) + amount;
-
-		const purchasedAvailable = this.purchasedProducers[familyId]?.[currentTierIndex] || 0;
-		if (purchasedAvailable > 0) {
-			const transfer = Math.min(purchasedAvailable, amount);
-			this.purchasedProducers[familyId][currentTierIndex] -= transfer;
-			this.purchasedProducers[familyId][currentTierIndex + 1] = (this.purchasedProducers[familyId][currentTierIndex + 1] || 0) + transfer;
+		const cost = this.nanobotFactoryCost;
+		if (this.money >= cost) {
+			this.money -= cost;
+			this.nanobotFactoryCount++;
+			return true;
 		}
-
-		return true;
+		return false;
 	}
 
 	toJSON(): GameState {
@@ -864,7 +906,9 @@ export class Game {
 			totalRubberProduced: this.totalRubberProduced,
 			totalNanoSwarmsProduced: this.totalNanoSwarmsProduced,
 			consumedResources: this.consumedResources,
-			netIncome: this.netIncome
+			netIncome: this.netIncome,
+			nanoSwarmCount: this.nanoSwarmCount,
+			nanobotFactoryCount: this.nanobotFactoryCount
 		};
 	}
 

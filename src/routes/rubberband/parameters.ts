@@ -35,7 +35,6 @@ export interface ProductionRule {
 
 export interface Producer extends PurchasableItem {
 	maintenance_cost?: number;
-	upgrade_cost_unit?: number;
 	spaceCost?: number; // Space required in m^2
 
 	// Production Rule specifically for the engine
@@ -338,7 +337,6 @@ const machineDefinitions: ProducerFamily[] = [
 				cost_factor: 1.1,
 				precondition_research: 'basic_manufacturing',
 				maintenance_cost: 5,
-				upgrade_cost_unit: 600,
 				spaceCost: 10
 			},
 			{
@@ -351,7 +349,6 @@ const machineDefinitions: ProducerFamily[] = [
 				cost_factor: 1.25,
 				precondition_research: 'optimize_production',
 				maintenance_cost: 20,
-				upgrade_cost_unit: 20_000,
 				spaceCost: 15
 			},
 			{
@@ -364,7 +361,6 @@ const machineDefinitions: ProducerFamily[] = [
 				cost_factor: 1.5,
 				precondition_research: 'robotics',
 				maintenance_cost: 100,
-				upgrade_cost_unit: 5_000_000,
 				spaceCost: 20
 			},
 			{
@@ -378,7 +374,6 @@ const machineDefinitions: ProducerFamily[] = [
 				maintenance_cost: 500_000,
 				required_research: 'quantum_mechanics',
 				precondition_research: 'quantum_mechanics',
-				upgrade_cost_unit: 10_000_000_000,
 				spaceCost: 50
 			},
 			{
@@ -392,35 +387,6 @@ const machineDefinitions: ProducerFamily[] = [
 				maintenance_cost: 10_000_000_000,
 				required_research: 'time_travel',
 				precondition_research: 'time_travel'
-			}
-		]
-	},
-	{
-		id: "nanoswarm",
-		type: 'machine',
-		tiers: [
-			{
-				name: "Nano-Swarms",
-				production: {
-					// Output is handled via passive effects in the game engine
-					output: { resource: 'money', amount: 0 }
-				},
-				initial_cost: 1_000_000,
-				cost_factor: 1.6,
-				maintenance_cost: 1_000,
-				required_research: 'nanotechnology',
-				precondition_research: 'nanotechnology',
-				allow_manual_purchase: false,
-				spaceCost: 0,
-				effects: [
-					// Boost Rubber Production (+1% per swarm)
-					{ type: 'production_multiplier_additive', target: { producerType: 'rubber_source' }, addend: 0.01 },
-					// Boost Heavy Industry (Flat addition)
-					// We must list families explicitly to handle the 0.1 vs 0.01 difference
-					{ type: 'production_output_flat', target: { familyId: 'rubber_factory_line' }, amount: 0.1 },
-					{ type: 'production_output_flat', target: { familyId: 'bander_line' }, amount: 0.1 },
-					{ type: 'production_output_flat', target: { familyId: 'nanobot_factory' }, amount: 0.1 }
-				]
 			}
 		]
 	}
@@ -440,7 +406,6 @@ const rubberSourceDefinitions: ProducerFamily[] = [
 				cost_factor: 1.2,
 				precondition_research: 'optimize_production',
 				maintenance_cost: 50,
-				upgrade_cost_unit: 950_000,
 				spaceCost: 10000
 			},
 			{
@@ -452,7 +417,6 @@ const rubberSourceDefinitions: ProducerFamily[] = [
 				cost_factor: 1.1,
 				maintenance_cost: 5_000,
 				required_research: 'synthetic_rubber',
-				upgrade_cost_unit: 9_000_000_000_000,
 				spaceCost: 200
 			},
 			{
@@ -484,7 +448,6 @@ const productionLineDefinitions: ProducerFamily[] = [
 				cost_factor: 1.5,
 				required_research: ['synthetic_rubber', 'robotics'],
 				precondition_research: 'synthetic_rubber',
-				upgrade_cost_unit: 500_000_000,
 				spaceCost: 500
 			},
 			{
@@ -513,7 +476,6 @@ const productionLineDefinitions: ProducerFamily[] = [
 				cost_factor: 1.3,
 				required_research: 'robotics',
 				precondition_research: 'robotics',
-				upgrade_cost_unit: 2_000_000_000,
 				spaceCost: 500
 			},
 			{
@@ -525,7 +487,6 @@ const productionLineDefinitions: ProducerFamily[] = [
 				cost_factor: 1.7,
 				required_research: 'quantum_mechanics',
 				precondition_research: 'quantum_mechanics',
-				upgrade_cost_unit: 50_000_000_000,
 				spaceCost: 1000
 			},
 			{
@@ -538,23 +499,6 @@ const productionLineDefinitions: ProducerFamily[] = [
 				required_research: 'time_travel',
 				precondition_research: 'time_travel',
 				spaceCost: 2000
-			}
-		]
-	},
-	{
-		id: "nanobot_factory",
-		type: 'production_line',
-		tiers: [
-			{
-				name: "Nanobot Factory",
-				production: {
-					output: { resource: 'producer', familyId: 'nanoswarm', tierIndex: 0, amount: 1 }
-				},
-				initial_cost: 1_000_000_000,
-				cost_factor: 2,
-				required_research: 'nanotechnology',
-				precondition_research: 'nanotechnology',
-				spaceCost: 200
 			}
 		]
 	}

@@ -1,6 +1,5 @@
 <script lang="ts">
 	import type { Game } from '../game';
-	import { producerFamilies, type Producer } from '../parameters';
 	import { formatNumber, formatMoney } from '../utils';
 	import { createEventDispatcher } from 'svelte';
 	import { t } from 'svelte-i18n';
@@ -11,34 +10,26 @@
 
 	const dispatch = createEventDispatcher();
 
-	// Find the Nanobot Factory TIER.
-	// It's in the 'nanobot_factory' family.
-	const nanobotFamily = producerFamilies.find((f) => f.id === 'nanobot_factory');
-	const nanoFactoryLine = nanobotFamily?.tiers[0];
-
 	// Reactive trigger
 	$: {
 		tick;
 		game = game;
 	}
 
-	function buyMachineProductionLine(familyId: string, tierIndex: number, amount: number = 1) {
-		if (game.buyProducer(familyId, tierIndex, amount)) {
+	function buyFactory() {
+		if (game.buyNanobotFactory()) {
 			dispatch('action');
 		}
 	}
 
-	// Accessing 'nanoswarm' family count.
-	// Family ID: 'nanoswarm'. Tier 0 is 'Nano-Swarms'.
-	$: nanoSwarmsCount = game.producers['nanoswarm']?.[0] || 0;
+	$: isVisible = game.researched.includes('nanotechnology');
+
+	$: nanoSwarmsCount = game.nanoSwarmCount;
+	// Buff to Rubber Sources (1% per swarm)
 	$: currentBuff = Math.floor(nanoSwarmsCount * 0.01);
 
-	$: nanoFactoryCount = nanobotFamily ? game.producers[nanobotFamily.id]?.[0] || 0 : 0;
-
-	$: nanoFactoryCost =
-		nanobotFamily && nanoFactoryLine
-			? game.getProducerCost(nanobotFamily.id, 0, 1, game.purchasedProducers[nanobotFamily.id]?.[0])
-			: 0;
+	$: nanoFactoryCount = game.nanobotFactoryCount;
+	$: nanoFactoryCost = game.nanobotFactoryCost;
 
 	// Reactive translations helper
 	$: tr = (key: string, search: string, replace: string) => {
@@ -47,7 +38,7 @@
 	};
 </script>
 
-{#if nanoFactoryLine && game.isProducerVisible(nanoFactoryLine)}
+{#if isVisible}
 	<section class="nano-factory">
 		<h2>Nano Factory</h2>
 
@@ -63,31 +54,22 @@
 		</div>
 
 		<div class="machine-list">
-			{#if nanoFactoryLine}
-				<div class="industry-card">
-					<div class="info">
-						<h3>{$t('production_lines.' + nanoFactoryLine.name)}</h3>
-						<p>{tr('heavy_industry_ui.auto_produces', '{machine}', 'Nano-Swarms')}</p>
-						<p class="details">
-							{$t('common.production')}: {formatNumber(
-								game.getProducerOutput('nanobot_factory', 0),
-								suffixes
-							)}/⏱️
-						</p>
-						<p class="owned">{$t('common.owned')}: {formatNumber(nanoFactoryCount, suffixes)}</p>
-					</div>
-					<div class="actions">
-						<button
-							class="buy-btn"
-							disabled={game.money < nanoFactoryCost}
-							on:click={() => buyMachineProductionLine('nanobot_factory', 0)}
-						>
-							<span class="action-text">{$t('common.buy')}</span>
-							<span class="price-text">{formatMoney(nanoFactoryCost, suffixes)}</span>
-						</button>
-					</div>
+			<div class="industry-card">
+				<div class="info">
+					<h3>{$t('production_lines.Nanobot Factory')}</h3>
+					<p>{tr('heavy_industry_ui.auto_produces', '{machine}', 'Nano-Swarms')}</p>
+					<p class="details">
+						{$t('common.production')}: {formatNumber(1, suffixes)}/⏱️
+					</p>
+					<p class="owned">{$t('common.owned')}: {formatNumber(nanoFactoryCount, suffixes)}</p>
 				</div>
-			{/if}
+				<div class="actions">
+					<button class="buy-btn" disabled={game.money < nanoFactoryCost} on:click={buyFactory}>
+						<span class="action-text">{$t('common.buy')}</span>
+						<span class="price-text">{formatMoney(nanoFactoryCost, suffixes)}</span>
+					</button>
+				</div>
+			</div>
 		</div>
 	</section>
 {/if}
