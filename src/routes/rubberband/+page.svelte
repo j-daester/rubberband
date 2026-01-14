@@ -609,11 +609,6 @@
 		padding: 2rem;
 		display: flex;
 		flex-direction: column;
-		min-height: 100vh;
-		/* Fixed Header Changes */
-		height: 100vh;
-		overflow: hidden;
-		padding-bottom: 0;
 	}
 
 	footer {
@@ -623,11 +618,6 @@
 		font-size: var(--font-size-xs);
 		padding-top: 2rem;
 		opacity: 0.5;
-	}
-
-	header {
-		text-align: center;
-		margin-bottom: 3rem;
 	}
 
 	h1 {
@@ -662,6 +652,10 @@
 		top: 0;
 		padding-top: 1rem;
 		padding-bottom: 1rem;
+		z-index: 100;
+		background: rgba(224, 224, 224, 0);
+		backdrop-filter: blur(10px);
+		-webkit-backdrop-filter: blur(10px);
 	}
 
 	.restart-btn-small {
@@ -771,21 +765,7 @@
 		display: grid;
 		grid-template-columns: 350px 1fr;
 		gap: 2rem;
-		width: 100%;
-		/* Scrollable Content */
-		flex: 1;
-		overflow: hidden;
-		min-height: 0;
-		padding-bottom: 1rem;
 		align-items: start;
-	}
-
-	.sidebar-column {
-		/* Scrollable Sidebar */
-		overflow-y: auto;
-		height: 100%;
-		padding-right: 0.5rem;
-		position: static;
 	}
 
 	.main-panel {
@@ -808,28 +788,8 @@
 	@media (max-width: 1100px) {
 		.content-layout {
 			grid-template-columns: 1fr;
-			/* Reset for mobile scrolling */
-			height: auto;
-			overflow: visible;
 			display: flex;
 			flex-direction: column-reverse;
-		}
-
-		/* Ensure main-panel (Operations) is on top if we use flex-direction: column-reverse 
-           Wait, sidebar is first in DOM. main-panel is second.
-           So column-reverse would put main-panel (2nd) on TOP, and sidebar (1st) on BOTTOM.
-           This is exactly what we want. */
-
-		.sidebar-column {
-			height: auto;
-			overflow: visible;
-			width: 100%;
-		}
-
-		.main-panel {
-			height: auto;
-			overflow: visible;
-			width: 100%;
 		}
 
 		.production-grid {
@@ -1179,12 +1139,15 @@
 
 		header {
 			margin-bottom: 1.5rem;
-			/* Inherits sticky and other props from <1100px query or base if properly cascaded, 
-			   but we need to override the margins for the smaller container padding */
-			margin-left: -1rem; /* Compensate for smaller container padding */
+			position: sticky;
+			top: 0;
+			padding-top: 1rem;
+			padding-bottom: 1rem;
+			margin-left: -1rem; /* Compensate for container padding */
 			margin-right: -1rem;
 			padding-left: 1rem;
 			padding-right: 1rem;
+			z-index: 1000;
 		}
 
 		header.scrolled {
