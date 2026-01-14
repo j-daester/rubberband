@@ -1,5 +1,11 @@
 import { producerFamilies, researchList, GAME_CONSTANTS, getCost, getMaxAffordable, type ProducerFamily, type Producer, type ResearchType, type ResearchEffect } from './parameters';
 
+export interface NanoAllocation {
+	rubber_machines: number; // 0.0 - 1.0
+	bander_machines: number; // 0.0 - 1.0
+	nanobots: number; // 0.0 - 1.0
+}
+
 export interface GameState {
 	money: number;
 	rubberbands: number;
@@ -23,6 +29,7 @@ export interface GameState {
 	netIncome: number;
 	nanoSwarmCount: number;
 	nanobotFactoryCount: number;
+	nanoAllocation: NanoAllocation;
 }
 
 export class Game {
@@ -49,7 +56,7 @@ export class Game {
 	consumedResources!: number;
 	nanoSwarmCount!: number;
 	nanobotFactoryCount!: number;
-
+	nanoAllocation!: NanoAllocation;
 
 	// Runtime Stats for UI
 	private _rubberProductionRate: number = 0;
@@ -68,6 +75,7 @@ export class Game {
 				this.rubber = data.rubber;
 				this.nanoSwarmCount = data.nanoSwarmCount || 0;
 				this.nanobotFactoryCount = data.nanobotFactoryCount || 0;
+				this.nanoAllocation = data.nanoAllocation || { rubber_machines: 0.33, bander_machines: 0.33, nanobots: 0.34 };
 
 				const raw = data as any;
 				this.producers = raw.producers || raw.entities || {};
@@ -85,7 +93,6 @@ export class Game {
 				this.gameOver = data.gameOver;
 				this.gameStartTime = data.gameStartTime;
 				this.totalRubberProduced = data.totalRubberProduced;
-				this.totalNanoSwarmsProduced = data.totalNanoSwarmsProduced;
 				this.totalNanoSwarmsProduced = data.totalNanoSwarmsProduced;
 				this.consumedResources = data.consumedResources;
 
@@ -135,6 +142,7 @@ export class Game {
 		this.consumedResources = 0;
 		this.nanoSwarmCount = 0;
 		this.nanobotFactoryCount = 0;
+		this.nanoAllocation = { rubber_machines: 0.33, bander_machines: 0.33, nanobots: 0.34 };
 	}
 
 	// --- EFFECT HELPERS ---
@@ -227,8 +235,6 @@ export class Game {
 		const invCost = this.inventoryCost;
 		this.money -= invCost;
 		this.money -= this.maintenanceCost;
-
-		this.money -= this.maintenanceCost;
 	}
 
 	private runRawMaterialsPhase(baseMultiplier: number): number {
@@ -254,17 +260,14 @@ export class Game {
 					if (eff.target.familyId && eff.target.familyId === f.id) multiplier *= eff.multiplier;
 				}
 
-				// Additive Boosts (e.g. from Nano Swarms)
+				// Additive Boosts
 				for (const eff of additiveMultipliers) {
 					if (eff.target.producerType === f.type || eff.target.familyId === f.id) {
 						multiplier += eff.addend;
 					}
 				}
 
-				// Nano Swarm Bonus for Rubber Sources (Hardcoded Rule per Request)
-				if (f.type === 'rubber_source') {
-					multiplier += this.nanoSwarmCount * 0.01;
-				}
+				// Nano Swarm Bonus for Rubber Sources REMOVED per user request
 
 				let amount = baseAmount * multiplier;
 
@@ -356,10 +359,7 @@ export class Game {
 						amount = limit;
 					}
 				}
-				// If netSpaceImpact <= 0, we are freeing space (consuming bulky rubber to make small bands? No, band is bulky. Rubber is small.
-				// Band=10, Rubber=1. InputRatio is usually >= 1.
-				// If InputRatio > 10 (inefficient), then consumption (10 rubber) > production (1 band).
-				// We free space. So no limit.
+				// If netSpaceImpact <= 0, we are freeing space.
 
 				const neededRubber = amount * inputRatio;
 				this._theoreticalRubberConsumptionRate += neededRubber;
@@ -371,13 +371,6 @@ export class Game {
 					if (neededRubber > 0) {
 						// Limited production by rubber supply
 						const possible = this.rubber / inputRatio;
-
-						// Check limit again for the possible amount?
-						// If unlimited by rubber, we checked storage above.
-						// If limited by rubber, 'possible' is LESS than 'amount'.
-						// So 'possible' respects storage limit (since possible <= amount <= storageCap).
-						// Wait, if InputRatio is high, possible might be small.
-
 						produced += possible;
 						this.rubber = 0;
 					}
@@ -416,10 +409,16 @@ export class Game {
 					}
 				}
 
-				// Nano Swarm Bonus for Production Lines (Hardcoded Rule)
-				// +0.1 per Swarm per Line
+				// Nano Swarm Bonus for Production Lines (Allocation Rule)
+				// +0.1 per Swarm per Line * Allocation
 				if (f.type === 'production_line') {
-					totalAmount += (this.nanoSwarmCount * 0.1) * counts[i];
+					let alloc = 0;
+					if (f.id === 'rubber_factory_line') alloc = this.nanoAllocation.rubber_machines;
+					else if (f.id === 'bander_line') alloc = this.nanoAllocation.bander_machines;
+
+					if (alloc > 0) {
+						totalAmount += (this.nanoSwarmCount * 0.1 * alloc) * counts[i];
+					}
 				}
 
 				totalAmount = Math.floor(totalAmount);
@@ -439,8 +438,6 @@ export class Game {
 
 					this.producers[targetId][targetIdx] = (this.producers[targetId][targetIdx] || 0) + totalAmount;
 					this.purchasedProducers[targetId][targetIdx] = (this.purchasedProducers[targetId][targetIdx] || 0) + totalAmount;
-
-					this.purchasedProducers[targetId][targetIdx] = (this.purchasedProducers[targetId][targetIdx] || 0) + totalAmount;
 				}
 			}
 		}
@@ -448,11 +445,14 @@ export class Game {
 
 	private runNanoPhase() {
 		if (this.nanobotFactoryCount > 0) {
-			const production = this.nanobotFactoryCount * 1; // 1 Swarm per Factory per tick
+			let basePerFactory = 1;
+			// Aply Allocation
+			const alloc = this.nanoAllocation.nanobots;
+			if (alloc > 0) {
+				basePerFactory += Math.floor(this.nanoSwarmCount * 0.1 * alloc);
+			}
 
-			// Resource Cost?
-			// Previously Nano Swarm cost 100 resources.
-			// "unitResCost = GAME_CONSTANTS.RESOURCE_COST_NANO_SWARM;" in runIndustryPhase.
+			const production = this.nanobotFactoryCount * basePerFactory;
 			const unitResCost = GAME_CONSTANTS.RESOURCE_COST_NANO_SWARM;
 			const generalResourceLimit = this.resourceLimit;
 
@@ -522,17 +522,27 @@ export class Game {
 
 		if (family.type === 'production_line') {
 			const activeSwarms = this.nanoSwarmCount;
-			if (tier.name === "Nanobot Factory") {
-				// No bonus from swarms for Nano Factory itself? Or yes?
-				// "Boost Heavy Industry... target: { familyId: 'nanobot_factory' }" was in params.
-				// So yes.
-				base += Math.floor(activeSwarms * 0.1);
-			} else {
-				base += Math.floor(activeSwarms * 0.1);
+			let alloc = 0;
+			if (family.id === 'rubber_factory_line') alloc = this.nanoAllocation.rubber_machines;
+			else if (family.id === 'bander_line') alloc = this.nanoAllocation.bander_machines;
+
+			if (alloc > 0) {
+				base += Math.floor(activeSwarms * 0.1 * alloc);
 			}
 		}
 		return base;
 	}
+
+	getNanobotProduction(): number {
+		let base = 1;
+		const activeSwarms = this.nanoSwarmCount;
+		const alloc = this.nanoAllocation.nanobots;
+		if (alloc > 0) {
+			base += Math.floor(activeSwarms * 0.1 * alloc);
+		}
+		return base;
+	}
+
 
 	calculateDemand(price: number): number {
 		let basevalue = 2;
@@ -574,13 +584,6 @@ export class Game {
 			if (eff.marketingDecayMultiplier !== undefined) multiplier *= eff.marketingDecayMultiplier;
 		}
 		if (multiplier === 0) return 0; // Infinite/No decay
-		return GAME_CONSTANTS.MARKETING_DECAY_INTERVAL * this.marketingLevel * (1 / multiplier); // Multiplier < 1 means FASTER?? No.
-		// Rule: "multiplier: 0 = no decay".
-		// Wait, standard interval is X. If multiplier is 0, interval is infinite.
-		// If multiplier is 1, interval is X.
-		// Code above handled special '0' case.
-		// Does any research make it longer/shorter specifically?
-		// Currently only "0" exists.
 		return GAME_CONSTANTS.MARKETING_DECAY_INTERVAL * this.marketingLevel;
 	}
 
@@ -655,12 +658,6 @@ export class Game {
 		let inputRatio = 2; // Default
 		const efficiencyRules = this.getEffects('input_efficiency');
 		for (const eff of efficiencyRules) {
-			// Manual make relies on "Machines" efficiency generally? Or player skill?
-			// Since "Optimize Production" research description says "Increase efficiency of all MACHINES",
-			// strictly speaking manual production shouldn't benefit. 
-			// BUT, original code did: "researched.includes('optimize') ? 1 : 2".
-			// So it treats manual making as a "Machine" in that context or general process improvement.
-			// I'll check for 'machine' efficiency rule effectively covering this process.
 			if (eff.target.producerType === 'machine') inputRatio *= eff.ratioMultiplier;
 		}
 
@@ -885,6 +882,10 @@ export class Game {
 		return false;
 	}
 
+	setNanoAllocation(newAllocation: NanoAllocation) {
+		this.nanoAllocation = newAllocation;
+	}
+
 	toJSON(): GameState {
 		return {
 			money: this.money,
@@ -908,7 +909,8 @@ export class Game {
 			consumedResources: this.consumedResources,
 			netIncome: this.netIncome,
 			nanoSwarmCount: this.nanoSwarmCount,
-			nanobotFactoryCount: this.nanobotFactoryCount
+			nanobotFactoryCount: this.nanobotFactoryCount,
+			nanoAllocation: this.nanoAllocation
 		};
 	}
 

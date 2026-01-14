@@ -37,14 +37,7 @@
 
 {#if game.researched.includes('basic_manufacturing')}
 	<section class="shop">
-		<div class="header-row">
-			<h2>{$t('common.machine_shop')}</h2>
-			<div class="buy-controls">
-				<button class:active={buyAmount === 1} on:click={() => (buyAmount = 1)}>1</button>
-				<button class:active={buyAmount === 10} on:click={() => (buyAmount = 10)}>10</button>
-				<button class:active={buyAmount === -1} on:click={() => (buyAmount = -1)}>Max</button>
-			</div>
-		</div>
+		<h2>{$t('common.machine_shop')}</h2>
 
 		<div class="machine-list">
 			{#each machineFamilies as family}
@@ -147,31 +140,6 @@
 	section.shop {
 		margin-bottom: 2rem;
 		color: #eee;
-	}
-
-	.header-row {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 1rem;
-	}
-
-	.header-row h2 {
-		margin: 0;
-	}
-
-	.buy-controls button {
-		background: #333;
-		border: 1px solid #555;
-		color: #aaa;
-		padding: 0.25rem 0.75rem;
-		cursor: pointer;
-		border-radius: 4px;
-	}
-	.buy-controls button.active {
-		background: #007bff;
-		color: white;
-		border-color: #007bff;
 	}
 
 	.machine-list {

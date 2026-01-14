@@ -27,6 +27,11 @@
 	let tick = 0;
 	let canShare = false;
 
+	// Scroll detection for sticky header
+	let scrollY = 0;
+	let mainPanelScrollY = 0;
+	$: isScrolled = scrollY > 50 || mainPanelScrollY > 50;
+
 	// Reactive declarations for header stats
 	let money = game.money;
 	interface I18nStore {
@@ -178,23 +183,7 @@
 		hasRubberSources = (game.producers['rubber_sources'] || []).some((count) => count > 0);
 
 		// Calculate total machines for "Make Rubberband" button logic
-		// Only count 'machine' type families? Or all entities?
-		// Original logic was "machines" map values sum.
-		// Machines are now families with type='machine'.
-		// We probably only care about "Bander" style machines for manual clicking?
-		// Or literally any machine owned?
-		// Let's sum all tiers of all families of type 'machine'.
-		// Bander is type='machine'. Nano is type='machine'.
-		// Wait, Nano shouldn't hide the button?
-		// Original: totalMachines > 0 hides the button.
-		// This includes Banders.
-		// We'll mimic that.
 		totalMachines = 0;
-		// Ideally export entityFamilies from +page, but we don't import it here directly in script usually?
-		// We can just iterate game.entities keys? No, we don't know types.
-		// But `game` has helper properties or we can import `entityFamilies`.
-		// Let's just check 'bander' family for now as it's the main one.
-		// Or import entityFamilies.
 		const banderCounts = game.producers['bander'] || [];
 		totalMachines = banderCounts.reduce((a, b) => a + b, 0);
 
@@ -203,19 +192,17 @@
 				!researched.includes('molecular_transformation')) ||
 			researched.includes('molecular_transformation');
 
-		// Buttons are visible if their conditions are met
-		// Make Rubberband: totalMachines === 0
-		// Buy Rubber: !hasRubberSources
+		// Buttons are visible if their conditions are met AND Nano is not researched
+		const nanoResearched = researched.includes('nanotechnology');
 		const showMakeBtn = totalMachines === 0;
 		const showBuyBtn = !hasRubberSources;
-		showButtons = showMakeBtn || showBuyBtn;
+
+		// Hide manual buttons if Nano is researched (automation phase)
+		showButtons = (showMakeBtn || showBuyBtn) && !nanoResearched;
 
 		const marketingUnlocked = researched.includes(GAME_CONSTANTS.MARKETING_UNLOCK_RESEARCH);
-		showOperationsSection = showButtons || marketingUnlocked;
-
-		// if (rubberbandPrice !== game.rubberbandPrice) {
-		// 	rubberbandPrice = game.rubberbandPrice;
-		// }
+		// Operations section is always visible now because it contains the Price Controls (DemandCurve) which are essential
+		showOperationsSection = true;
 	}
 
 	async function shareGame() {
@@ -268,6 +255,11 @@
 			ticksStatText = ($t('common.ticks_stat') as string).replace('{amount}', tickCount.toString());
 		}
 	}
+
+	function handleMainPanelScroll(e: UIEvent) {
+		const target = e.currentTarget as HTMLElement;
+		mainPanelScrollY = target.scrollTop;
+	}
 </script>
 
 <svelte:head>
@@ -275,8 +267,10 @@
 	<meta name="description" content="A paperclip clone written in SvelteKit" />
 </svelte:head>
 
+<svelte:window bind:scrollY />
+
 <div class="game-container">
-	<header>
+	<header class:scrolled={isScrolled}>
 		<h1>Rubberband Inc.</h1>
 
 		<div class="progress-bar">
@@ -418,12 +412,16 @@
 			<div class="right-column">
 				<div class="resource-group economy-group">
 					<span class="group-title">{$t('common.economy')}</span>
-					<div class="stat-row">
-						<div class="stat coin-stat">
-							<span class="label">{$t('common.coins')} 🪙</span>
-							<span class="value" style="color: {money < 0 ? '#ff6b6b' : ''}"
-								>{formatMoney(money, suffixes)}</span
-							>
+					<div class="economy-content">
+						<!-- Top Row: Money and Financial Details -->
+						<div class="economy-stats-row">
+							<div class="stat coin-stat">
+								<span class="label">{$t('common.coins')} 🪙</span>
+								<span class="value" style="color: {money < 0 ? '#ff6b6b' : ''}"
+									>{formatMoney(money, suffixes)}</span
+								>
+							</div>
+
 							<div class="financial-details">
 								{#if maintenanceCost > 0}
 									<div class="detail-row">
@@ -449,23 +447,28 @@
 								</div>
 							</div>
 						</div>
-						<div class="economy-main-content chart-container">
-							<!-- Chart now self-contained -->
-							<div class="chart-input-row">
-								<DemandCurve {game} {tick} {suffixes} on:priceChange={handlePriceChange} />
-							</div>
-						</div>
 					</div>
 				</div>
 			</div>
 		</div>
 	</header>
 
-	<main>
-		{#if showOperationsSection}
-			<section class="actions">
-				{#if showButtons}
+	<main class="content-layout">
+		<!-- Sidebar for Research -->
+		<aside class="sidebar-column">
+			<Research {game} {tick} {suffixes} on:action={handleAction} />
+		</aside>
+
+		<!-- Main Content Area -->
+		<div class="main-panel" on:scroll={handleMainPanelScroll}>
+			{#if showOperationsSection}
+				<section class="actions">
 					<h2>{$t('common.operations')}</h2>
+
+					<!-- Price Controls moved here -->
+					<div class="chart-container" style="margin-bottom: 2rem;">
+						<DemandCurve {game} {tick} {suffixes} on:priceChange={handlePriceChange} />
+					</div>
 					<div class="button-group">
 						{#if totalMachines === 0}
 							<button class="action-btn primary" on:click={makeRubberband} disabled={rubber < 1}>
@@ -482,31 +485,28 @@
 							</button>
 						{/if}
 					</div>
-				{/if}
+					<!-- Removed stray /if -->
 
-				<!-- Merged Marketing into Operations/Actions area -->
-				<Marketing {game} {tick} {suffixes} on:action={handleAction} />
-			</section>
-		{/if}
+					<!-- Merged Marketing into Operations/Actions area -->
+					<Marketing {game} {tick} {suffixes} on:action={handleAction} />
 
-		<!-- Duplicate Marketing removed from here -->
+					<!-- Nano Factory moves here -->
+					<NanoFactory {game} {tick} {suffixes} on:action={handleAction} />
+				</section>
+			{/if}
 
-		<div class="main-game-row">
-			<div class="game-column">
-				<Research {game} {tick} {suffixes} on:action={handleAction} />
-			</div>
-			<div class="game-column">
-				<MachineShop {game} {tick} {suffixes} on:action={handleAction} />
-			</div>
-			<div class="game-column">
-				<SupplyChain {game} {tick} {suffixes} on:action={handleAction} />
-			</div>
-			<div class="game-column">
-				<HeavyIndustry {game} {tick} {suffixes} on:action={handleAction} />
+			<div class="production-grid">
+				<div class="grid-item">
+					<MachineShop {game} {tick} {suffixes} on:action={handleAction} />
+				</div>
+				<div class="grid-item">
+					<SupplyChain {game} {tick} {suffixes} on:action={handleAction} />
+				</div>
+				<div class="grid-item">
+					<HeavyIndustry {game} {tick} {suffixes} on:action={handleAction} />
+				</div>
 			</div>
 		</div>
-
-		<NanoFactory {game} {tick} {suffixes} on:action={handleAction} />
 	</main>
 
 	{#if gameOver}
@@ -610,6 +610,10 @@
 		display: flex;
 		flex-direction: column;
 		min-height: 100vh;
+		/* Fixed Header Changes */
+		height: 100vh;
+		overflow: hidden;
+		padding-bottom: 0;
 	}
 
 	footer {
@@ -637,6 +641,27 @@
 		-webkit-background-clip: text;
 		background-clip: text;
 		-webkit-text-fill-color: transparent;
+		/* Transition for collapsing */
+		transition: all 0.3s ease;
+		max-height: 100px;
+		opacity: 1;
+	}
+
+	header.scrolled h1 {
+		max-height: 0;
+		opacity: 0;
+		margin-bottom: 0;
+		margin-top: 0;
+		overflow: hidden;
+	}
+
+	header {
+		text-align: center;
+		margin-bottom: 3rem;
+		position: sticky;
+		top: 0;
+		padding-top: 1rem;
+		padding-bottom: 1rem;
 	}
 
 	.restart-btn-small {
@@ -660,11 +685,59 @@
 		color: #ff6b6b;
 	}
 
+	/* Economy Section Redesign Styles */
+	.economy-content {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+		width: 100%;
+	}
+
+	.economy-stats-row {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 1rem;
+		width: 100%;
+		align-items: start;
+	}
+
+	.chart-container {
+		width: 100%;
+		margin-top: 0.5rem;
+	}
+
+	/* Financial Details Column */
+	.financial-details {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		align-items: flex-end; /* Right align the text */
+		justify-content: center;
+		height: 100%;
+	}
+
+	.detail-row {
+		display: flex;
+		justify-content: flex-end;
+		gap: 0.5rem;
+		font-size: 0.85rem;
+		color: #aaa;
+		width: 100%;
+	}
+
+	.coin-stat {
+		/* Reset flex direction for this specific stat container to be block-like or center */
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start; /* Left align money */
+		justify-content: center;
+		height: 100%;
+	}
+
 	.economy-main-content {
 		display: flex;
 		flex-direction: column;
 		width: 100%;
-		margin-top: 0.5rem;
 		gap: 0.5rem;
 	}
 
@@ -693,31 +766,111 @@
 		gap: 1rem;
 	}
 
-	.main-game-row {
-		display: flex;
-		flex-direction: row;
-		gap: 1.5rem;
-		align-items: flex-start;
+	/* New Layout Styles */
+	.content-layout {
+		display: grid;
+		grid-template-columns: 350px 1fr;
+		gap: 2rem;
 		width: 100%;
-		margin-bottom: 2rem;
+		/* Scrollable Content */
+		flex: 1;
+		overflow: hidden;
+		min-height: 0;
+		padding-bottom: 1rem;
+		align-items: start;
 	}
 
-	.game-column {
-		flex: 1;
-		min-width: 300px; /* Ensure columns don't get too squished */
+	.sidebar-column {
+		/* Scrollable Sidebar */
+		overflow-y: auto;
+		height: 100%;
+		padding-right: 0.5rem;
+		position: static;
+	}
+
+	.main-panel {
+		display: flex;
+		flex-direction: column;
+		gap: 2rem;
+	}
+
+	.production-grid {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 1.5rem;
+	}
+
+	.grid-item {
 		display: flex;
 		flex-direction: column;
 	}
 
-	@media (max-width: 1000px) {
-		.main-game-row {
-			flex-direction: column;
+	@media (max-width: 1100px) {
+		.content-layout {
+			grid-template-columns: 1fr;
+			/* Reset for mobile scrolling */
+			height: auto;
+			overflow: visible;
+			display: flex;
+			flex-direction: column-reverse;
 		}
 
-		.game-column {
+		/* Ensure main-panel (Operations) is on top if we use flex-direction: column-reverse 
+           Wait, sidebar is first in DOM. main-panel is second.
+           So column-reverse would put main-panel (2nd) on TOP, and sidebar (1st) on BOTTOM.
+           This is exactly what we want. */
+
+		.sidebar-column {
+			height: auto;
+			overflow: visible;
 			width: 100%;
 		}
+
+		.main-panel {
+			height: auto;
+			overflow: visible;
+			width: 100%;
+		}
+
+		.production-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.progress-bar {
+			flex-wrap: wrap;
+			gap: 1rem;
+		}
+
+		.stat {
+			min-width: 45%; /* Ensure 2 per row roughly */
+			text-align: center;
+		}
+
+		/* FIX: Stack split layout on mobile */
+		.split-layout {
+			grid-template-columns: 1fr;
+		}
+
+		/* FIX: Ensure right column doesn't overflow */
+		.right-column {
+			width: 100%;
+			min-width: 0; /* Allows flex child to shrink below content size if needed */
+		}
+
+		.economy-group {
+			width: 100%;
+			overflow-x: hidden; /* Prevent horizontal scroll just in case */
+		}
+
+		/* Allow container to scroll normally on mobile */
+		:global(.game-container) {
+			height: auto !important;
+			overflow: visible !important;
+			padding-bottom: 2rem;
+		}
 	}
+
+	/* End New Layout Styles */
 
 	.right-column {
 		display: flex;
@@ -1026,6 +1179,16 @@
 
 		header {
 			margin-bottom: 1.5rem;
+			/* Inherits sticky and other props from <1100px query or base if properly cascaded, 
+			   but we need to override the margins for the smaller container padding */
+			margin-left: -1rem; /* Compensate for smaller container padding */
+			margin-right: -1rem;
+			padding-left: 1rem;
+			padding-right: 1rem;
+		}
+
+		header.scrolled {
+			margin-bottom: 1rem;
 		}
 
 		.progress-bar {

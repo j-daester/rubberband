@@ -189,7 +189,7 @@
 			x={width - padding}
 			y={padding + 10}
 			font-size="12"
-			fill="#eee"
+			fill="#888"
 			text-anchor="end"
 			pointer-events="none"
 			font-weight="bold"
@@ -271,29 +271,100 @@
 			pointer-events="none">0</text
 		>
 	</svg>
+	<div class="controls">
+		<button
+			class="control-btn"
+			aria-label="Decrease Price"
+			on:click={() => {
+				const newPrice = Math.max(1, Math.floor(currentPoint.x) - 1);
+				dispatch('priceChange', { price: newPrice });
+			}}
+		>
+			-
+		</button>
+
+		<input
+			type="range"
+			class="price-slider"
+			min="1"
+			max={Math.max(50, Math.ceil(currentPoint.x * 2))}
+			step="1"
+			value={Math.round(currentPoint.x)}
+			on:input={(e) => {
+				const val = parseFloat(e.currentTarget.value);
+				dispatch('priceChange', { price: val });
+			}}
+		/>
+
+		<button
+			class="control-btn"
+			aria-label="Increase Price"
+			on:click={() => {
+				const newPrice = Math.floor(currentPoint.x) + 1;
+				dispatch('priceChange', { price: newPrice });
+			}}
+		>
+			+
+		</button>
+	</div>
 </div>
 
 <style>
 	.demand-curve-container {
 		width: 100%;
 		flex-grow: 1;
-		min-width: 150px; /* Reduced min width to fit better */
+		min-width: 150px;
 		height: 100%;
 		display: flex;
+		flex-direction: column; /* Changed to column to stack chart and controls */
 		align-items: center;
 		justify-content: center;
+		gap: 0.5rem;
 	}
 
 	svg {
 		display: block;
 		width: 100%;
 		height: auto;
-		background: transparent; /* Transparent background */
+		background: transparent;
 		border-radius: 4px;
-		/* max-height removed to allow full width scaling */
+		flex: 1; /* Allow SVG to take available space */
 	}
 
 	svg:focus {
 		outline: none;
+	}
+
+	.controls {
+		display: flex;
+		align-items: center;
+		width: 100%;
+		gap: 0.5rem;
+		padding-bottom: 0.5rem;
+	}
+
+	.control-btn {
+		background: #444;
+		border: 1px solid #555;
+		color: #fff;
+		border-radius: 4px;
+		width: 44px;
+		height: 44px;
+		font-size: 1.5rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		touch-action: manipulation; /* Improves touch response */
+	}
+
+	.control-btn:active {
+		background: #666;
+	}
+
+	.price-slider {
+		flex: 1;
+		height: 44px; /* Larger touch target for track */
+		cursor: pointer;
 	}
 </style>

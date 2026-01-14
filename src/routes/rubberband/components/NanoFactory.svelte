@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Game } from '../game';
+	import type { Game, NanoAllocation } from '../game';
 	import { formatNumber, formatMoney } from '../utils';
 	import { createEventDispatcher } from 'svelte';
 	import { t } from 'svelte-i18n';
@@ -10,10 +10,29 @@
 
 	const dispatch = createEventDispatcher();
 
+	// Local allocation state (0-100 integers for UI)
+	let allocRubber = 33;
+	let allocBander = 33;
+	let allocNano = 34;
+
+	// Init from game state once
+	let initialized = false;
+
 	// Reactive trigger
 	$: {
 		tick;
 		game = game;
+		if (game && !initialized) {
+			allocRubber = Math.round(game.nanoAllocation.rubber_machines * 100);
+			allocBander = Math.round(game.nanoAllocation.bander_machines * 100);
+			allocNano = Math.round(game.nanoAllocation.nanobots * 100);
+			// Ensure sum is exactly 100 on init due to rounding
+			const sum = allocRubber + allocBander + allocNano;
+			if (sum !== 100) {
+				allocNano += 100 - sum;
+			}
+			initialized = true;
+		}
 	}
 
 	function buyFactory() {
@@ -22,14 +41,77 @@
 		}
 	}
 
+	function updateAllocation(param: 'rubber' | 'bander' | 'nano', value: number) {
+		value = Math.max(0, Math.min(100, Math.round(value))); // Clamp
+
+		// Smart redistribution
+		// We have 3 buckets. Target is changing to 'value'.
+		// The other two must sum to (100 - value).
+		// We try to preserve their relative proportions.
+
+		let remainder = 100 - value;
+
+		if (param === 'rubber') {
+			allocRubber = value;
+			const currentOthersSum = allocBander + allocNano;
+			if (currentOthersSum === 0) {
+				// If others are 0, split remainder equally? or give to one?
+				// Let's split equally for fairness if they were both zeroed out.
+				allocBander = Math.floor(remainder / 2);
+				allocNano = remainder - allocBander;
+			} else {
+				// Scale relative to each other
+				const ratioBander = allocBander / currentOthersSum;
+				allocBander = Math.floor(remainder * ratioBander);
+				allocNano = remainder - allocBander; // Assign rest to last to ensure sum=100
+			}
+		} else if (param === 'bander') {
+			allocBander = value;
+			const currentOthersSum = allocRubber + allocNano;
+			if (currentOthersSum === 0) {
+				allocRubber = Math.floor(remainder / 2);
+				allocNano = remainder - allocRubber;
+			} else {
+				const ratioRubber = allocRubber / currentOthersSum;
+				allocRubber = Math.floor(remainder * ratioRubber);
+				allocNano = remainder - allocRubber;
+			}
+		} else if (param === 'nano') {
+			allocNano = value;
+			const currentOthersSum = allocRubber + allocBander;
+			if (currentOthersSum === 0) {
+				allocRubber = Math.floor(remainder / 2);
+				allocBander = remainder - allocRubber;
+			} else {
+				const ratioRubber = allocRubber / currentOthersSum;
+				allocRubber = Math.floor(remainder * ratioRubber);
+				allocBander = remainder - allocRubber;
+			}
+		}
+
+		// Apply to Game
+		const newAlloc: NanoAllocation = {
+			rubber_machines: allocRubber / 100,
+			bander_machines: allocBander / 100,
+			nanobots: allocNano / 100
+		};
+		game.setNanoAllocation(newAlloc);
+	}
+
 	$: isVisible = game.researched.includes('nanotechnology');
 
 	$: nanoSwarmsCount = game.nanoSwarmCount;
-	// Buff to Rubber Sources (1% per swarm)
-	$: currentBuff = Math.floor(nanoSwarmsCount * 0.01);
 
 	$: nanoFactoryCount = game.nanobotFactoryCount;
 	$: nanoFactoryCost = game.nanobotFactoryCost;
+
+	// Calculate Current Effects for Display
+	// Bonus: +0.1 per swarm * alloc
+	$: boostRubber = Math.floor(nanoSwarmsCount * 0.1 * (allocRubber / 100));
+	$: boostBander = Math.floor(nanoSwarmsCount * 0.1 * (allocBander / 100));
+	$: boostNano = Math.floor(nanoSwarmsCount * 0.1 * (allocNano / 100));
+
+	$: nanobotProduction = game.getNanobotProduction();
 
 	// Reactive translations helper
 	$: tr = (key: string, search: string, replace: string) => {
@@ -47,9 +129,61 @@
 				<span class="label">Active Swarms</span>
 				<span class="value">{formatNumber(nanoSwarmsCount, suffixes)}</span>
 			</div>
-			<div class="stat">
-				<span class="label">Production Buff</span>
-				<span class="valueHighlight">+{formatNumber(currentBuff, suffixes)}</span>
+		</div>
+
+		<!-- Allocation Sliders -->
+		<div class="allocation-panel">
+			<h3>Swarm Allocation</h3>
+
+			<div class="slider-row">
+				<div class="slider-label">
+					<span>Synthetic Rubber</span>
+					<span class="boost-text">+{formatNumber(boostRubber, suffixes)} per tick</span>
+				</div>
+				<div class="slider-controls">
+					<input
+						type="range"
+						min="0"
+						max="100"
+						value={allocRubber}
+						on:input={(e) => updateAllocation('rubber', +e.currentTarget.value)}
+					/>
+					<span class="perc-value">{allocRubber}%</span>
+				</div>
+			</div>
+
+			<div class="slider-row">
+				<div class="slider-label">
+					<span>Rubber Banders</span>
+					<span class="boost-text">+{formatNumber(boostBander, suffixes)} per tick</span>
+				</div>
+				<div class="slider-controls">
+					<input
+						type="range"
+						min="0"
+						max="100"
+						value={allocBander}
+						on:input={(e) => updateAllocation('bander', +e.currentTarget.value)}
+					/>
+					<span class="perc-value">{allocBander}%</span>
+				</div>
+			</div>
+
+			<div class="slider-row">
+				<div class="slider-label">
+					<span>Nanobot Production</span>
+					<span class="boost-text">+{formatNumber(boostNano, suffixes)} per tick</span>
+				</div>
+				<div class="slider-controls">
+					<input
+						type="range"
+						min="0"
+						max="100"
+						value={allocNano}
+						on:input={(e) => updateAllocation('nano', +e.currentTarget.value)}
+					/>
+					<span class="perc-value">{allocNano}%</span>
+				</div>
 			</div>
 		</div>
 
@@ -59,7 +193,7 @@
 					<h3>{$t('production_lines.Nanobot Factory')}</h3>
 					<p>{tr('heavy_industry_ui.auto_produces', '{machine}', 'Nano-Swarms')}</p>
 					<p class="details">
-						{$t('common.production')}: {formatNumber(1, suffixes)}/⏱️
+						{$t('common.production')}: {formatNumber(nanobotProduction, suffixes)}/⏱️
 					</p>
 					<p class="owned">{$t('common.owned')}: {formatNumber(nanoFactoryCount, suffixes)}</p>
 				</div>
@@ -88,6 +222,11 @@
 		text-shadow: 0 0 10px rgba(0, 242, 254, 0.5);
 	}
 
+	h3 {
+		color: #eee;
+		margin-top: 0;
+	}
+
 	.stats-panel {
 		display: flex;
 		gap: 2rem;
@@ -95,6 +234,50 @@
 		background: rgba(0, 0, 0, 0.3);
 		padding: 1rem;
 		border-radius: 8px;
+	}
+
+	.allocation-panel {
+		background: rgba(255, 255, 255, 0.05);
+		padding: 1rem;
+		border-radius: 8px;
+		margin-bottom: 1.5rem;
+		border: 1px solid #3a4a5a;
+	}
+
+	.slider-row {
+		margin-bottom: 1rem;
+	}
+
+	.slider-label {
+		display: flex;
+		justify-content: space-between;
+		margin-bottom: 0.25rem;
+		color: #ccc;
+		font-size: 0.9rem;
+	}
+
+	.boost-text {
+		color: #00f2fe;
+		font-weight: bold;
+	}
+
+	.slider-controls {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+	}
+
+	input[type='range'] {
+		flex: 1;
+		cursor: pointer;
+		accent-color: #00f2fe;
+	}
+
+	.perc-value {
+		width: 3rem;
+		text-align: right;
+		font-weight: bold;
+		color: #fff;
 	}
 
 	.stat {
@@ -112,12 +295,6 @@
 		font-size: 1.5rem;
 		font-weight: bold;
 		color: #fff;
-	}
-
-	.valueHighlight {
-		font-size: 1.5rem;
-		font-weight: bold;
-		color: #00f2fe;
 	}
 
 	.machine-list {
