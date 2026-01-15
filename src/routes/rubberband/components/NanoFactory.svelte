@@ -22,7 +22,7 @@
 	$: {
 		tick;
 		game = game;
-		if (game && !initialized) {
+		if (game && !initialized && game.nanoAllocation) {
 			allocRubber = Math.round(game.nanoAllocation.rubber_machines * 100);
 			allocBander = Math.round(game.nanoAllocation.bander_machines * 100);
 			allocNano = Math.round(game.nanoAllocation.nanobots * 100);
@@ -55,15 +55,12 @@
 			allocRubber = value;
 			const currentOthersSum = allocBander + allocNano;
 			if (currentOthersSum === 0) {
-				// If others are 0, split remainder equally? or give to one?
-				// Let's split equally for fairness if they were both zeroed out.
 				allocBander = Math.floor(remainder / 2);
 				allocNano = remainder - allocBander;
 			} else {
-				// Scale relative to each other
 				const ratioBander = allocBander / currentOthersSum;
 				allocBander = Math.floor(remainder * ratioBander);
-				allocNano = remainder - allocBander; // Assign rest to last to ensure sum=100
+				allocNano = remainder - allocBander;
 			}
 		} else if (param === 'bander') {
 			allocBander = value;
@@ -74,7 +71,7 @@
 			} else {
 				const ratioRubber = allocRubber / currentOthersSum;
 				allocRubber = Math.floor(remainder * ratioRubber);
-				allocNano = remainder - allocRubber;
+				allocBander = remainder - allocRubber;
 			}
 		} else if (param === 'nano') {
 			allocNano = value;
@@ -105,15 +102,46 @@
 	$: nanoFactoryCount = game.nanobotFactoryCount;
 	$: nanoFactoryCost = game.nanobotFactoryCost;
 
-	// Calculate Current Effects for Display
-	// Bonus: +0.1 per swarm * alloc
-	$: boostRubber = Math.floor(nanoSwarmsCount * 0.1 * (allocRubber / 100));
-	$: boostBander = Math.floor(nanoSwarmsCount * 0.1 * (allocBander / 100));
-	$: boostNano = Math.floor(nanoSwarmsCount * 0.1 * (allocNano / 100));
+	$: nanobotProduction = game.getNanobotProduction ? game.getNanobotProduction() : 1;
 
-	$: nanobotProduction = game.getNanobotProduction();
+	// Helper for boosts list - prioritized producers
+	$: activeBoosts = [
+		// Rubber Pool
+		{ name: 'Black Hole Extruder', id: 'rubber_sources', idx: 2 },
+		{ name: 'Black Hole Extruder Line', id: 'rubber_factory_line', idx: 1 },
+		{ name: 'Synthetic Rubber Mixer', id: 'rubber_sources', idx: 1 },
+		{ name: 'Synthetic Rubber Mixer Line', id: 'rubber_factory_line', idx: 0 },
 
-	// Reactive translations helper
+		// Bander Pool
+		{ name: 'Temporal Press', id: 'bander', idx: 4 },
+		{ name: 'Temporal Press Line', id: 'bander_line', idx: 2 },
+		{ name: 'Quantum Bander', id: 'bander', idx: 3 },
+		{ name: 'Quantum Bander Line', id: 'bander_line', idx: 1 },
+		{ name: 'MEGA-Bander', id: 'bander', idx: 2 },
+		{ name: 'MEGA-Bander Line', id: 'bander_line', idx: 0 },
+		{ name: 'MAX-Bander', id: 'bander', idx: 1 },
+		{ name: 'Bander', id: 'bander', idx: 0 },
+
+		// Nano Pool (Conceptually)
+		{
+			name: 'Nanobot Production',
+			id: 'NANOBOT_SPECIAL',
+			idx: 0,
+			overrideValue:
+				nanobotProduction > 1 ? Math.floor((nanoSwarmsCount * (allocNano / 100)) / 10) : 0
+		}
+	]
+		.map((item) => {
+			if (item.id === 'NANOBOT_SPECIAL') {
+				return { ...item, boost: item.overrideValue || 0 };
+			}
+			return {
+				...item,
+				boost: (game.getNanoBoost && game.getNanoBoost(item.id, item.idx)) || 0
+			};
+		})
+		.filter((b) => b.boost > 0);
+
 	$: tr = (key: string, search: string, replace: string) => {
 		const val = $t(key);
 		return (typeof val === 'string' ? val : '').replace(search, replace);
@@ -122,8 +150,6 @@
 
 {#if isVisible}
 	<section class="nano-factory">
-		<h2>Nano Factory</h2>
-
 		<div class="stats-panel">
 			<div class="stat">
 				<span class="label">Active Swarms</span>
@@ -133,12 +159,14 @@
 
 		<!-- Allocation Sliders -->
 		<div class="allocation-panel">
-			<h3>Swarm Allocation</h3>
+			<div class="flex justify-between items-center mb-2">
+				<h3>Swarm Allocation</h3>
+				<span class="text-xs text-gray-400">Determines pool size</span>
+			</div>
 
 			<div class="slider-row">
 				<div class="slider-label">
 					<span>Synthetic Rubber</span>
-					<span class="boost-text">+{formatNumber(boostRubber, suffixes)} per tick</span>
 				</div>
 				<div class="slider-controls">
 					<input
@@ -155,7 +183,6 @@
 			<div class="slider-row">
 				<div class="slider-label">
 					<span>Rubber Banders</span>
-					<span class="boost-text">+{formatNumber(boostBander, suffixes)} per tick</span>
 				</div>
 				<div class="slider-controls">
 					<input
@@ -172,7 +199,6 @@
 			<div class="slider-row">
 				<div class="slider-label">
 					<span>Nanobot Production</span>
-					<span class="boost-text">+{formatNumber(boostNano, suffixes)} per tick</span>
 				</div>
 				<div class="slider-controls">
 					<input
@@ -187,15 +213,45 @@
 			</div>
 		</div>
 
+		<div class="explanation-panel">
+			<h3>Swarm Intelligence</h3>
+			<p>Nano swarms within each category will automatically boost highest-tier machines first.</p>
+		</div>
+
+		<div class="boosts-panel">
+			<h3>Active Boosts</h3>
+			{#if activeBoosts.length > 0}
+				<div class="boost-list">
+					{#each activeBoosts as item}
+						<div class="boost-item">
+							<span class="boost-name">{item.name}</span>
+							<span class="boost-value">+{formatNumber(item.boost, suffixes)} machines</span>
+						</div>
+					{/each}
+				</div>
+			{:else}
+				<p class="empty-text">No active boosts. Produce more swarms or check allocation!</p>
+			{/if}
+		</div>
+
 		<div class="machine-list">
 			<div class="industry-card">
 				<div class="info">
-					<h3>{$t('production_lines.Nanobot Factory')}</h3>
+					<div class="tier-header">
+						<h3>{$t('production_lines.Nanobot Factory')}</h3>
+						<div class="owned-badge" title={$t('common.owned')}>
+							{formatNumber(nanoFactoryCount, suffixes)}
+						</div>
+					</div>
 					<p>{tr('heavy_industry_ui.auto_produces', '{machine}', 'Nano-Swarms')}</p>
-					<p class="details">
-						{$t('common.production')}: {formatNumber(nanobotProduction, suffixes)}/⏱️
-					</p>
-					<p class="owned">{$t('common.owned')}: {formatNumber(nanoFactoryCount, suffixes)}</p>
+					<div class="stats-row">
+						<div class="stat-block">
+							<span class="stat-label">{$t('common.production')}</span>
+							<span class="stat-value">
+								{formatNumber(nanobotProduction, suffixes)}/⏱️
+							</span>
+						</div>
+					</div>
 				</div>
 				<div class="actions">
 					<button class="buy-btn" disabled={game.money < nanoFactoryCost} on:click={buyFactory}>
@@ -217,14 +273,17 @@
 		border: 1px solid #3a4a5a;
 	}
 
-	h2 {
-		color: #00f2fe;
-		text-shadow: 0 0 10px rgba(0, 242, 254, 0.5);
-	}
-
 	h3 {
 		color: #eee;
 		margin-top: 0;
+		font-size: 1.1rem;
+		margin-bottom: 0.5rem;
+	}
+
+	p {
+		color: #ccc;
+		font-size: 0.9rem;
+		margin: 0;
 	}
 
 	.stats-panel {
@@ -236,7 +295,8 @@
 		border-radius: 8px;
 	}
 
-	.allocation-panel {
+	.explanation-panel,
+	.boosts-panel {
 		background: rgba(255, 255, 255, 0.05);
 		padding: 1rem;
 		border-radius: 8px;
@@ -244,40 +304,35 @@
 		border: 1px solid #3a4a5a;
 	}
 
-	.slider-row {
-		margin-bottom: 1rem;
+	.boost-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
 	}
 
-	.slider-label {
+	.boost-item {
 		display: flex;
 		justify-content: space-between;
-		margin-bottom: 0.25rem;
-		color: #ccc;
 		font-size: 0.9rem;
+		padding-bottom: 0.25rem;
+		border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+	}
+	.boost-item:last-child {
+		border-bottom: none;
 	}
 
-	.boost-text {
+	.boost-name {
+		color: #ccc;
+	}
+
+	.boost-value {
 		color: #00f2fe;
 		font-weight: bold;
 	}
 
-	.slider-controls {
-		display: flex;
-		align-items: center;
-		gap: 1rem;
-	}
-
-	input[type='range'] {
-		flex: 1;
-		cursor: pointer;
-		accent-color: #00f2fe;
-	}
-
-	.perc-value {
-		width: 3rem;
-		text-align: right;
-		font-weight: bold;
-		color: #fff;
+	.empty-text {
+		color: #888;
+		font-style: italic;
 	}
 
 	.stat {
@@ -309,49 +364,84 @@
 		border-radius: 8px;
 		border: 1px solid #333;
 		display: flex;
-		flex-direction: row; /* Horizontal layout */
+		flex-wrap: wrap;
+		flex-direction: row;
 		justify-content: space-between;
 		align-items: center;
 		gap: 2rem;
 	}
 
 	.info {
-		flex: 1;
+		flex: 999 1 300px;
 	}
 
 	.info h3 {
 		margin: 0 0 0.5rem 0;
-		font-size: var(--font-size-xl); /* Larger title */
+		font-size: var(--font-size-xl);
 		color: var(--color-text-primary);
 	}
 
-	.info p {
-		color: var(--color-text-muted);
-		font-size: var(--font-size-md);
-		margin: 0 0 0.5rem 0;
+	.tier-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 0.5rem;
+		gap: 1rem;
 	}
 
-	.details {
-		color: var(--color-text-muted);
-		font-size: var(--font-size-md);
-		margin: 0;
+	.owned-badge {
+		background: #333;
+		color: #fff;
+		font-size: 0.9rem;
+		font-weight: bold;
+		min-width: 2rem;
+		height: 2rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 999px;
+		padding: 0 0.5rem;
+		border: 1px solid #444;
 	}
 
-	.owned {
-		color: var(--color-text-highlight);
-		font-weight: var(--font-weight-bold);
-		margin: 0.5rem 0 0 0;
-		font-size: var(--font-size-lg);
+	.stats-row {
+		display: flex;
+		flex-wrap: wrap;
+		column-gap: 2rem;
+		row-gap: 1rem;
+		margin-bottom: 0.5rem;
+	}
+
+	.stat-block {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+
+	.stat-label {
+		text-transform: uppercase;
+		color: #888;
+		font-size: 0.75rem;
+		font-weight: bold;
+		letter-spacing: 0.05em;
+	}
+
+	.stat-value {
+		color: #fff;
+		font-size: 1.1rem;
+		font-weight: 500;
 	}
 
 	.actions {
 		display: flex;
 		gap: 0.5rem;
 		min-width: 200px;
+		flex: 1 1 auto;
+		justify-content: flex-end;
 	}
 
 	.buy-btn {
-		padding: 1rem 2rem; /* Larger button */
+		padding: 1rem 2rem;
 		border: none;
 		border-radius: 6px;
 		background: #444;
@@ -363,6 +453,7 @@
 		justify-content: center;
 		align-items: center;
 		width: 100%;
+		flex: 1;
 	}
 
 	.action-text {
@@ -384,5 +475,44 @@
 		cursor: not-allowed;
 		background: #333;
 		color: #666;
+	}
+
+	.allocation-panel {
+		background: rgba(255, 255, 255, 0.05);
+		padding: 1rem;
+		border-radius: 8px;
+		margin-bottom: 1.5rem;
+		border: 1px solid #3a4a5a;
+	}
+
+	.slider-row {
+		margin-bottom: 1rem;
+	}
+
+	.slider-label {
+		display: flex;
+		justify-content: space-between;
+		margin-bottom: 0.25rem;
+		color: #ccc;
+		font-size: 0.9rem;
+	}
+
+	.slider-controls {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+	}
+
+	input[type='range'] {
+		flex: 1;
+		cursor: pointer;
+		accent-color: #00f2fe;
+	}
+
+	.perc-value {
+		width: 3rem;
+		text-align: right;
+		font-weight: bold;
+		color: #fff;
 	}
 </style>

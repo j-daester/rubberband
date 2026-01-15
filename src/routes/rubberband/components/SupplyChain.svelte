@@ -140,81 +140,85 @@
 
 		<div class="plantation-list">
 			{#each rubberSourceFamilies as family}
-				<!-- Show family if any tier is unlocked? Usually just check iterating tiers. -->
-				<!-- Since rubber sources are now tires, we iterate them similarly to machines -->
-				<div class="family-wrapper">
-					{#each family.tiers as source, index}
-						{#if game.isProducerVisible(source)}
-							{@const owned = game.producers[family.id]?.[index] || 0}
-							{@const purchased = game.purchasedProducers[family.id]?.[index] || 0}
-							{@const max = game.getMaxAffordableProducer(family.id, index, game.money, purchased)}
-							{@const amount = buyAmount === -1 ? Math.max(1, max) : buyAmount}
-							{@const cost = game.getProducerCost(family.id, index, amount, purchased)}
-							{@const canAfford = game.money >= cost}
-							{@const isBeingProduced = game.isProducerBeingProduced(family.id, index)}
+				{#each family.tiers as source, index}
+					{#if game.isProducerVisible(source)}
+						{@const owned = game.producers[family.id]?.[index] || 0}
+						{@const purchased = game.purchasedProducers[family.id]?.[index] || 0}
+						{@const max = game.getMaxAffordableProducer(family.id, index, game.money, purchased)}
+						{@const amount = buyAmount === -1 ? Math.max(1, max) : buyAmount}
+						{@const cost = game.getProducerCost(family.id, index, amount, purchased)}
+						{@const canAfford = game.money >= cost}
+						{@const isBeingProduced = game.isProducerBeingProduced(family.id, index)}
 
-							{@const isDisplayOnly = source.allow_manual_purchase === false}
-							{@const sellPrice =
-								purchased > 0
-									? Math.floor(0.5 * game.getProducerCost(family.id, index, 1, purchased - 1))
-									: 0}
+						{@const isDisplayOnly = source.allow_manual_purchase === false}
+						{@const sellPrice =
+							purchased > 0
+								? Math.floor(0.5 * game.getProducerCost(family.id, index, 1, purchased - 1))
+								: 0}
 
-							{@const nextTier = family.tiers[index + 1]}
-							{@const canUpgrade = !!(nextTier && game.isProducerVisible(nextTier))}
+						{@const nextTier = family.tiers[index + 1]}
 
-							<div class="plantation-card">
-								<div class="plantation-info">
+						<div class="plantation-card">
+							<div class="plantation-info">
+								<div class="tier-header">
 									<h3>{$t('rubber_sources.' + source.name)}</h3>
-									<p class="details">
-										{$t('common.production')}: {formatWeight(
-											game.getProducerOutput(family.id, index)
-										)}
-										{$t('common.rubber')}/⏱️
-									</p>
-									<p class="details">
-										{$t('common.maintenance')}: {formatMoney(
-											source.maintenance_cost || 0,
-											suffixes
-										)}/⏱️
-									</p>
-									<p class="owned">{$t('common.owned')}: {formatNumber(owned, suffixes)}</p>
+									<div class="owned-badge" title={$t('common.owned')}>
+										{formatNumber(owned, suffixes)}
+									</div>
 								</div>
-								<div class="actions">
-									{#if !isDisplayOnly}
-										<div class="action-column">
-											<div class="buy-sell-row">
-												<button
-													class="buy-btn"
-													disabled={(!canAfford && buyAmount !== -1) ||
-														(buyAmount === -1 && max === 0) ||
-														isBeingProduced}
-													on:click={() => handleBuy(family.id, index, amount)}
-													title={isBeingProduced
-														? 'Cannot buy while being produced by heavy industry'
-														: ''}
-												>
-													<span class="action-text">{$t('common.buy')}</span>
-													<span class="price-text">{formatMoney(cost, suffixes)}</span>
-												</button>
-												<button
-													class="buy-btn sell-btn"
-													disabled={owned <= 0 || isBeingProduced}
-													on:click={() => handleSell(family.id, index)}
-													title={isBeingProduced
-														? 'Cannot sell while being produced by heavy industry'
-														: ''}
-												>
-													<span class="action-text">{$t('common.sell')}</span>
-													<span class="price-text">{formatMoney(sellPrice, suffixes)}</span>
-												</button>
-											</div>
-										</div>
-									{/if}
+
+								<div class="stats-row">
+									<div class="stat-block">
+										<span class="stat-label">{$t('common.production')}</span>
+										<span class="stat-value">
+											{formatWeight(game.getProducerOutput(family.id, index))}
+											{$t('common.rubber')}/⏱️
+										</span>
+									</div>
+									<div class="stat-block">
+										<span class="stat-label">{$t('common.maintenance')}</span>
+										<span class="stat-value">
+											{formatMoney(source.maintenance_cost || 0, suffixes)}/⏱️
+										</span>
+									</div>
 								</div>
 							</div>
-						{/if}
-					{/each}
-				</div>
+
+							<div class="actions">
+								{#if !isDisplayOnly}
+									<div class="action-column">
+										<div class="buy-sell-row">
+											<button
+												class="buy-btn"
+												disabled={(!canAfford && buyAmount !== -1) ||
+													(buyAmount === -1 && max === 0) ||
+													isBeingProduced}
+												on:click={() => handleBuy(family.id, index, amount)}
+												title={isBeingProduced
+													? 'Cannot buy while being produced by heavy industry'
+													: ''}
+											>
+												<span class="action-text">{$t('common.buy')}</span>
+												<span class="price-text">{formatMoney(cost, suffixes)}</span>
+											</button>
+											<button
+												class="buy-btn sell-btn"
+												disabled={owned <= 0 || isBeingProduced}
+												on:click={() => handleSell(family.id, index)}
+												title={isBeingProduced
+													? 'Cannot sell while being produced by heavy industry'
+													: ''}
+											>
+												<span class="action-text">{$t('common.sell')}</span>
+												<span class="price-text">{formatMoney(sellPrice, suffixes)}</span>
+											</button>
+										</div>
+									</div>
+								{/if}
+							</div>
+						</div>
+					{/if}
+				{/each}
 			{/each}
 		</div>
 	</section>
@@ -226,14 +230,8 @@
 	}
 
 	.plantation-list {
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-	}
-
-	.family-wrapper {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
 		gap: 1rem;
 	}
 
@@ -243,14 +241,20 @@
 		border-radius: 8px;
 		border: 1px solid #333;
 		display: flex;
-		flex-direction: column;
+		flex-wrap: wrap;
+		gap: 1rem;
 		justify-content: space-between;
+		align-items: center;
+	}
+
+	.plantation-info {
+		flex: 999 1 300px;
 	}
 
 	.plantation-info h3 {
-		margin: 0 0 0.5rem 0;
-		font-size: var(--font-size-lg);
-		color: var(--color-text-primary);
+		margin: 0;
+		font-size: 1rem;
+		color: #ddd;
 	}
 
 	.details {
@@ -259,28 +263,76 @@
 		margin: 0;
 	}
 
-	.owned {
-		color: var(--color-text-highlight);
-		font-weight: var(--font-weight-bold);
-		margin: 0.5rem 0 0.5rem 0;
+	.tier-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 0.5rem;
+		gap: 1rem;
+	}
+
+	.owned-badge {
+		background: #333;
+		color: #fff;
+		font-size: 0.9rem;
+		font-weight: bold;
+		min-width: 2rem;
+		height: 2rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 999px;
+		padding: 0 0.5rem;
+		border: 1px solid #444;
+	}
+
+	.stats-row {
+		display: flex;
+		flex-wrap: wrap;
+		column-gap: 2rem;
+		row-gap: 1rem;
+		margin-bottom: 0.5rem;
+	}
+
+	.stat-block {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+
+	.stat-label {
+		text-transform: uppercase;
+		color: #888;
+		font-size: 0.75rem;
+		font-weight: bold;
+		letter-spacing: 0.05em;
+	}
+
+	.stat-value {
+		color: #fff;
+		font-size: 1.1rem;
+		font-weight: 500;
 	}
 
 	.actions {
 		display: flex;
-		flex-direction: column;
 		gap: 0.5rem;
-		margin-top: 1rem;
+		margin-top: 0;
+		flex: 1 1 auto;
+		justify-content: flex-end;
 	}
 
 	.action-column {
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;
+		flex: 1;
 	}
 
 	.buy-sell-row {
 		display: flex;
 		gap: 0.5rem;
+		flex: 1;
 	}
 
 	.buy-btn {

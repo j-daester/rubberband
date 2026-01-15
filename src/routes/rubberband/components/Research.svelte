@@ -93,22 +93,33 @@
 		border-radius: 8px;
 		border: 1px solid #333;
 		display: flex;
-		flex-direction: column; /* Stack vertically */
-		gap: 1rem; /* Space between text and button */
+		flex-wrap: wrap; /* Allow wrapping */
+		gap: 1rem;
 		justify-content: space-between;
-		align-items: stretch; /* Full width for children */
+		align-items: center;
+	}
+
+	.info {
+		flex: 1;
+		min-width: 200px;
 	}
 
 	.info h3 {
-		margin: 0 0 0.5rem 0;
-		font-size: var(--font-size-lg);
-		color: var(--color-text-primary);
+		margin: 0;
+		font-size: 1rem;
+		color: #ddd;
+	}
+
+	.info h3 {
+		margin: 0;
+		font-size: 1rem;
+		color: #ddd;
 	}
 
 	.info p {
 		color: var(--color-text-muted);
 		font-size: var(--font-size-sm);
-		margin: 0;
+		margin: 0.25rem 0 0 0;
 	}
 
 	.buy-btn {
@@ -124,6 +135,8 @@
 		justify-content: center;
 		align-items: center;
 		min-height: 3.5rem;
+		flex: 1 1 auto;
+		min-width: fit-content;
 	}
 
 	.action-text {

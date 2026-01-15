@@ -37,7 +37,6 @@
 
 {#if game.researched.includes(GAME_CONSTANTS.MARKETING_UNLOCK_RESEARCH)}
 	<section class="marketing">
-		<h2>{$t('marketing_ui.title')}</h2>
 		<div class="marketing-card">
 			<div class="info">
 				<h3>{tr('marketing_ui.campaign_title', '{level}', marketingLevel.toString())}</h3>
@@ -70,8 +69,14 @@
 		border-radius: 8px;
 		border: 1px solid #333;
 		display: flex;
+		flex-wrap: wrap;
+		gap: 1rem;
 		justify-content: space-between;
 		align-items: center;
+	}
+
+	.info {
+		flex: 999 1 300px;
 	}
 
 	.info h3 {
@@ -99,6 +104,8 @@
 		justify-content: center;
 		align-items: center;
 		min-height: 3.5rem;
+		flex: 1 1 auto;
+		min-width: fit-content;
 	}
 
 	.action-text {
@@ -118,17 +125,5 @@
 		cursor: not-allowed;
 		background: #333;
 		color: #666;
-	}
-
-	@media (max-width: 480px) {
-		.marketing-card {
-			flex-direction: column;
-			gap: 1rem;
-			align-items: stretch;
-		}
-
-		.buy-btn {
-			width: 100%;
-		}
 	}
 </style>

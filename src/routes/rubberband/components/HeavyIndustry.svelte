@@ -45,118 +45,105 @@
 
 		<div class="machine-list">
 			{#each productionLineFamilies as family}
-				{@const baseLine = family.tiers[0]}
-				{#if game.isProducerVisible(baseLine)}
-					<div class="industry-card">
-						<div class="family-header">
-							<h3>{$t('production_lines.' + baseLine.name)}</h3>
-						</div>
+				{#each family.tiers as line, index}
+					{@const count = game.producers[family.id]?.[index] || 0}
+					<!-- Check visibility: Visible if unlocked OR owned > 0 -->
+					{#if game.isProducerVisible(line) || count > 0}
+						<!-- Logic Setup -->
+						{@const isBeingProduced = false}
 
-						<div class="tiers-container">
-							{#each family.tiers as line, index}
-								{@const count = game.producers[family.id]?.[index] || 0}
-								{#if game.isProducerVisible(line) || count > 0}
-									{@const isBeingProduced = false}
-									<!-- Lines are not produced by other lines usually -->
-									{@const nextTier = family.tiers[index + 1]}
-									{@const canUpgrade = !!(nextTier && game.isProducerVisible(nextTier))}
+						<!-- Name Translation Logic for Description -->
+						{@const machineNameTranslated =
+							line.production.output.resource === 'rubber'
+								? $t('rubber_sources.' + line.name)
+								: (() => {
+										const targetFamilyId = line.production.output.familyId;
+										const targetTierIndex = line.production.output.tierIndex || 0;
+										const targetFamily = producerFamilies.find((f) => f.id === targetFamilyId);
+										const targetTier = targetFamily?.tiers[targetTierIndex];
 
-									{@const machineNameTranslated =
-										line.production.output.resource === 'rubber' // Fallback check
-											? $t('rubber_sources.' + line.name)
-											: (() => {
-													const targetFamilyId = line.production.output.familyId;
-													const targetTierIndex = line.production.output.tierIndex || 0;
-													const targetFamily = producerFamilies.find(
-														(f) => f.id === targetFamilyId
-													);
-													const targetTier = targetFamily?.tiers[targetTierIndex];
+										if (targetFamily?.type === 'rubber_source')
+											return targetTier ? $t('rubber_sources.' + targetTier.name) : '';
+										return targetTier ? $t('machines.' + targetTier.name) : '';
+								  })()}
 
-													if (targetFamily?.type === 'rubber_source')
-														return targetTier ? $t('rubber_sources.' + targetTier.name) : '';
-													return targetTier ? $t('machines.' + targetTier.name) : '';
-											  })()}
+						<!-- Stats Logic -->
+						{@const totalOutput = game.getProducerOutput(family.id, index)}
+						{@const baseOutput = line.production.output.amount}
+						{@const boost = totalOutput - baseOutput}
 
-									{@const nanoSwarms = game.producers['nanoswarm']?.[0] || 0}
+						<!-- Card -->
+						<div class="industry-card">
+							<div class="info">
+								<div class="tier-header">
+									<h3>{$t('production_lines.' + line.name)}</h3>
+									<div class="owned-badge" title={$t('common.owned')}>
+										{formatNumber(count, suffixes)}
+									</div>
+								</div>
+								<p class="desc">
+									{tr('heavy_industry_ui.auto_produces', '{machine}', machineNameTranslated)}
+								</p>
 
-									<!-- Boost is calculated inside getEntityOutput, we just display the base+boost diff if we want, or just Total.
-                                         Original code showed (+Boost).
-                                         Let's calc boost for display.
-                                    -->
-									{@const totalOutput = game.getProducerOutput(family.id, index)}
-									{@const baseOutput = line.production.output.amount}
-									{@const boost = totalOutput - baseOutput}
-
-									<div class="tier-row">
-										<div class="info">
-											<h4>{$t('production_lines.' + line.name)}</h4>
-											<p class="desc">
-												{tr('heavy_industry_ui.auto_produces', '{machine}', machineNameTranslated)}
-											</p>
-
-											<div class="stats">
-												<span class="stat">
-													{$t('common.production')}:
-													<span class="val">{formatNumber(totalOutput, suffixes)}/⏱️</span>
-													{#if boost > 0}
-														<span class="boost">(+{formatNumber(boost, suffixes)})</span>
-													{/if}
-												</span>
-												<span class="stat"
-													>{$t('common.owned')}:
-													<span class="val highlight">{formatNumber(count, suffixes)}</span></span
-												>
-											</div>
-										</div>
-
-										<div class="actions">
-											<!-- Buy / Sell Base Tier -->
-											{#if line.allow_manual_purchase !== false}
-												{@const purchased = game.purchasedProducers[family.id]?.[index] || 0}
-												{@const maxBuy = game.getMaxAffordableProducer(
-													family.id,
-													index,
-													game.money,
-													purchased
-												)}
-												{@const currentBuyAmount =
-													buyAmount === -1 ? Math.max(1, maxBuy) : buyAmount}
-												{@const buyCost = game.getProducerCost(
-													family.id,
-													index,
-													currentBuyAmount,
-													purchased
-												)}
-												{@const canAffordBuy = game.money >= buyCost}
-
-												<div class="action-group">
-													<button
-														class="btn buy"
-														disabled={(!canAffordBuy && buyAmount !== -1) ||
-															(buyAmount === -1 && maxBuy === 0)}
-														on:click={() => handleBuy(family.id, index, currentBuyAmount)}
-													>
-														Buy {currentBuyAmount} <br />
-														<small>{formatMoney(buyCost, suffixes)}</small>
-													</button>
-													<button
-														class="btn sell"
-														disabled={count <= 0}
-														on:click={() => handleSell(family.id, index)}
-													>
-														Sell
-													</button>
-												</div>
+								<div class="stats-row">
+									<div class="stat-block">
+										<span class="stat-label">{$t('common.production')}</span>
+										<span class="stat-value">
+											{formatNumber(totalOutput, suffixes)}/⏱️
+											{#if boost > 0}
+												<span class="boost">(+{formatNumber(boost, suffixes)})</span>
 											{/if}
+										</span>
+									</div>
+								</div>
+							</div>
 
-											<!-- Upgrade -->
-										</div>
+							<div class="actions">
+								{#if line.allow_manual_purchase !== false}
+									{@const purchased = game.purchasedProducers[family.id]?.[index] || 0}
+									{@const maxBuy = game.getMaxAffordableProducer(
+										family.id,
+										index,
+										game.money,
+										purchased
+									)}
+									{@const currentBuyAmount = buyAmount === -1 ? Math.max(1, maxBuy) : buyAmount}
+									{@const buyCost = game.getProducerCost(
+										family.id,
+										index,
+										currentBuyAmount,
+										purchased
+									)}
+									{@const canAffordBuy = game.money >= buyCost}
+									{@const sellPrice =
+										count > 0
+											? Math.floor(0.5 * game.getProducerCost(family.id, index, 1, count - 1))
+											: 0}
+
+									<div class="action-group">
+										<button
+											class="buy-btn"
+											disabled={(!canAffordBuy && buyAmount !== -1) ||
+												(buyAmount === -1 && maxBuy === 0)}
+											on:click={() => handleBuy(family.id, index, currentBuyAmount)}
+										>
+											<span class="action-text">{$t('common.buy')}</span>
+											<span class="price-text">{formatMoney(buyCost, suffixes)}</span>
+										</button>
+										<button
+											class="buy-btn sell-btn"
+											disabled={count <= 0}
+											on:click={() => handleSell(family.id, index)}
+										>
+											<span class="action-text">{$t('common.sell')}</span>
+											<span class="price-text">{formatMoney(sellPrice, suffixes)}</span>
+										</button>
 									</div>
 								{/if}
-							{/each}
+							</div>
 						</div>
-					</div>
-				{/if}
+					{/if}
+				{/each}
 			{/each}
 		</div>
 	</section>
@@ -170,8 +157,8 @@
 
 	.machine-list {
 		display: grid;
-		grid-template-columns: 1fr;
-		gap: 1.5rem;
+		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+		gap: 1rem;
 	}
 
 	.industry-card {
@@ -179,111 +166,150 @@
 		padding: 1rem;
 		border-radius: 8px;
 		border: 1px solid #333;
-	}
-	.family-header h3 {
-		margin-top: 0;
-		border-bottom: 1px solid #333;
-		padding-bottom: 0.5rem;
-		color: #fff;
-	}
-
-	.tiers-container {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
-
-	.tier-row {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
 		justify-content: space-between;
-		background: #303030;
-		padding: 0.5rem;
-		border-radius: 6px;
 		gap: 1rem;
 	}
 
 	.info {
-		flex: 1;
+		flex: 999 1 250px;
 		min-width: 250px;
 	}
-	.info h4 {
-		margin: 0 0 0.25rem 0;
+
+	.tier-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 0.25rem;
+		gap: 1rem;
+	}
+
+	.info h3 {
+		margin: 0;
 		font-size: 1rem;
 		color: #ddd;
 	}
-	.info .desc {
-		color: #aaa;
-		font-size: 0.8rem;
-		margin-bottom: 0.25rem;
+
+	.owned-badge {
+		background: #333;
+		color: #fff;
+		font-size: 0.9rem;
+		font-weight: bold;
+		min-width: 2rem;
+		height: 2rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 999px;
+		padding: 0 0.5rem;
+		border: 1px solid #444;
 	}
 
-	.stats {
-		font-size: 0.85rem;
+	.desc {
 		color: #aaa;
+		font-size: 0.8rem;
+		margin-bottom: 0.5rem;
+	}
+
+	.stats-row {
 		display: flex;
-		gap: 1rem;
+		flex-wrap: wrap;
+		column-gap: 2rem;
+		row-gap: 1rem;
+		margin-bottom: 0.5rem;
 	}
-	.stat .val {
-		color: #fff;
+
+	.stat-block {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
 	}
-	.stat .val.highlight {
-		color: #4caf50;
+
+	.stat-label {
+		text-transform: uppercase;
+		color: #888;
+		font-size: 0.75rem;
 		font-weight: bold;
+		letter-spacing: 0.05em;
 	}
+
+	.stat-value {
+		color: #fff;
+		font-size: 1.1rem;
+		font-weight: 500;
+	}
+
 	.boost {
 		color: #00f2fe;
 		font-weight: bold;
-		font-size: 0.9em;
+		font-size: 0.8em;
+		margin-left: 0.3rem;
 	}
 
 	.actions {
 		display: flex;
 		gap: 1rem;
+		flex: 1 1 auto;
+		justify-content: flex-end;
 	}
 
 	.action-group {
 		display: flex;
-		gap: 2px;
+		gap: 0.5rem;
+		flex: 1;
 	}
 
-	.btn {
-		border: none;
-		border-radius: 4px;
-		padding: 0.4rem 0.8rem;
-		cursor: pointer;
-		color: white;
-		font-size: 0.8rem;
-		line-height: 1.2;
-		text-align: center;
-		min-width: 80px;
-	}
-	.btn small {
-		display: block;
-		opacity: 0.8;
-		font-size: 0.75em;
-	}
-
-	.btn.buy {
+	.buy-btn {
 		background: #444;
+		border: 1px solid #555;
+		color: #fff;
+		border-radius: 4px;
+		padding: 0.5rem 1rem;
+		cursor: pointer;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		min-width: 80px;
+		transition: all 0.2s;
+		flex: 1;
 	}
-	.btn.buy:hover:not(:disabled) {
+
+	.buy-btn:hover:not(:disabled) {
 		background: #555;
+		border-color: #666;
 	}
 
-	.btn.sell {
-		background: #5a3030;
-		opacity: 0.8;
-	}
-	.btn.sell:hover:not(:disabled) {
-		background: #7a4040;
-		opacity: 1;
-	}
-
-	.btn:disabled {
-		opacity: 0.4;
+	.buy-btn:disabled {
+		opacity: 0.5;
 		cursor: not-allowed;
-		filter: grayscale(0.5);
+		filter: grayscale(0.8);
+	}
+
+	.sell-btn {
+		background: #3f2a2a;
+		border-color: #553333;
+	}
+
+	.sell-btn:hover:not(:disabled) {
+		background: #5a3a3a;
+		border-color: #774444;
+	}
+
+	.action-text {
+		font-size: 0.85rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		line-height: 1.2;
+	}
+
+	.price-text {
+		font-size: 0.75rem;
+		color: #aaa;
+		margin-top: 0.1rem;
+		font-weight: normal;
 	}
 </style>

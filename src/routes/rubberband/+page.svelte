@@ -4,7 +4,6 @@
 
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { slide } from 'svelte/transition';
 	import { Game } from './game';
 	import { GAME_CONSTANTS } from './parameters';
 
@@ -29,8 +28,7 @@
 
 	// Scroll detection for sticky header
 	let scrollY = 0;
-	let mainPanelScrollY = 0;
-	$: isScrolled = scrollY > 50 || mainPanelScrollY > 50;
+	$: isScrolled = scrollY > 50;
 
 	// Reactive declarations for header stats
 	let money = game.money;
@@ -122,11 +120,6 @@
 		}
 	}
 
-	function updateRubberbandPrice() {
-		game.setRubberbandPrice(rubberbandPrice);
-		tick++;
-	}
-
 	function restartGame() {
 		if (!gameOver && !confirm($t('common.restart_game') + '?')) {
 			// Simplified confirm
@@ -148,7 +141,6 @@
 	let usedStorageSpace = 0;
 	let showResourceGroup = false;
 	let showOperationsSection = true;
-	let showButtons = true;
 
 	$: {
 		tick;
@@ -197,9 +189,6 @@
 		const showMakeBtn = totalMachines === 0;
 		const showBuyBtn = !hasRubberSources;
 
-		// Hide manual buttons if Nano is researched (automation phase)
-		showButtons = (showMakeBtn || showBuyBtn) && !nanoResearched;
-
 		const marketingUnlocked = researched.includes(GAME_CONSTANTS.MARKETING_UNLOCK_RESEARCH);
 		// Operations section is always visible now because it contains the Price Controls (DemandCurve) which are essential
 		showOperationsSection = true;
@@ -224,7 +213,6 @@
 
 	// Reactive translations dependent on game state/tick
 	let buyRubberText = '',
-		priceLabelText = '',
 		scoreStatText = '',
 		totalSoldStatText = '',
 		coinsStatText = '',
@@ -239,7 +227,6 @@
 				'{cost}',
 				formatMoney(100 * game.rubberPrice, suffixes)
 			);
-			priceLabelText = ($t('common.price_label') as string).replace('{currency}', '🪙');
 			scoreStatText = ($t('common.score_stat') as string).replace(
 				'{score}',
 				formatNumber(score, suffixes)
@@ -255,11 +242,6 @@
 			ticksStatText = ($t('common.ticks_stat') as string).replace('{amount}', tickCount.toString());
 		}
 	}
-
-	function handleMainPanelScroll(e: UIEvent) {
-		const target = e.currentTarget as HTMLElement;
-		mainPanelScrollY = target.scrollTop;
-	}
 </script>
 
 <svelte:head>
@@ -273,179 +255,172 @@
 	<header class:scrolled={isScrolled}>
 		<h1>Rubberband Inc.</h1>
 
-		<div class="progress-bar">
-			<div class="stat">
-				<span class="label">{$t('common.total_sold')}</span>
-				<span class="value">{formatNumber(totalSold, suffixes)}</span>
-			</div>
-			<div class="stat">
-				<span class="label">Ticks {$t('common.ticks')}</span>
-				<span class="value">{tickCount}</span>
-			</div>
-			<button class="restart-btn-small" on:click={restartGame} title={$t('common.restart_game')}>
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					width="24"
-					height="24"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-				>
-					<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-					<path d="M3 3v5h5" />
-				</svg>
-			</button>
-		</div>
-
-		<div class="split-layout">
-			<div class="left-column">
-				<div class="resource-group">
-					<span class="group-title">{$t('common.inventory')}</span>
-					<div class="stat-row">
-						<div class="stat">
-							<span class="label">{$t('common.rubber')}</span>
-							<span class="value">{formatWeight(rubber)}</span>
-						</div>
-						<div class="stat">
-							<span class="label">{$t('common.rubberbands')}</span>
-							<span class="value">{formatNumber(Math.floor(rubberbands), suffixes)}</span>
-						</div>
-					</div>
+		<!-- Main Stats Dashboard -->
+		<div class="stats-dashboard">
+			<!-- Top Row: Global Stats -->
+			<div class="stat-card main-stats">
+				<div class="stat">
+					<span class="label">{$t('common.total_sold')}</span>
+					<span class="value">{formatNumber(totalSold, suffixes)}</span>
 				</div>
-
-				<div class="resource-group">
-					<span class="group-title">{$t('common.production')}</span>
-					<div class="stat-row">
-						<div class="stat">
-							<span class="label">{$t('common.rubber')}</span>
-							<span class="value">{formatWeight(rubberProduction)}/⏱️</span>
-						</div>
-						{#if hasRubberSources}
-							<div class="stat">
-								<span class="label">{$t('common.net_rubber')}</span>
-								<span
-									class="value"
-									style="color: {rubberProduction - theoreticalConsumption >= 0
-										? '#4caf50'
-										: '#ff6b6b'}"
-								>
-									{rubberProduction - theoreticalConsumption > 0 ? '+' : ''}{formatWeight(
-										rubberProduction - theoreticalConsumption
-									)}/⏱️
-								</span>
-							</div>
-						{/if}
-						<div class="stat">
-							<span class="label">{$t('common.bands')}</span>
-							<span class="value">{formatNumber(productionRate, suffixes)}/⏱️</span>
-						</div>
-					</div>
+				<div class="stat">
+					<span class="label">Ticks {$t('common.ticks')}</span>
+					<span class="value">{tickCount}</span>
 				</div>
-
-				{#if showResourceGroup}
-					<div class="resource-group">
-						<span class="group-title">{$t('common.logistics')}</span>
-						<div
-							class="stat-row"
-							style="flex-direction: column; gap: 0.5rem; align-items: stretch;"
+				<div class="restart-container">
+					<button
+						class="restart-btn-small"
+						on:click={restartGame}
+						title={$t('common.restart_game')}
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="24"
+							height="24"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
 						>
-							<div class="stat resource-stat" style="width: 100%">
-								<span class="label">{$t('common.storage_limit')} 📦</span>
+							<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+							<path d="M3 3v5h5" />
+						</svg>
+					</button>
+				</div>
+			</div>
+
+			<!-- Middle Row: Inventory & Production -->
+			<div class="stat-card inventory-stats">
+				<span class="group-title">{$t('common.inventory')}</span>
+				<div class="stat-row">
+					<div class="stat">
+						<span class="label">{$t('common.rubber')}</span>
+						<span class="value">{formatWeight(rubber)}</span>
+					</div>
+					<div class="stat">
+						<span class="label">{$t('common.rubberbands')}</span>
+						<span class="value">{formatNumber(Math.floor(rubberbands), suffixes)}</span>
+					</div>
+				</div>
+			</div>
+
+			<div class="stat-card production-stats">
+				<span class="group-title">{$t('common.production')}</span>
+				<div class="stat-row">
+					<div class="stat">
+						<span class="label">{$t('common.rubber')}</span>
+						<span class="value">{formatWeight(rubberProduction)}/⏱️</span>
+					</div>
+					{#if hasRubberSources}
+						<div class="stat">
+							<span class="label">{$t('common.net_rubber')}</span>
+							<span
+								class="value"
+								style="color: {rubberProduction - theoreticalConsumption >= 0
+									? '#4caf50'
+									: '#ff6b6b'}"
+							>
+								{rubberProduction - theoreticalConsumption > 0 ? '+' : ''}{formatWeight(
+									rubberProduction - theoreticalConsumption
+								)}/⏱️
+							</span>
+						</div>
+					{/if}
+					<div class="stat">
+						<span class="label">{$t('common.bands')}</span>
+						<span class="value">{formatNumber(productionRate, suffixes)}/⏱️</span>
+					</div>
+				</div>
+			</div>
+
+			{#if showResourceGroup}
+				<div class="stat-card logistics-stats">
+					<span class="group-title">{$t('common.logistics')}</span>
+					<div class="stat-column">
+						<div class="stat resource-stat">
+							<span class="label">{$t('common.storage_limit')} 📦</span>
+							<div class="progress-bar-container">
+								<div
+									class="resource-progress-bar"
+									style="width: {Math.min(
+										100,
+										(usedStorageSpace / storageLimit) * 100
+									)}%; background-color: #ff9800;"
+								/>
+								<span class="progress-text"
+									>{formatArea(usedStorageSpace)} / {formatArea(storageLimit)}</span
+								>
+							</div>
+						</div>
+
+						{#if researched.includes('synthetic_rubber') && !researched.includes('molecular_transformation')}
+							<div class="stat resource-stat">
+								<span class="label">{$t('common.oil_reserves')} 🛢️</span>
 								<div class="progress-bar-container">
 									<div
 										class="resource-progress-bar"
 										style="width: {Math.min(
 											100,
-											(usedStorageSpace / storageLimit) * 100
-										)}%; background-color: #ff9800;"
+											(consumedOil / GAME_CONSTANTS.OIL_RESERVES_LIMIT) * 100
+										)}%"
 									/>
 									<span class="progress-text"
-										>{formatArea(usedStorageSpace)} / {formatArea(storageLimit)}</span
+										>{formatVolume(consumedOil)} / {formatVolume(
+											GAME_CONSTANTS.OIL_RESERVES_LIMIT
+										)}</span
 									>
 								</div>
 							</div>
+						{/if}
+						{#if researched.includes('molecular_transformation')}
+							<div class="stat resource-stat">
+								<span class="label">{$t(resourceUnitNameKey)} 🌍</span>
+								<div class="progress-bar-container">
+									<div
+										class="resource-progress-bar"
+										style="width: {Math.min(100, (consumedEarthResources / resourceLimit) * 100)}%"
+									/>
+									<span class="progress-text"
+										>{formatWeight(consumedEarthResources)} / {formatWeight(resourceLimit)}</span
+									>
+								</div>
+							</div>
+						{/if}
+					</div>
+				</div>
+			{/if}
 
-							{#if researched.includes('synthetic_rubber') && !researched.includes('molecular_transformation')}
-								<div class="stat resource-stat" style="width: 100%">
-									<span class="label">{$t('common.oil_reserves')} 🛢️</span>
-									<div class="progress-bar-container">
-										<div
-											class="resource-progress-bar"
-											style="width: {Math.min(
-												100,
-												(consumedOil / GAME_CONSTANTS.OIL_RESERVES_LIMIT) * 100
-											)}%"
-										/>
-										<span class="progress-text"
-											>{formatVolume(consumedOil)} / {formatVolume(
-												GAME_CONSTANTS.OIL_RESERVES_LIMIT
-											)}</span
-										>
-									</div>
-								</div>
-							{/if}
-							{#if researched.includes('molecular_transformation')}
-								<div class="stat resource-stat" style="width: 100%">
-									<span class="label">{$t(resourceUnitNameKey)} 🌍</span>
-									<div class="progress-bar-container">
-										<div
-											class="resource-progress-bar"
-											style="width: {Math.min(
-												100,
-												(consumedEarthResources / resourceLimit) * 100
-											)}%"
-										/>
-										<span class="progress-text"
-											>{formatWeight(consumedEarthResources)} / {formatWeight(resourceLimit)}</span
-										>
-									</div>
-								</div>
+			<!-- Bottom Row: Economy -->
+			<div class="stat-card economy-stats" style="grid-column: 1 / -1;">
+				<span class="group-title">{$t('common.economy')}</span>
+				<div class="economy-content-grid">
+					<div class="stat coin-stat">
+						<span class="label">{$t('common.coins')} 🪙</span>
+						<span class="value" style="color: {money < 0 ? '#ff6b6b' : ''}"
+							>{formatMoney(money, suffixes)}</span
+						>
+					</div>
+
+					<div class="financial-details-grid">
+						<div class="detail-group">
+							{#if maintenanceCost > 0}
+								<span>{$t('common.maintenance')}:</span>
+								<span class="negative">-{formatMoney(maintenanceCost, suffixes)}/⏱️</span>
 							{/if}
 						</div>
-					</div>
-				{/if}
-			</div>
-
-			<div class="right-column">
-				<div class="resource-group economy-group">
-					<span class="group-title">{$t('common.economy')}</span>
-					<div class="economy-content">
-						<!-- Top Row: Money and Financial Details -->
-						<div class="economy-stats-row">
-							<div class="stat coin-stat">
-								<span class="label">{$t('common.coins')} 🪙</span>
-								<span class="value" style="color: {money < 0 ? '#ff6b6b' : ''}"
-									>{formatMoney(money, suffixes)}</span
-								>
-							</div>
-
-							<div class="financial-details">
-								{#if maintenanceCost > 0}
-									<div class="detail-row">
-										<span class="detail-label">{$t('common.maintenance')}</span>
-										<span class="detail-value negative"
-											>-{formatMoney(maintenanceCost, suffixes)}/⏱️</span
-										>
-									</div>
-								{/if}
-								{#if inventoryCost > 0}
-									<div class="detail-row">
-										<span class="detail-label">{$t('common.storage_cost')}</span>
-										<span class="detail-value negative"
-											>-{formatMoney(inventoryCost, suffixes)}/⏱️</span
-										>
-									</div>
-								{/if}
-								<div class="detail-row profit-row">
-									<span class="detail-label">{$t('common.profit')}</span>
-									<span class="detail-value {netIncome >= 0 ? 'positive' : 'negative'}">
-										{netIncome >= 0 ? '+' : ''}{formatMoney(netIncome, suffixes)}/⏱️
-									</span>
-								</div>
-							</div>
+						<div class="detail-group">
+							{#if inventoryCost > 0}
+								<span>{$t('common.storage_cost')}:</span>
+								<span class="negative">-{formatMoney(inventoryCost, suffixes)}/⏱️</span>
+							{/if}
+						</div>
+						<div class="detail-group profit">
+							<span>{$t('common.profit')}:</span>
+							<span class={netIncome >= 0 ? 'positive' : 'negative'}>
+								{netIncome >= 0 ? '+' : ''}{formatMoney(netIncome, suffixes)}/⏱️
+							</span>
 						</div>
 					</div>
 				</div>
@@ -454,58 +429,53 @@
 	</header>
 
 	<main class="content-layout">
-		<!-- Sidebar for Research -->
-		<aside class="sidebar-column">
-			<Research {game} {tick} {suffixes} on:action={handleAction} />
-		</aside>
-
-		<!-- Main Content Area -->
-		<div class="main-panel" on:scroll={handleMainPanelScroll}>
+		<!-- Systems Grid (Research, Machines, Supply, Heavy Industry) -->
+		<div class="systems-grid">
+			<!-- Central Operations Section (Combined Operations, Marketing, Nano) -->
 			{#if showOperationsSection}
-				<section class="actions">
-					<h2>{$t('common.operations')}</h2>
+				<section class="central-operations">
+					<section class="operations-content">
+						<!-- Price Controls -->
+						<div class="chart-container">
+							<DemandCurve {game} {tick} {suffixes} on:priceChange={handlePriceChange} />
+						</div>
 
-					<!-- Price Controls moved here -->
-					<div class="chart-container" style="margin-bottom: 2rem;">
-						<DemandCurve {game} {tick} {suffixes} on:priceChange={handlePriceChange} />
-					</div>
-					<div class="button-group">
-						{#if totalMachines === 0}
-							<button class="action-btn primary" on:click={makeRubberband} disabled={rubber < 1}>
-								{$t('common.make_rubberband')}
-							</button>
-						{/if}
-						{#if !hasRubberSources}
-							<button
-								class="action-btn secondary"
-								on:click={buyRubber}
-								disabled={money < 100 * game.rubberPrice}
-							>
-								{@html buyRubberText}
-							</button>
-						{/if}
-					</div>
-					<!-- Removed stray /if -->
-
-					<!-- Merged Marketing into Operations/Actions area -->
+						<!-- Manual Controls -->
+						<div class="manual-controls">
+							<div class="button-group">
+								{#if totalMachines === 0}
+									<button
+										class="action-btn primary"
+										on:click={makeRubberband}
+										disabled={rubber < 1}
+									>
+										{$t('common.make_rubberband')}
+									</button>
+								{/if}
+								{#if !hasRubberSources}
+									<button
+										class="action-btn secondary"
+										on:click={buyRubber}
+										disabled={money < 100 * game.rubberPrice}
+									>
+										{@html buyRubberText}
+									</button>
+								{/if}
+							</div>
+						</div>
+					</section>
+					<!-- Marketing -->
 					<Marketing {game} {tick} {suffixes} on:action={handleAction} />
 
-					<!-- Nano Factory moves here -->
+					<!-- Nano Factory -->
 					<NanoFactory {game} {tick} {suffixes} on:action={handleAction} />
 				</section>
 			{/if}
 
-			<div class="production-grid">
-				<div class="grid-item">
-					<MachineShop {game} {tick} {suffixes} on:action={handleAction} />
-				</div>
-				<div class="grid-item">
-					<SupplyChain {game} {tick} {suffixes} on:action={handleAction} />
-				</div>
-				<div class="grid-item">
-					<HeavyIndustry {game} {tick} {suffixes} on:action={handleAction} />
-				</div>
-			</div>
+			<Research {game} {tick} {suffixes} on:action={handleAction} />
+			<MachineShop {game} {tick} {suffixes} on:action={handleAction} />
+			<SupplyChain {game} {tick} {suffixes} on:action={handleAction} />
+			<HeavyIndustry {game} {tick} {suffixes} on:action={handleAction} />
 		</div>
 	</main>
 
@@ -589,7 +559,7 @@
 		letter-spacing: 0.1em;
 		color: #888;
 		font-weight: bold;
-		border-bottom: 1px solid #333;
+		border-bottom: 0.0625rem solid #333;
 		padding-bottom: 0.5rem;
 		margin-bottom: 1rem;
 		background: none;
@@ -604,11 +574,15 @@
 
 	.game-container {
 		width: 100%;
-		max-width: 120rem;
-		margin: 0 auto;
-		padding: 2rem;
+		max-width: 100%;
+		margin: 0;
+		padding: 1rem;
 		display: flex;
 		flex-direction: column;
+	}
+
+	section {
+		margin-bottom: 1rem;
 	}
 
 	footer {
@@ -626,14 +600,14 @@
 		color: #fff;
 		font-size: var(--font-size-3xl);
 		text-transform: uppercase;
-		letter-spacing: 2px;
+		letter-spacing: 0.125rem;
 		background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
 		-webkit-background-clip: text;
 		background-clip: text;
 		-webkit-text-fill-color: transparent;
 		/* Transition for collapsing */
 		transition: all 0.3s ease;
-		max-height: 100px;
+		max-height: 6.25rem;
 		opacity: 1;
 	}
 
@@ -654,8 +628,8 @@
 		padding-bottom: 1rem;
 		z-index: 100;
 		background: rgba(224, 224, 224, 0);
-		backdrop-filter: blur(10px);
-		-webkit-backdrop-filter: blur(10px);
+		backdrop-filter: blur(0.625rem);
+		-webkit-backdrop-filter: blur(0.625rem);
 	}
 
 	.restart-btn-small {
@@ -728,166 +702,43 @@
 		height: 100%;
 	}
 
-	.economy-main-content {
-		display: flex;
-		flex-direction: column;
-		width: 100%;
-		gap: 0.5rem;
-	}
-
 	/* Chart legend / price control styles removed */
 
-	.progress-bar {
+	/* New Stats Dashboard Grid (now Flexbox) */
+	.stats-dashboard {
 		display: flex;
-		justify-content: space-around;
-		background: #2d2d2d;
-		padding: 1rem;
-		border-radius: 12px;
-		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-		margin-bottom: 1rem;
-		align-items: center;
-	}
-
-	.split-layout {
-		display: grid;
-		grid-template-columns: 1fr 1.5fr; /* Give more space to economy/chart */
+		flex-wrap: wrap;
 		gap: 1rem;
+		width: 100%;
 	}
 
-	.left-column {
+	.systems-grid {
 		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-	}
-
-	/* New Layout Styles */
-	.content-layout {
-		display: grid;
-		grid-template-columns: 350px 1fr;
-		gap: 2rem;
-		align-items: start;
-	}
-
-	.main-panel {
-		display: flex;
-		flex-direction: column;
-		gap: 2rem;
-	}
-
-	.production-grid {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
+		flex-wrap: wrap;
 		gap: 1.5rem;
+		width: 100%;
 	}
 
-	.grid-item {
+	/* Target all direct children sections (components + central ops) */
+	.systems-grid > :global(section) {
 		display: flex;
 		flex-direction: column;
-	}
-
-	@media (max-width: 1100px) {
-		.content-layout {
-			grid-template-columns: 1fr;
-			display: flex;
-			flex-direction: column-reverse;
-		}
-
-		.production-grid {
-			grid-template-columns: 1fr;
-		}
-
-		.progress-bar {
-			flex-wrap: wrap;
-			gap: 1rem;
-		}
-
-		.stat {
-			min-width: 45%; /* Ensure 2 per row roughly */
-			text-align: center;
-		}
-
-		/* FIX: Stack split layout on mobile */
-		.split-layout {
-			grid-template-columns: 1fr;
-		}
-
-		/* FIX: Ensure right column doesn't overflow */
-		.right-column {
-			width: 100%;
-			min-width: 0; /* Allows flex child to shrink below content size if needed */
-		}
-
-		.economy-group {
-			width: 100%;
-			overflow-x: hidden; /* Prevent horizontal scroll just in case */
-		}
-
-		/* Allow container to scroll normally on mobile */
-		:global(.game-container) {
-			height: auto !important;
-			overflow: visible !important;
-			padding-bottom: 2rem;
-		}
-	}
-
-	/* End New Layout Styles */
-
-	.right-column {
-		display: flex;
-		flex-direction: column; /* economy group expands to fill */
-	}
-
-	.economy-group {
-		background: #2d2d2d;
-		padding: 0.5rem;
-		border-radius: 12px;
-		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-		display: flex;
-		flex-direction: column;
-		height: 100%;
-	}
-
-	.resource-group {
-		/* Flex 1 removed as it's now in column */
-		display: flex;
-		flex-direction: column;
-		background: #2d2d2d;
-		padding: 0.5rem;
-		border-radius: 12px;
-		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-		align-items: center;
-		gap: 0.5rem;
-	}
-	/* ... */
-	/* Remove padding/margin from .economy-group title if needed to save space? */
-	.economy-group .group-title {
-		margin-bottom: 0.5rem;
-	}
-
-	.economy-group .stat-row {
-		gap: 1rem;
-	}
-
-	.coin-stat {
-		flex: 1;
-		min-width: 0; /* Allow shrinking if needed */
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
+		min-width: 0;
+		flex: 1 1 25rem;
 	}
 
 	.chart-container {
-		flex: 1.5; /* 2/3rds width */
+		width: 100%;
 		min-width: 0;
 	}
 
 	.group-title {
 		font-size: var(--font-size-xs);
 		text-transform: uppercase;
-		letter-spacing: 1px;
+		letter-spacing: 0.0625rem;
 		color: var(--color-text-muted);
 		font-weight: bold;
-		border-bottom: 1px solid #444;
+		border-bottom: 0.0625rem solid #444;
 		width: 100%;
 		text-align: center;
 		padding-bottom: 0.25rem;
@@ -906,10 +757,68 @@
 		align-items: center;
 	}
 
+	.stat-card {
+		background: #2d2d2d;
+		padding: 1rem;
+		border-radius: 0.75rem;
+		box-shadow: 0 0.25rem 0.375rem rgba(0, 0, 0, 0.1);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.5rem;
+		flex: 1 1 20rem; /* Grow, shrink, base width */
+	}
+
+	.main-stats {
+		/* Force full width row */
+		flex: 1 1 100%;
+		width: 100%;
+		display: flex;
+		flex-direction: row;
+		justify-content: space-around;
+		align-items: center;
+		background: #333; /* Slightly different bg for main stats */
+	}
+
+	.economy-stats {
+		flex: 1 1 20rem;
+	}
+
+	.economy-content-grid {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		width: 100%;
+		gap: 1rem;
+		align-items: center;
+	}
+
+	.financial-details-grid {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		font-size: var(--font-size-sm);
+		text-align: right;
+	}
+
+	.detail-group {
+		display: flex;
+		justify-content: space-between;
+		gap: 1rem;
+	}
+
+	.stat-column {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		width: 100%;
+	}
+
+	/* Removed min-width Grid overrides as Flex handles wrapping naturally */
+
 	.label {
 		font-size: var(--font-size-xs);
 		text-transform: uppercase;
-		letter-spacing: 1px;
+		letter-spacing: 0.0625rem;
 		color: var(--color-text-muted);
 		margin-bottom: 0.25rem;
 	}
@@ -918,10 +827,6 @@
 		font-size: var(--font-size-lg);
 		font-weight: var(--font-weight-bold);
 		color: var(--color-text-primary);
-	}
-
-	section {
-		margin-bottom: 2rem;
 	}
 
 	.button-group {
@@ -934,7 +839,7 @@
 		padding: 1.5rem;
 		font-size: var(--font-size-lg);
 		border: none;
-		border-radius: 8px;
+		border-radius: 0.5rem;
 		cursor: pointer;
 		transition: transform 0.1s, filter 0.2s;
 		font-weight: var(--font-weight-bold);
@@ -952,7 +857,7 @@
 	.secondary {
 		background: #333;
 		color: var(--color-text-primary);
-		border: 1px solid #444;
+		border: 0.0625rem solid #444;
 	}
 
 	.secondary:hover:not(:disabled) {
@@ -982,10 +887,10 @@
 	.modal {
 		background: #2d2d2d;
 		padding: 2rem;
-		border-radius: 12px;
+		border-radius: 0.75rem;
 		text-align: center;
-		border: 1px solid #444;
-		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+		border: 0.0625rem solid #444;
+		box-shadow: 0 0.25rem 1.25rem rgba(0, 0, 0, 0.5);
 	}
 
 	.modal h2 {
@@ -1007,7 +912,7 @@
 		text-align: left;
 		background: #252525;
 		padding: 1rem;
-		border-radius: 8px;
+		border-radius: 0.5rem;
 	}
 
 	.stats-grid p {
@@ -1025,7 +930,7 @@
 		font-size: var(--font-size-lg);
 		font-weight: var(--font-weight-bold);
 		color: var(--color-text-dark);
-		border-radius: 8px;
+		border-radius: 0.5rem;
 		cursor: pointer;
 		transition: transform 0.1s;
 	}
@@ -1082,7 +987,7 @@
 	}
 
 	.profit-row {
-		border-top: 1px solid #444;
+		border-top: 0.0625rem solid #444;
 		margin-top: 0.25rem;
 		padding-top: 0.25rem;
 		font-weight: bold;
@@ -1090,7 +995,7 @@
 
 	.coin-stat {
 		padding: 0.5rem 1rem;
-		border-radius: 4px;
+		border-radius: 0.25rem;
 		color: white;
 		font-weight: 500;
 		transition: opacity 0.2s;
@@ -1123,7 +1028,7 @@
 		background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
 		color: #1a1a1a;
 		font-weight: bold;
-		min-width: 120px;
+		min-width: 7.5rem;
 	}
 
 	@media (max-width: 768px) {
@@ -1161,7 +1066,7 @@
 		}
 
 		.stat {
-			min-width: 80px;
+			min-width: 5rem;
 		}
 
 		.label {
@@ -1185,17 +1090,17 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.25rem;
-		min-width: 200px;
+		min-width: 12.5rem;
 	}
 
 	.progress-bar-container {
 		width: 100%;
 		height: 1.2rem;
 		background: rgba(255, 255, 255, 0.1);
-		border-radius: 4px;
+		border-radius: 0.25rem;
 		overflow: hidden;
 		position: relative;
-		border: 1px solid rgba(255, 255, 255, 0.2);
+		border: 0.0625rem solid rgba(255, 255, 255, 0.2);
 	}
 
 	.resource-progress-bar {
@@ -1211,7 +1116,7 @@
 		transform: translate(-50%, -50%);
 		font-size: 0.75rem;
 		color: white;
-		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+		text-shadow: 0 0.0625rem 0.125rem rgba(0, 0, 0, 0.8);
 		white-space: nowrap;
 	}
 </style>

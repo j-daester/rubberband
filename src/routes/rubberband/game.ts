@@ -1,7 +1,8 @@
 import { producerFamilies, researchList, GAME_CONSTANTS, getCost, getMaxAffordable, type ProducerFamily, type Producer, type ResearchType, type ResearchEffect } from './parameters';
 
+// NanoAllocation Removed
 export interface NanoAllocation {
-	rubber_machines: number; // 0.0 - 1.0
+	rubber_machines: number; // 0.0 - 1.0 (Percentage of swarms allocated)
 	bander_machines: number; // 0.0 - 1.0
 	nanobots: number; // 0.0 - 1.0
 }
@@ -64,6 +65,10 @@ export class Game {
 	private _theoreticalRubberConsumptionRate: number = 0; // How much rubber factories WANT to eat
 
 	private lastPriceUpdateTick: number = 0;
+
+	// Nano Swarm Logic
+	private currentNanoBoosts: Map<string, number> = new Map(); // Key: "familyId:tierIndex", Value: Flat Amount Boost
+
 
 	constructor(serialized: string | undefined = undefined) {
 		this.reset();
@@ -212,7 +217,11 @@ export class Game {
 			}
 		}
 
+
 		this.updateMarket();
+
+		// Recalculate Nano Boosts for this tick (Allocation Phase)
+		this.calculateNanoBoosts();
 
 		// --- PHASE 1: Modifiers ---
 		const globalSpeedMultiplier = 1.0;
@@ -235,6 +244,113 @@ export class Game {
 		const invCost = this.inventoryCost;
 		this.money -= invCost;
 		this.money -= this.maintenanceCost;
+	}
+
+	private calculateNanoBoosts() {
+		this.currentNanoBoosts.clear();
+		if (this.nanoSwarmCount <= 0) return;
+
+		// Calculate Pools
+		const rubberSwarms = Math.floor(this.nanoSwarmCount * this.nanoAllocation.rubber_machines);
+		const banderSwarms = Math.floor(this.nanoSwarmCount * this.nanoAllocation.bander_machines);
+		// Nano swarms allocated to nanobots are conceptually used in getNanobotProduction
+
+		// === RUBBER POOL LOGIC ===
+		let remainingRubberSwarms = rubberSwarms;
+		if (remainingRubberSwarms > 0) {
+			// Priority: Black Hole (1000) > Synthetic (10)
+			// Wait, are there other rubber producers? Yes.
+			// Rubber priorities:
+			// 1. Black Hole Extruder / Line (Tier 2, 1) -> Threshold 1000
+			// 2. Synthetic Rubber Mixer / Line (Tier 1, 0) -> Threshold 10
+
+			const rubberGroups = [
+				// High Tier (1000)
+				{
+					cost: 1000,
+					items: [
+						{ familyId: 'rubber_sources', tierIndex: 2 },
+						{ familyId: 'rubber_factory_line', tierIndex: 1 }
+					]
+				},
+				// Medium Tier (10)
+				{
+					cost: 10,
+					items: [
+						{ familyId: 'rubber_sources', tierIndex: 1 },
+						{ familyId: 'rubber_factory_line', tierIndex: 0 }
+					]
+				}
+			];
+
+			for (const group of rubberGroups) {
+				for (const item of group.items) {
+					if (remainingRubberSwarms < group.cost) break;
+					const owned = this.producers[item.familyId]?.[item.tierIndex] || 0;
+					if (owned > 0) {
+						const boosts = Math.floor(remainingRubberSwarms / group.cost);
+						if (boosts > 0) {
+							const key = `${item.familyId}:${item.tierIndex}`;
+							this.currentNanoBoosts.set(key, boosts);
+							remainingRubberSwarms -= boosts * group.cost;
+						}
+					}
+				}
+			}
+		}
+
+		// === BANDER POOL LOGIC ===
+		let remainingBanderSwarms = banderSwarms;
+		if (remainingBanderSwarms > 0) {
+			// Priorities:
+			// 1. Temporal Press (1M)
+			// 2. Quantum Bander (1000)
+			// 3. Mega Bander (10)
+			// 4. Rubber Bander? (Let's assume 10 as fallback or nothing? Prompt said "Rubber Bander / Line: Cost 10 swarms")
+
+			const banderGroups = [
+				{
+					cost: 1_000_000,
+					items: [
+						{ familyId: 'bander', tierIndex: 4 }, // Temporal Press
+						{ familyId: 'bander_line', tierIndex: 2 } // Temporal Press Line
+					]
+				},
+				{
+					cost: 1_000,
+					items: [
+						{ familyId: 'bander', tierIndex: 3 }, // Quantum Bander
+						{ familyId: 'bander_line', tierIndex: 1 } // Quantum Bander Line
+					]
+				},
+				{
+					cost: 10,
+					items: [
+						{ familyId: 'bander', tierIndex: 2 }, // Mega Bander
+						{ familyId: 'bander_line', tierIndex: 0 }, // Mega Bander Line
+						{ familyId: 'bander', tierIndex: 0 }, // Rubber Bander (Tier 0) - Usually low priority
+						{ familyId: 'bander', tierIndex: 1 } // Hydraulic Bander (Tier 1) - Usually low priority
+					]
+				}
+			];
+
+			for (const group of banderGroups) {
+				for (const item of group.items) {
+					if (remainingBanderSwarms < group.cost) break;
+					const owned = this.producers[item.familyId]?.[item.tierIndex] || 0;
+					if (owned > 0) {
+						const boosts = Math.floor(remainingBanderSwarms / group.cost);
+						if (boosts > 0) {
+							const key = `${item.familyId}:${item.tierIndex}`;
+							// Specific logic for Bander Lines (Group 1 item 2, Group 2 item 2, etc):
+							// They produce MACHINES, not bands. But boost is same concept (+1 production).
+							this.currentNanoBoosts.set(key, boosts);
+							remainingBanderSwarms -= boosts * group.cost;
+						}
+					}
+				}
+			}
+		}
 	}
 
 	private runRawMaterialsPhase(baseMultiplier: number): number {
@@ -267,11 +383,24 @@ export class Game {
 					}
 				}
 
-				// Nano Swarm Bonus for Rubber Sources REMOVED per user request
+				// Nano Swarm Bonus (Flat Global Boost)
+				const boostKey = `${f.id}:${i}`;
+				const nanoBoost = this.currentNanoBoosts.get(boostKey) || 0;
 
 				let amount = baseAmount * multiplier;
 
+				if (nanoBoost > 0) {
+					// Add boost to total produced amount directly? 
+					// Or treat as extra machines?
+					// "increase production by 1 machine over all".
+					// So effectively: effectiveCount = count + nanoBoost.
+					// Let's just add to amount.
+					const boostAmount = nanoBoost * tier.production.output.amount * multiplier;
+					amount += boostAmount;
+				}
+
 				if (amount > 0) {
+
 					// Check Resource Limits
 					// Synthetic Rubber Logic (uses Earth Resources if Molecular Transformation unlocked)
 					if (tier.name === "Synthetic Rubber Mixer") {
@@ -329,6 +458,13 @@ export class Game {
 				}
 
 				let amount = baseAmount * multiplier;
+
+				const boostKey = `${f.id}:${i}`;
+				const nanoBoost = this.currentNanoBoosts.get(boostKey) || 0;
+				if (nanoBoost > 0) {
+					// Apply boost (Machine Equivalent)
+					amount += nanoBoost * tier.production.output.amount * multiplier;
+				}
 
 				let inputRatio = 2; // Default
 				for (const eff of efficiencyRules) {
@@ -402,23 +538,26 @@ export class Game {
 
 				let totalAmount = baseAmount * multiplier;
 
-				// Apply Flat Additions (e.g. Nano Swarms)
+				// Apply Flat Additions (e.g. Nano Swarms - OLD LOGIC REPLACED)
+				// Keeping generic hook if needed, but removing old allocation code.
 				for (const eff of flatAdditions) {
 					if (eff.target.familyId === f.id) {
 						totalAmount += eff.amount * counts[i];
 					}
 				}
 
-				// Nano Swarm Bonus for Production Lines (Allocation Rule)
-				// +0.1 per Swarm per Line * Allocation
-				if (f.type === 'production_line') {
-					let alloc = 0;
-					if (f.id === 'rubber_factory_line') alloc = this.nanoAllocation.rubber_machines;
-					else if (f.id === 'bander_line') alloc = this.nanoAllocation.bander_machines;
+				// Nano Swarm Priority Boost
+				const boostKey = `${f.id}:${i}`;
+				const nanoBoost = this.currentNanoBoosts.get(boostKey) || 0;
+				if (nanoBoost > 0) {
+					// Output rule is "output: { resource: 'producer', amount: 1 }"
+					// So 1 machine equivalent = 1 * multiplier (machines produced).
+					// Wait, baseAmount includes multiplier?
+					// baseAmount = rule.output.amount * counts[i].
+					// totalAmount = baseAmount * multiplier.
+					// So +1 machine equivalent = (1 * rule.output.amount) * multiplier.
 
-					if (alloc > 0) {
-						totalAmount += (this.nanoSwarmCount * 0.1 * alloc) * counts[i];
-					}
+					totalAmount += nanoBoost * rule.output.amount * multiplier;
 				}
 
 				totalAmount = Math.floor(totalAmount);
@@ -444,15 +583,10 @@ export class Game {
 	}
 
 	private runNanoPhase() {
-		if (this.nanobotFactoryCount > 0) {
-			let basePerFactory = 1;
-			// Aply Allocation
-			const alloc = this.nanoAllocation.nanobots;
-			if (alloc > 0) {
-				basePerFactory += Math.floor(this.nanoSwarmCount * 0.1 * alloc);
-			}
+		if (this.nanobotFactoryCount > 0 || (this.nanoAllocation.nanobots > 0 && this.nanoSwarmCount >= 10)) {
+			// Now calls the helper which includes the boost!
+			const production = this.getNanobotProduction();
 
-			const production = this.nanobotFactoryCount * basePerFactory;
 			const unitResCost = GAME_CONSTANTS.RESOURCE_COST_NANO_SWARM;
 			const generalResourceLimit = this.resourceLimit;
 
@@ -520,27 +654,28 @@ export class Game {
 			}
 		}
 
-		if (family.type === 'production_line') {
-			const activeSwarms = this.nanoSwarmCount;
-			let alloc = 0;
-			if (family.id === 'rubber_factory_line') alloc = this.nanoAllocation.rubber_machines;
-			else if (family.id === 'bander_line') alloc = this.nanoAllocation.bander_machines;
+		// Nano Boost is now flat and global, handled in process phase.
+		// UI displays "Per Machine". We do not include the flat boost here to avoid confusion.
 
-			if (alloc > 0) {
-				base += Math.floor(activeSwarms * 0.1 * alloc);
-			}
-		}
 		return base;
 	}
 
+
+
+
 	getNanobotProduction(): number {
-		let base = 1;
-		const activeSwarms = this.nanoSwarmCount;
-		const alloc = this.nanoAllocation.nanobots;
-		if (alloc > 0) {
-			base += Math.floor(activeSwarms * 0.1 * alloc);
+		let baseRate = 1;
+
+		// Apply Nano Swarm Boost if allocated
+		const allocatedSwarms = Math.floor(this.nanoSwarmCount * this.nanoAllocation.nanobots);
+		let boostFactories = 0;
+		if (allocatedSwarms >= 10) {
+			// 10 swarms = +1 factory equivalent
+			boostFactories = Math.floor(allocatedSwarms / 10);
 		}
-		return base;
+
+		// Total = (Real Count + Virtual Boost Count) * Base Rate
+		return (this.nanobotFactoryCount + boostFactories) * baseRate;
 	}
 
 
@@ -790,6 +925,8 @@ export class Game {
 		return true;
 	}
 
+
+
 	sellRubberbands(amount: number) {
 		if (this.gameOver) return false;
 		if (this.rubberbands >= amount) {
@@ -884,6 +1021,11 @@ export class Game {
 
 	setNanoAllocation(newAllocation: NanoAllocation) {
 		this.nanoAllocation = newAllocation;
+	}
+
+	getNanoBoost(familyId: string, tierIndex: number): number {
+		const key = `${familyId}:${tierIndex}`;
+		return this.currentNanoBoosts.get(key) || 0;
 	}
 
 	toJSON(): GameState {
