@@ -11,9 +11,10 @@
 	const dispatch = createEventDispatcher();
 
 	// Local allocation state (0-100 integers for UI)
-	let allocRubber = 33;
-	let allocBander = 33;
-	let allocNano = 34;
+	let allocRubber = 25;
+	let allocBander = 25;
+	let allocLines = 25;
+	let allocNano = 25;
 
 	// Init from game state once
 	let initialized = false;
@@ -25,9 +26,10 @@
 		if (game && !initialized && game.nanoAllocation) {
 			allocRubber = Math.round(game.nanoAllocation.rubber_machines * 100);
 			allocBander = Math.round(game.nanoAllocation.bander_machines * 100);
+			allocLines = Math.round(game.nanoAllocation.production_lines * 100) || 0;
 			allocNano = Math.round(game.nanoAllocation.nanobots * 100);
-			// Ensure sum is exactly 100 on init due to rounding
-			const sum = allocRubber + allocBander + allocNano;
+			// Ensure sum is exactly 100
+			const sum = allocRubber + allocBander + allocLines + allocNano;
 			if (sum !== 100) {
 				allocNano += 100 - sum;
 			}
@@ -41,106 +43,111 @@
 		}
 	}
 
-	function updateAllocation(param: 'rubber' | 'bander' | 'nano', value: number) {
+	function updateAllocation(param: 'rubber' | 'bander' | 'lines' | 'nano', value: number) {
 		value = Math.max(0, Math.min(100, Math.round(value))); // Clamp
 
-		// Smart redistribution
-		// We have 3 buckets. Target is changing to 'value'.
-		// The other two must sum to (100 - value).
-		// We try to preserve their relative proportions.
+		const others = [
+			{ key: 'rubber', val: allocRubber },
+			{ key: 'bander', val: allocBander },
+			{ key: 'lines', val: allocLines },
+			{ key: 'nano', val: allocNano }
+		].filter((o) => o.key !== param);
 
-		let remainder = 100 - value;
+		const remainder = 100 - value;
+		const currentSumOthers = others.reduce((a, b) => a + b.val, 0);
 
-		if (param === 'rubber') {
-			allocRubber = value;
-			const currentOthersSum = allocBander + allocNano;
-			if (currentOthersSum === 0) {
-				allocBander = Math.floor(remainder / 2);
-				allocNano = remainder - allocBander;
-			} else {
-				const ratioBander = allocBander / currentOthersSum;
-				allocBander = Math.floor(remainder * ratioBander);
-				allocNano = remainder - allocBander;
-			}
-		} else if (param === 'bander') {
-			allocBander = value;
-			const currentOthersSum = allocRubber + allocNano;
-			if (currentOthersSum === 0) {
-				allocRubber = Math.floor(remainder / 2);
-				allocNano = remainder - allocRubber;
-			} else {
-				const ratioRubber = allocRubber / currentOthersSum;
-				allocRubber = Math.floor(remainder * ratioRubber);
-				allocBander = remainder - allocRubber;
-			}
-		} else if (param === 'nano') {
-			allocNano = value;
-			const currentOthersSum = allocRubber + allocBander;
-			if (currentOthersSum === 0) {
-				allocRubber = Math.floor(remainder / 2);
-				allocBander = remainder - allocRubber;
-			} else {
-				const ratioRubber = allocRubber / currentOthersSum;
-				allocRubber = Math.floor(remainder * ratioRubber);
-				allocBander = remainder - allocRubber;
-			}
+		const newAllocations: Record<string, number> = {
+			rubber: allocRubber,
+			bander: allocBander,
+			lines: allocLines,
+			nano: allocNano
+		};
+
+		// Set the target
+		newAllocations[param] = value;
+
+		if (currentSumOthers === 0) {
+			// Distribute evenly if others are zero
+			const equalShare = Math.floor(remainder / others.length);
+			let distributed = 0;
+			others.forEach((o, i) => {
+				if (i === others.length - 1) {
+					newAllocations[o.key] = remainder - distributed;
+				} else {
+					newAllocations[o.key] = equalShare;
+					distributed += equalShare;
+				}
+			});
+		} else {
+			// Proportional Distribution
+			let distributed = 0;
+			others.forEach((o, i) => {
+				if (i === others.length - 1) {
+					newAllocations[o.key] = remainder - distributed;
+				} else {
+					const ratio = o.val / currentSumOthers;
+					const share = Math.floor(remainder * ratio);
+					newAllocations[o.key] = share;
+					distributed += share;
+				}
+			});
 		}
+
+		// Update State UI
+		allocRubber = newAllocations['rubber'];
+		allocBander = newAllocations['bander'];
+		allocLines = newAllocations['lines'];
+		allocNano = newAllocations['nano'];
 
 		// Apply to Game
 		const newAlloc: NanoAllocation = {
 			rubber_machines: allocRubber / 100,
 			bander_machines: allocBander / 100,
+			production_lines: allocLines / 100,
 			nanobots: allocNano / 100
+		};
+		game.setNanoAllocation(newAlloc);
+	}
+
+	function resetAllocation() {
+		allocRubber = 25;
+		allocBander = 25;
+		allocLines = 25;
+		allocNano = 25;
+
+		const newAlloc: NanoAllocation = {
+			rubber_machines: 0.25,
+			bander_machines: 0.25,
+			production_lines: 0.25,
+			nanobots: 0.25
 		};
 		game.setNanoAllocation(newAlloc);
 	}
 
 	$: isVisible = game.researched.includes('nanotechnology');
 
-	$: nanoSwarmsCount = game.nanoSwarmCount;
+	$: nanobotCount = game.nanobotCount;
 
 	$: nanoFactoryCount = game.nanobotFactoryCount;
 	$: nanoFactoryCost = game.nanobotFactoryCost;
 
 	$: nanobotProduction = game.getNanobotProduction ? game.getNanobotProduction() : 1;
 
-	// Helper for boosts list - prioritized producers
-	$: activeBoosts = [
-		// Rubber Pool
-		{ name: 'Black Hole Extruder', id: 'rubber_sources', idx: 2 },
-		{ name: 'Black Hole Extruder Line', id: 'rubber_factory_line', idx: 1 },
-		{ name: 'Synthetic Rubber Mixer', id: 'rubber_sources', idx: 1 },
-		{ name: 'Synthetic Rubber Mixer Line', id: 'rubber_factory_line', idx: 0 },
+	// Calculate Efficiencies for Display
+	$: rubberEfficiency = game.getFamilyNanoEfficiency('rubber_machines', ['rubber_sources']);
+	$: banderEfficiency = game.getFamilyNanoEfficiency('bander_machines', ['bander']);
+	$: linesEfficiency = game.getFamilyNanoEfficiency('production_lines', [
+		'rubber_factory_line',
+		'bander_line'
+	]);
 
-		// Bander Pool
-		{ name: 'Temporal Press', id: 'bander', idx: 4 },
-		{ name: 'Temporal Press Line', id: 'bander_line', idx: 2 },
-		{ name: 'Quantum Bander', id: 'bander', idx: 3 },
-		{ name: 'Quantum Bander Line', id: 'bander_line', idx: 1 },
-		{ name: 'MEGA-Bander', id: 'bander', idx: 2 },
-		{ name: 'MEGA-Bander Line', id: 'bander_line', idx: 0 },
-		{ name: 'MAX-Bander', id: 'bander', idx: 1 },
-		{ name: 'Bander', id: 'bander', idx: 0 },
-
-		// Nano Pool (Conceptually)
-		{
-			name: 'Nanobot Production',
-			id: 'NANOBOT_SPECIAL',
-			idx: 0,
-			overrideValue:
-				nanobotProduction > 1 ? Math.floor((nanoSwarmsCount * (allocNano / 100)) / 10) : 0
-		}
-	]
-		.map((item) => {
-			if (item.id === 'NANOBOT_SPECIAL') {
-				return { ...item, boost: item.overrideValue || 0 };
-			}
-			return {
-				...item,
-				boost: (game.getNanoBoost && game.getNanoBoost(item.id, item.idx)) || 0
-			};
-		})
-		.filter((b) => b.boost > 0);
+	// Helper for Nanobot Efficiency Display
+	$: nanoEfficiency = (() => {
+		const allocated = game.nanobotCount * (allocNano / 100);
+		const denom = game.nanobotFactoryCount * 10;
+		if (denom > 0) return allocated / denom;
+		return 0;
+	})();
 
 	$: tr = (key: string, search: string, replace: string) => {
 		const val = $t(key);
@@ -152,16 +159,24 @@
 	<section class="nano-factory">
 		<div class="stats-panel">
 			<div class="stat">
-				<span class="label">Active Swarms</span>
-				<span class="value">{formatNumber(nanoSwarmsCount, suffixes)}</span>
+				<span class="label">Active Nanobots</span>
+				<span class="value">{formatNumber(nanobotCount, suffixes)}</span>
 			</div>
 		</div>
 
 		<!-- Allocation Sliders -->
 		<div class="allocation-panel">
-			<div class="flex justify-between items-center mb-2">
-				<h3>Swarm Allocation</h3>
-				<span class="text-xs text-gray-400">Determines pool size</span>
+			<div
+				class="flex justify-between items-center mb-2"
+				style="display: flex; justify-content: space-between; align-items: center;"
+			>
+				<div>
+					<h3>Nanobot Allocation</h3>
+					<span class="text-xs text-gray-400">Determines pool size</span>
+				</div>
+				<button class="reset-btn" on:click={resetAllocation} title="Reset to 25% each">
+					Reset
+				</button>
 			</div>
 
 			<div class="slider-row">
@@ -177,6 +192,9 @@
 						on:input={(e) => updateAllocation('rubber', +e.currentTarget.value)}
 					/>
 					<span class="perc-value">{allocRubber}%</span>
+					<div class="boost-badge" title="Current Efficiency Boost">
+						⚡ {(rubberEfficiency * 100).toFixed(1)}%
+					</div>
 				</div>
 			</div>
 
@@ -193,6 +211,28 @@
 						on:input={(e) => updateAllocation('bander', +e.currentTarget.value)}
 					/>
 					<span class="perc-value">{allocBander}%</span>
+					<div class="boost-badge" title="Current Efficiency Boost">
+						⚡ {(banderEfficiency * 100).toFixed(1)}%
+					</div>
+				</div>
+			</div>
+
+			<div class="slider-row">
+				<div class="slider-label">
+					<span>Production Lines</span>
+				</div>
+				<div class="slider-controls">
+					<input
+						type="range"
+						min="0"
+						max="100"
+						value={allocLines}
+						on:input={(e) => updateAllocation('lines', +e.currentTarget.value)}
+					/>
+					<span class="perc-value">{allocLines}%</span>
+					<div class="boost-badge" title="Current Efficiency Boost">
+						⚡ {(linesEfficiency * 100).toFixed(1)}%
+					</div>
 				</div>
 			</div>
 
@@ -209,29 +249,23 @@
 						on:input={(e) => updateAllocation('nano', +e.currentTarget.value)}
 					/>
 					<span class="perc-value">{allocNano}%</span>
+					<div class="boost-badge" title="Current Efficiency Boost">
+						⚡ {(nanoEfficiency * 100).toFixed(1)}%
+					</div>
 				</div>
 			</div>
 		</div>
 
 		<div class="explanation-panel">
-			<h3>Swarm Intelligence</h3>
-			<p>Nano swarms within each category will automatically boost highest-tier machines first.</p>
+			<h3>Nanobot Intelligence</h3>
+			<p>Nanobots improve the efficiency of all machines in the assigned category.</p>
+			<p class="text-xs text-gray-400 mt-1">
+				Efficiency = Allocated Nanobots / (Sum of Machine Count × Threshold)
+			</p>
 		</div>
 
-		<div class="boosts-panel">
-			<h3>Active Boosts</h3>
-			{#if activeBoosts.length > 0}
-				<div class="boost-list">
-					{#each activeBoosts as item}
-						<div class="boost-item">
-							<span class="boost-name">{item.name}</span>
-							<span class="boost-value">+{formatNumber(item.boost, suffixes)} machines</span>
-						</div>
-					{/each}
-				</div>
-			{:else}
-				<p class="empty-text">No active boosts. Produce more swarms or check allocation!</p>
-			{/if}
+		<div class="boosts-panel" style="display: none;">
+			<!-- Hidden as requested by logic change (display next to slider) -->
 		</div>
 
 		<div class="machine-list">
@@ -243,7 +277,7 @@
 							{formatNumber(nanoFactoryCount, suffixes)}
 						</div>
 					</div>
-					<p>{tr('heavy_industry_ui.auto_produces', '{machine}', 'Nano-Swarms')}</p>
+					<p>{tr('heavy_industry_ui.auto_produces', '{machine}', 'Nanobots')}</p>
 					<div class="stats-row">
 						<div class="stat-block">
 							<span class="stat-label">{$t('common.production')}</span>
@@ -302,37 +336,6 @@
 		border-radius: 8px;
 		margin-bottom: 1.5rem;
 		border: 1px solid #3a4a5a;
-	}
-
-	.boost-list {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
-
-	.boost-item {
-		display: flex;
-		justify-content: space-between;
-		font-size: 0.9rem;
-		padding-bottom: 0.25rem;
-		border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-	}
-	.boost-item:last-child {
-		border-bottom: none;
-	}
-
-	.boost-name {
-		color: #ccc;
-	}
-
-	.boost-value {
-		color: #00f2fe;
-		font-weight: bold;
-	}
-
-	.empty-text {
-		color: #888;
-		font-style: italic;
 	}
 
 	.stat {
@@ -514,5 +517,36 @@
 		text-align: right;
 		font-weight: bold;
 		color: #fff;
+	}
+
+	.boost-badge {
+		background: rgba(0, 242, 254, 0.15);
+		color: #00f2fe;
+		font-size: 0.8rem;
+		font-weight: bold;
+		padding: 0.25rem 0.5rem;
+		border-radius: 4px;
+		margin-left: 0.5rem;
+		min-width: 4.5rem;
+		text-align: center;
+		border: 1px solid rgba(0, 242, 254, 0.3);
+		white-space: nowrap;
+	}
+
+	.reset-btn {
+		background: rgba(255, 255, 255, 0.1);
+		border: 1px solid #444;
+		color: #ccc;
+		font-size: 0.8rem;
+		padding: 0.25rem 0.75rem;
+		border-radius: 4px;
+		cursor: pointer;
+		transition: all 0.2s;
+	}
+
+	.reset-btn:hover {
+		background: rgba(255, 255, 255, 0.2);
+		color: #fff;
+		border-color: #555;
 	}
 </style>

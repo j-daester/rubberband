@@ -99,7 +99,7 @@
         "Bander": "Bander",
         "MAX-Bander": "MAX-Bander",
         "MEGA-Bander": "MEGA-Bander",
-        "Nano-Swarms": "Nano-Schwärme",
+        "Nano-Swarms": "Nanobots",
         "Quantum Bander": "Quanten-Bander",
         "Temporal Press": "Temporale Presse"
     },
@@ -187,7 +187,7 @@
         },
         "interplanetary_logistics": {
             "name": "Interplanetare Logistik",
-            "desc": "Nano-Schwärme können zu anderen Planeten reisen, um Ressourcen zu sammeln. Reduziert Lagerkosten um 99,99%."
+            "desc": "Nanobots können zu anderen Planeten reisen, um Ressourcen zu sammeln. Reduziert Lagerkosten um 99,99%."
         },
         "time_travel": {
             "name": "Zeitreisen",

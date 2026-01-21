@@ -42,6 +42,8 @@ export interface Producer extends PurchasableItem {
 
 	// Passive Effects (scaled by count)
 	effects?: ResearchEffect[];
+
+	nanoswarm_threshold?: number;
 }
 
 export interface ProducerFamily {
@@ -337,7 +339,8 @@ const machineDefinitions: ProducerFamily[] = [
 				cost_factor: 1.1,
 				precondition_research: 'basic_manufacturing',
 				maintenance_cost: 5,
-				spaceCost: 10
+				spaceCost: 10,
+				nanoswarm_threshold: 10
 			},
 			{
 				name: "MAX-Bander",
@@ -349,7 +352,8 @@ const machineDefinitions: ProducerFamily[] = [
 				cost_factor: 1.25,
 				precondition_research: 'optimize_production',
 				maintenance_cost: 20,
-				spaceCost: 15
+				spaceCost: 15,
+				nanoswarm_threshold: 10
 			},
 			{
 				name: "MEGA-Bander",
@@ -361,7 +365,8 @@ const machineDefinitions: ProducerFamily[] = [
 				cost_factor: 1.5,
 				precondition_research: 'robotics',
 				maintenance_cost: 100,
-				spaceCost: 20
+				spaceCost: 20,
+				nanoswarm_threshold: 10
 			},
 			{
 				name: "Quantum Bander",
@@ -374,7 +379,8 @@ const machineDefinitions: ProducerFamily[] = [
 				maintenance_cost: 500_000,
 				required_research: 'quantum_mechanics',
 				precondition_research: 'quantum_mechanics',
-				spaceCost: 50
+				spaceCost: 50,
+				nanoswarm_threshold: 1000
 			},
 			{
 				name: "Temporal Press",
@@ -386,7 +392,8 @@ const machineDefinitions: ProducerFamily[] = [
 				cost_factor: 2.5,
 				maintenance_cost: 10_000_000_000,
 				required_research: 'time_travel',
-				precondition_research: 'time_travel'
+				precondition_research: 'time_travel',
+				nanoswarm_threshold: 1_000_000
 			}
 		]
 	}
@@ -406,7 +413,8 @@ const rubberSourceDefinitions: ProducerFamily[] = [
 				cost_factor: 1.2,
 				precondition_research: 'optimize_production',
 				maintenance_cost: 50,
-				spaceCost: 10000
+				spaceCost: 10000,
+				nanoswarm_threshold: 1
 			},
 			{
 				name: "Synthetic Rubber Mixer",
@@ -417,18 +425,20 @@ const rubberSourceDefinitions: ProducerFamily[] = [
 				cost_factor: 1.1,
 				maintenance_cost: 5_000,
 				required_research: 'synthetic_rubber',
-				spaceCost: 200
+				spaceCost: 200,
+				nanoswarm_threshold: 10
 			},
 			{
 				name: "Black Hole Extruder",
 				production: {
-					output: { resource: 'rubber', amount: 1e52 }
+					output: { resource: 'rubber', amount: 1e42 }
 				},
 				initial_cost: 1e55,
 				cost_factor: 2.0,
-				maintenance_cost: 200_000_000,
+				maintenance_cost: 1e18,
 				required_research: ['singularity_theory', 'interplanetary_logistics', 'quantum_mechanics'],
-				spaceCost: 5000
+				spaceCost: 5000,
+				nanoswarm_threshold: 1000
 			}
 		]
 	}
@@ -448,7 +458,8 @@ const productionLineDefinitions: ProducerFamily[] = [
 				cost_factor: 1.5,
 				required_research: ['synthetic_rubber', 'robotics'],
 				precondition_research: 'synthetic_rubber',
-				spaceCost: 500
+				spaceCost: 500,
+				nanoswarm_threshold: 1000
 			},
 			{
 				name: "Black Hole Extruder Line",
@@ -459,7 +470,8 @@ const productionLineDefinitions: ProducerFamily[] = [
 				cost_factor: 2.0,
 				required_research: 'singularity_theory',
 				precondition_research: 'singularity_theory',
-				spaceCost: 1000
+				spaceCost: 1000,
+				nanoswarm_threshold: 1_000_000_000_000
 			}
 		]
 	},
@@ -476,7 +488,8 @@ const productionLineDefinitions: ProducerFamily[] = [
 				cost_factor: 1.3,
 				required_research: 'robotics',
 				precondition_research: 'robotics',
-				spaceCost: 500
+				spaceCost: 500,
+				nanoswarm_threshold: 1000
 			},
 			{
 				name: "Quantum Bander Line",
@@ -487,7 +500,8 @@ const productionLineDefinitions: ProducerFamily[] = [
 				cost_factor: 1.7,
 				required_research: 'quantum_mechanics',
 				precondition_research: 'quantum_mechanics',
-				spaceCost: 1000
+				spaceCost: 1000,
+				nanoswarm_threshold: 1_000_000
 			},
 			{
 				name: "Temporal Press Line",
@@ -498,7 +512,8 @@ const productionLineDefinitions: ProducerFamily[] = [
 				cost_factor: 2.5,
 				required_research: 'time_travel',
 				precondition_research: 'time_travel',
-				spaceCost: 2000
+				spaceCost: 2000,
+				nanoswarm_threshold: 1_000_000_000_000
 			}
 		]
 	}
@@ -543,7 +558,7 @@ export const GAME_CONSTANTS = {
 	UNIVERSE_RESOURCE_LIMIT,
 	RESOURCE_COST_SYNTHETIC_RUBBER: 1.0,
 	RESOURCE_COST_MACHINE: 10,
-	RESOURCE_COST_NANO_SWARM: 100,
+	RESOURCE_COST_NANOBOT: 100,
 	OIL_RESERVES_LIMIT,
 	LAND_SURFACE_LIMIT: 1.49e14, // m^2 of Earth
 	GALAXY_SURFACE_LIMIT: 1e25, // m^2 of Galaxy (approx)

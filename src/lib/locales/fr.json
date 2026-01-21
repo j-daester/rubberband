@@ -99,7 +99,7 @@
         "Bander": "Bander",
         "MAX-Bander": "MAX-Bander",
         "MEGA-Bander": "MEGA-Bander",
-        "Nano-Swarms": "Nano-Essaims",
+        "Nano-Swarms": "Nanobots",
         "Quantum Bander": "Bander Quantique",
         "Temporal Press": "Presse Temporelle"
     },
@@ -187,7 +187,7 @@
         },
         "interplanetary_logistics": {
             "name": "Logistique Interplanétaire",
-            "desc": "Les nano-essaims pourront voyager vers d'autres planètes pour rassembler des ressources. Réduit les coûts de stockage de 99,99%."
+            "desc": "Les nanobots pourront voyager vers d'autres planètes pour rassembler des ressources. Réduit les coûts de stockage de 99,99%."
         },
         "time_travel": {
             "name": "Voyage dans le temps",
