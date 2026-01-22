@@ -18,16 +18,6 @@ export interface ProductionRule {
 	output: {
 		resource: ResourceType;
 		amount: number;
-		// For 'entity' production (now 'producer' production?)
-		// Let's keep 'entity' resource type for now to mean "A Producer Unit", 
-		// OR rename resource type to 'producer' as well? 
-		// "output: { resource: 'producer', familyId: ... }"
-		// The user request was "EntityFamily/Tier". 
-		// Let's change resource type 'entity' to 'producer' for consistency?
-		// "produceRawMaterials... output.resource === 'producer'?"
-		// The previous code used 'entity' string literal. 
-		// I will stick to 'producer' string literal if I change the type definition.
-		// Yes, "resource: 'producer'" makes sense.
 		familyId?: string;
 		tierIndex?: number;
 	};
@@ -117,6 +107,13 @@ export interface ResearchType {
 	cost: number;
 	precondition_research?: string;
 	effects?: ResearchEffect[];
+}
+
+export interface NanoAllocation {
+	rubber_machines: number; // 0.0 - 1.0 (Percentage of swarms allocated)
+	bander_machines: number; // 0.0 - 1.0
+	production_lines: number; // 0.0 - 1.0
+	nanobots: number; // 0.0 - 1.0
 }
 
 // --- Helper Functions for Cost Calculation ---
@@ -220,26 +217,8 @@ export const researchList: ResearchType[] = [
 		effects: [
 			{ type: 'demand_marketing', marketingDecayMultiplier: 0, priceSensitivityMultiplier: 1.0, marketingEffectivenessMultiplier: 1.2 }
 		]
-		// REVISIT: The logic was:
-		// if (automated_ai) { priceSens *= 1.2; baseValue *= 1.2; }
-		// BUT also decay removed.
-		// Let's model the multipliers.
 	},
-	// CORRECTION: Let's look at the old logic for automated_ai_marketing
-	// if (automated) { priceSens *= 1.2; baseval *= 1.2 }
-	// decay check: if (!automated) decay...
-	// My struct: marketingDecayMultiplier: 0 (This handles decay)
-	// For the boosts:
-	// marketingEffectivenessAdd is additive to base exponent.
-	// The old logic was Multiplicative on the Total Base.
-	// "basevalue *= 1.2". Base was 1.2 + 0.8 + 1.
-	// My struct cannot express "Multiply the SUM of previous ADDITIONS".
-	// I should probably simplify or match the logic.
-	// Current Logic: Base = 1.2. +0.8 (Online) +1 (Hyper).
-	// Then * 1.2 (AI).
-	// Maybe I should just make the effect "marketing_base_multiplier"?
-	// Let's start simple. I'll manually handle the complex math in game.ts if needed, or approximate.
-	// OR create a 'marketing_base_multiplier' prop.
+
 	{
 		id: 'robotics',
 		name: 'Robotics',
@@ -255,8 +234,6 @@ export const researchList: ResearchType[] = [
 		cost: 1_000_000_000,
 		precondition_research: 'automated_ai_marketing',
 		effects: [{ type: 'demand_marketing', priceSensitivityMultiplier: 2, demandMultiplier: 10 }]
-		// Logic: priceSens *= 2. baseValue *= 1.2.
-		// I need a way to pass 'baseValueMultiplier'.
 	},
 	{
 		id: 'nanotechnology',
@@ -385,8 +362,8 @@ const machineDefinitions: ProducerFamily[] = [
 			{
 				name: "Temporal Press",
 				production: {
-					input: { resource: 'rubber', amount: 1e45 },
-					output: { resource: 'rubberband', amount: 1e45 }
+					input: { resource: 'rubber', amount: 1e48 },
+					output: { resource: 'rubberband', amount: 1e48 }
 				},
 				initial_cost: 1e48,
 				cost_factor: 2.5,
@@ -431,7 +408,7 @@ const rubberSourceDefinitions: ProducerFamily[] = [
 			{
 				name: "Black Hole Extruder",
 				production: {
-					output: { resource: 'rubber', amount: 1e42 }
+					output: { resource: 'rubber', amount: 1e48 }
 				},
 				initial_cost: 1e55,
 				cost_factor: 2.0,

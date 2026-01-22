@@ -1,34 +1,29 @@
 <script lang="ts">
-	import type { Game } from '../game';
+	import { game } from '$lib/state/gameState.svelte';
+	import * as Actions from '$lib/services/gameLoop';
 	import { GAME_CONSTANTS } from '../parameters';
 	import { formatNumber, formatMoney } from '../utils';
 	import { createEventDispatcher } from 'svelte';
-	import { t } from 'svelte-i18n';
+	import { t, json } from 'svelte-i18n';
 
-	export let game: Game;
-	export let tick: number;
-	export let suffixes: string[] = [];
+	// No props needed - accessing global state
 
-	// Trigger reactivity
-	$: {
-		tick;
-		// Force update of local variables when tick changes
-		game = game;
-	}
-
-	$: money = game.money;
-	$: marketingLevel = game.marketingLevel;
-	$: marketingCost = game.marketingCost;
+	// Helper to get suffixes (previously passed as prop)
+	let suffixes = $derived($json('suffixes') as unknown as string[]);
+	let money = $derived(game.money);
+	let marketingLevel = $derived(game.marketingLevel);
+	let marketingCost = $derived(game.marketingCost);
 
 	const dispatch = createEventDispatcher();
 
 	function buyMarketing() {
-		if (game.buyMarketing()) {
+		if (Actions.buyMarketing()) {
 			dispatch('action');
 		}
 	}
-	$: ticksSinceLastUpdate = game.tickCount - game.lastMarketingUpdateTick;
-	$: ticksUntilDecay = Math.max(0, game.marketingDecayInterval - ticksSinceLastUpdate);
+	let ticksSinceLastUpdate = $derived(game.tickCount - game.lastMarketingUpdateTick);
+	// game.marketingDecayInterval is a getter I added to GameState
+	let ticksUntilDecay = $derived(Math.max(0, game.marketingDecayInterval - ticksSinceLastUpdate));
 
 	function tr(key: string, search: string, replace: string) {
 		return ($t(key) as string).replace(search, replace);
@@ -50,7 +45,7 @@
 					{/if}
 				</p>
 			</div>
-			<button class="buy-btn" disabled={money < marketingCost} on:click={buyMarketing}>
+			<button class="buy-btn" disabled={money < marketingCost} onclick={buyMarketing}>
 				<span class="action-text">{$t('marketing_ui.buy_campaign')}</span>
 				<span class="price-text">{formatMoney(marketingCost, suffixes)}</span>
 			</button>

@@ -1,6 +1,5 @@
 ---
 trigger: always_on
-glob:
-description:
 ---
 
+Use the latest stable Svelte version. Use Svelt Runes where suitable.

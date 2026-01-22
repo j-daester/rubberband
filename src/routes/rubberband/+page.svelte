@@ -4,101 +4,128 @@
 
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { Game } from './game';
+	import { game } from '$lib/state/gameState.svelte';
+	import * as Actions from '$lib/services/gameLoop';
 	import { GAME_CONSTANTS } from './parameters';
-
 	import { formatNumber, formatMoney, formatWeight, formatVolume, formatArea } from './utils';
+
 	import MachineShop from './components/MachineShop.svelte';
 	import Marketing from './components/Marketing.svelte';
 	import HeavyIndustry from './components/HeavyIndustry.svelte';
 	import SupplyChain from './components/SupplyChain.svelte';
 	import Research from './components/Research.svelte';
-
 	import NanoFactory from './components/NanoFactory.svelte';
 	import DemandCurve from './components/DemandCurve.svelte';
-
-	const appVersion = __APP_VERSION__;
-
-	let game = new Game();
-	let interval: ReturnType<typeof setInterval>;
-
-	// Reactivity trigger
-	let tick = 0;
-	let canShare = false;
-
-	// Scroll detection for sticky header
-	let scrollY = 0;
-	$: isScrolled = scrollY > 50;
-
-	// Reactive declarations for header stats
-	let money = game.money;
-	interface I18nStore {
-		(key: string, vars?: Record<string, any>): string;
-	}
-	// We need to type t as any for now because of the lint error issue with the module,
-	// or just trust it works.
 	import { t, json } from 'svelte-i18n';
 
-	// Helper to get suffixes easily (reactive)
-	$: suffixes = $json('suffixes') as unknown as string[];
+	const appVersion = __APP_VERSION__;
+	let interval: ReturnType<typeof setInterval>;
+	let canShare = false;
+	let scrollY = 0;
+	let tick = $state(0); // Kept for legacy component prop compatibility if needed, or derived from game.
 
-	let rubberbands = game.rubberbands;
-	let rubber = game.rubber;
-	let productionRate = game.machineProductionRate;
-	let rubberProduction = game.rubberProductionRate;
-	let totalSold = game.totalRubberbandsSold;
-	let demand = game.demand;
-	let rubberbandPrice = game.rubberbandPrice;
-	let tickCount = game.tickCount;
+	// Derived State for Template Compatibility
+	let isScrolled = $derived(scrollY > 50);
 
-	let gameOver = game.gameOver;
+	// Helper to get suffixes easily
+	let suffixes = $derived($json('suffixes') as unknown as string[]);
 
-	let inventoryCost = game.inventoryCost;
-	let maintenanceCost = game.maintenanceCost;
-	let totalRubberProduced = game.totalRubberProduced;
-	let consumedEarthResources = game.consumedEarthResources;
-	let consumedOil = game.consumedOil;
-	let netIncome = game.netIncome;
-	let researched = game.researched;
-	let resourceLimit = game.resourceLimit;
-	let storageLimit = game.storageLimit;
-	let resourceUnitNameKey = 'common.earth_resources';
+	// Direct access via game object, but mapping to local variables for minimizing template diffs
+	let money = $derived(game.money);
+	let rubberbands = $derived(game.rubberbands);
+	let rubber = $derived(game.rubber);
 
-	$: score = 100000 / tickCount;
-	// Construct share text using translations is tricky inside script because $t is reactive.
-	// But we can use it here.
-	$: shareText = $t('common.share_success') + ` ${formatNumber(score, suffixes)} Points...`; // Simplified for now or reconstruct fully?
-	// User didn't strictly ask to translate the share text but "everything".
-	// Let's rely on English for share text usually? Or translate it.
-	// The problem is constructing it dynamically.
-	// Let's leave share text logic slightly simpler or assume English for the URL preview?
-	// Actually, let's translate it.
-	$: shareTextRaw = `I just scored ${formatNumber(
-		score,
-		suffixes
-	)} Points in Rubberband Inc. (Version ${appVersion})! ${formatNumber(
-		totalSold,
-		suffixes
-	)} rubberbands sold in ${formatNumber(
-		tickCount,
-		suffixes
-	)} ticks! Try to beat my score! https://rubberband.realnet.ch`;
+	// Getters from State
+	let productionRate = $derived(game._machineProductionRate); // Internal prop, but exposed via getter? No, getter was machineProductionRate
+	// Wait, I didn't add the `machineProductionRate` getter in step 122 explicitly, I added `income` etc.
+	// I should check if `_machineProductionRate` is public. YES, it is. But normally I should use a getter.
+	// I'll access properties directly for now where getters aren't present.
+	// Actually, `game.machineProductionRate` getter WAS present in original `Game` class. I removed it?
+	// I added `_machineProductionRate` as a property. I did NOT add a getter for it in Step 122.
+	// I will use `game._machineProductionRate` for now.
+
+	let rubberProduction = $derived(game._rubberProductionRate);
+	let totalSold = $derived(game.totalRubberbandsSold);
+	let demand = $derived(game.demand);
+	let rubberbandPrice = $derived(game.rubberbandPrice);
+	let rubberPrice = $derived(game.rubberPrice);
+	let tickCount = $derived(game.tickCount);
+	let gameOver = $derived(game.gameOver);
+
+	let inventoryCost = $derived(game.inventoryCost);
+	let maintenanceCost = $derived(game.maintenanceCost);
+	let totalRubberProduced = $derived(game.totalRubberProduced);
+	let consumedEarthResources = $derived(game.consumedEarthResources);
+	let consumedOil = $derived(game.consumedOil);
+	let netIncome = $derived(game.netIncome);
+	let researched = $derived(game.researched);
+	let resourceLimit = $derived(game.resourceLimit);
+	let storageLimit = $derived(game.storageLimit);
+	let usedStorageSpace = $derived(game.usedStorageSpace);
+
+	// Computed Logic
+	let score = $derived(tickCount > 0 ? 100000 / tickCount : 0);
+	let resourceUnitNameKey = $derived(
+		researched.includes('interplanetary_logistics')
+			? 'common.universe_resources'
+			: 'common.earth_resources'
+	);
+
+	let hasRubberSources = $derived(
+		(game.producers['rubber_sources'] || []).some((count) => count > 0)
+	);
+
+	let banderCounts = $derived(game.producers['bander'] || []);
+	let totalMachines = $derived(banderCounts.reduce((a, b) => a + b, 0));
+
+	let showResourceGroup = $derived(
+		(researched.includes('synthetic_rubber') && !researched.includes('molecular_transformation')) ||
+			researched.includes('molecular_transformation')
+	);
+
+	let theoreticalConsumption = $derived(game._theoreticalRubberConsumptionRate);
+	let showOperationsSection = true;
+
+	// Share Text
+	let shareText = $derived(
+		`I just scored ${formatNumber(
+			score,
+			suffixes
+		)} Points in Rubberband Inc. (Version ${appVersion})! ${formatNumber(
+			totalSold,
+			suffixes
+		)} rubberbands sold in ${formatNumber(
+			tickCount,
+			suffixes
+		)} ticks! Try to beat my score! https://rubberband.realnet.ch`
+	);
 
 	onMount(() => {
 		canShare = !!navigator.share;
-		// Load game state if available
 		const saved = localStorage.getItem('rubberband_save');
 		if (saved) {
-			game = new Game(saved);
-			// Sync bound variables
-			rubberbandPrice = game.rubberbandPrice;
-			tick++;
+			// We need to re-initialize game state. GameState has constructor that takes serialized.
+			// But 'game' is singleton.
+			// We should call a method on game to load.
+			// I missed adding 'load' method. I can just use the constructor logic via a 'load' method or new instance assignment if it wasn't const.
+			// 'game' is exported as 'const game = new GameState()'. I cannot reassign it.
+			// I must add a `load(json)` method to GameState or manually assign props.
+			// `GameState` has a `reset()` method. I could add `load`.
+			// For now, I will parse and assign manually or assume existing state if SSR? No, onMount is client.
+			// I will hack it: Object.assign(game, JSON.parse(saved)); - This won't trigger reactivity deeply if nested objects are replaced without $state proxy?
+			// Actually, `game.producers = data.producers` works if `producers` is a state proxy.
+			// I will add a TO-DO to fix loading properly, or just do manual assignment here.
+			try {
+				const data = JSON.parse(saved);
+				game.load(data);
+			} catch (e) {
+				console.error('Load failed', e);
+			}
 		}
 
 		interval = setInterval(() => {
-			game.tick();
-			tick++; // Trigger Svelte reactivity
-
+			Actions.tick();
+			tick = game.tickCount; // Sync local tick for components if they use it
 			if (game.tickCount % 10 === 0) {
 				localStorage.setItem('rubberband_save', game.toString());
 			}
@@ -110,96 +137,27 @@
 	});
 
 	function makeRubberband() {
-		game.makeRubberband();
-		tick++;
+		Actions.makeRubberband();
 	}
 
 	function buyRubber() {
-		if (game.buyRubber(100)) {
-			tick++;
-		}
+		Actions.buyRubber(100);
 	}
 
 	function restartGame() {
-		if (!gameOver && !confirm($t('common.restart_game') + '?')) {
-			// Simplified confirm
-			return;
-		}
+		if (!gameOver && !confirm($t('common.restart_game') + '?')) return;
 		localStorage.removeItem('rubberband_save');
 		location.reload();
 	}
 
 	function handleAction() {
-		game = game;
-		tick++;
-	}
-
-	// Reactive declarations for UI updates
-	let hasRubberSources = false;
-	let totalMachines = 0;
-	let theoreticalConsumption = 0;
-	let usedStorageSpace = 0;
-	let showResourceGroup = false;
-	let showOperationsSection = true;
-
-	$: {
-		tick;
-		money = game.money;
-		rubberbands = game.rubberbands;
-		rubber = game.rubber;
-		productionRate = game.machineProductionRate;
-		rubberProduction = game.rubberProductionRate;
-		theoreticalConsumption = game.theoreticalRubberConsumptionRate;
-		totalSold = game.totalRubberbandsSold;
-		totalSold = game.totalRubberbandsSold;
-		demand = game.demand;
-		tickCount = game.tickCount;
-		gameOver = game.gameOver;
-
-		inventoryCost = game.inventoryCost;
-		maintenanceCost = game.maintenanceCost;
-		netIncome = game.netIncome;
-		totalRubberProduced = game.totalRubberProduced;
-		resourceLimit = game.resourceLimit;
-
-		usedStorageSpace = game.usedStorageSpace;
-
-		consumedOil = game.consumedOil;
-		consumedEarthResources = game.consumedResources;
-		researched = game.researched;
-		resourceLimit = game.resourceLimit;
-		storageLimit = game.storageLimit;
-		resourceUnitNameKey = researched.includes('interplanetary_logistics')
-			? 'common.universe_resources'
-			: 'common.earth_resources';
-		hasRubberSources = (game.producers['rubber_sources'] || []).some((count) => count > 0);
-
-		// Calculate total machines for "Make Rubberband" button logic
-		totalMachines = 0;
-		const banderCounts = game.producers['bander'] || [];
-		totalMachines = banderCounts.reduce((a, b) => a + b, 0);
-
-		showResourceGroup =
-			(researched.includes('synthetic_rubber') &&
-				!researched.includes('molecular_transformation')) ||
-			researched.includes('molecular_transformation');
-
-		// Buttons are visible if their conditions are met AND Nano is not researched
-		const nanoResearched = researched.includes('nanotechnology');
-		const showMakeBtn = totalMachines === 0;
-		const showBuyBtn = !hasRubberSources;
-
-		const marketingUnlocked = researched.includes(GAME_CONSTANTS.MARKETING_UNLOCK_RESEARCH);
-		// Operations section is always visible now because it contains the Price Controls (DemandCurve) which are essential
-		showOperationsSection = true;
+		// No-op with Runes usually, but maybe force update if deeper components need it?
+		// In Svelte 5, fine-grained reactivity handles it.
 	}
 
 	async function shareGame() {
 		try {
-			await navigator.share({
-				title: 'Rubberband Inc. Success',
-				text: shareTextRaw
-			});
+			await navigator.share({ title: 'Rubberband Inc. Success', text: shareText });
 		} catch (err) {
 			console.error('Error sharing:', err);
 		}
@@ -207,41 +165,23 @@
 
 	function handlePriceChange(e: CustomEvent) {
 		const p = Math.round(e.detail.price * 100) / 100;
-		game.rubberbandPrice = p;
-		rubberbandPrice = p;
+		Actions.setRubberbandPrice(p); // Use action
 	}
 
-	// Reactive translations dependent on game state/tick
-	let buyRubberText = '',
-		scoreStatText = '',
-		totalSoldStatText = '',
-		coinsStatText = '',
-		ticksStatText = '';
-
-	$: {
-		// Just referencing tick/game to force re-evaluation
-		tick;
-		if (game) {
-			// Manual interpolation fallback since svelte-i18n interpolation is failing
-			buyRubberText = ($t('common.buy_rubber') as string).replace(
-				'{cost}',
-				formatMoney(100 * game.rubberPrice, suffixes)
-			);
-			scoreStatText = ($t('common.score_stat') as string).replace(
-				'{score}',
-				formatNumber(score, suffixes)
-			);
-			totalSoldStatText = ($t('common.total_sold_stat') as string).replace(
-				'{amount}',
-				formatNumber(totalSold, suffixes)
-			);
-			coinsStatText = ($t('common.coins_stat') as string).replace(
-				'{amount}',
-				formatMoney(money, suffixes)
-			);
-			ticksStatText = ($t('common.ticks_stat') as string).replace('{amount}', tickCount.toString());
-		}
-	}
+	// Translations
+	let buyRubberText = $derived(
+		$t('common.buy_rubber').replace('{cost}', formatMoney(100 * rubberPrice, suffixes))
+	);
+	let scoreStatText = $derived(
+		$t('common.score_stat').replace('{score}', formatNumber(score, suffixes))
+	);
+	let totalSoldStatText = $derived(
+		$t('common.total_sold_stat').replace('{amount}', formatNumber(totalSold, suffixes))
+	);
+	let coinsStatText = $derived(
+		$t('common.coins_stat').replace('{amount}', formatMoney(money, suffixes))
+	);
+	let ticksStatText = $derived($t('common.ticks_stat').replace('{amount}', tickCount.toString()));
 </script>
 
 <svelte:head>
@@ -268,11 +208,7 @@
 					<span class="value">{tickCount}</span>
 				</div>
 				<div class="restart-container">
-					<button
-						class="restart-btn-small"
-						on:click={restartGame}
-						title={$t('common.restart_game')}
-					>
+					<button class="restart-btn-small" onclick={restartGame} title={$t('common.restart_game')}>
 						<svg
 							xmlns="http://www.w3.org/2000/svg"
 							width="24"
@@ -437,25 +373,21 @@
 					<section class="operations-content">
 						<!-- Price Controls -->
 						<div class="chart-container">
-							<DemandCurve {game} {tick} {suffixes} on:priceChange={handlePriceChange} />
+							<DemandCurve on:priceChange={handlePriceChange} />
 						</div>
 
 						<!-- Manual Controls -->
 						<div class="manual-controls">
 							<div class="button-group">
 								{#if totalMachines === 0}
-									<button
-										class="action-btn primary"
-										on:click={makeRubberband}
-										disabled={rubber < 1}
-									>
+									<button class="action-btn primary" onclick={makeRubberband} disabled={rubber < 1}>
 										{$t('common.make_rubberband')}
 									</button>
 								{/if}
 								{#if !hasRubberSources}
 									<button
 										class="action-btn secondary"
-										on:click={buyRubber}
+										onclick={buyRubber}
 										disabled={money < 100 * game.rubberPrice}
 									>
 										{@html buyRubberText}
@@ -465,17 +397,17 @@
 						</div>
 					</section>
 					<!-- Marketing -->
-					<Marketing {game} {tick} {suffixes} on:action={handleAction} />
+					<Marketing on:action={handleAction} />
 
 					<!-- Nano Factory -->
-					<NanoFactory {game} {tick} {suffixes} on:action={handleAction} />
+					<NanoFactory on:action={handleAction} />
 				</section>
 			{/if}
 
-			<Research {game} {tick} {suffixes} on:action={handleAction} />
-			<MachineShop {game} {tick} {suffixes} on:action={handleAction} />
-			<SupplyChain {game} {tick} {suffixes} on:action={handleAction} />
-			<HeavyIndustry {game} {tick} {suffixes} on:action={handleAction} />
+			<Research on:action={handleAction} />
+			<MachineShop on:action={handleAction} />
+			<SupplyChain on:action={handleAction} />
+			<HeavyIndustry on:action={handleAction} />
 		</div>
 	</main>
 
@@ -498,7 +430,7 @@
 					<h3>Share your success</h3>
 					<div class="share-buttons">
 						{#if canShare}
-							<button class="share-btn native-share" on:click={shareGame}> Share </button>
+							<button class="share-btn native-share" onclick={shareGame}> Share </button>
 						{:else}
 							<a
 								href="https://twitter.com/intent/tweet?text={encodeURIComponent(shareText)}"
@@ -534,7 +466,7 @@
 					</div>
 				</div>
 
-				<button class="restart-btn" on:click={restartGame}>Restart Game</button>
+				<button class="restart-btn" onclick={restartGame}>Restart Game</button>
 			</div>
 		</div>
 	{/if}

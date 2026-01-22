@@ -1,82 +1,86 @@
 <script lang="ts">
-	import type { Game } from '../game';
+	import { game } from '$lib/state/gameState.svelte';
+	import * as Actions from '$lib/services/gameLoop';
 	import { producerFamilies, GAME_CONSTANTS } from '../parameters';
 	import { formatNumber, formatMoney, formatWeight } from '../utils';
 	import { createEventDispatcher } from 'svelte';
-	import { t, locale } from 'svelte-i18n';
+	import { t, locale, json } from 'svelte-i18n';
 
-	export let game: Game;
-	export let tick: number;
-	export let suffixes: string[] = [];
-
+	// No props needed - accessing global state
+	// Local state
 	let buyAmount = 1;
-	let buyerThreshold = game.buyerThreshold;
+	let buyerThreshold = $state(game.buyerThreshold); // Initialize with current state
 
-	// Reactive declarations
-	$: {
-		tick;
-		game = game;
+	// Helper to get suffixes (previously passed as prop)
+	let suffixes = $derived($json('suffixes') as unknown as string[]);
+
+	// Sync local buyerThreshold with game state (one-way unless editing)
+	$effect(() => {
 		if (
 			game.buyerThreshold !== buyerThreshold &&
 			!document.activeElement?.id?.includes('threshold')
 		) {
 			buyerThreshold = game.buyerThreshold;
 		}
-	}
+	});
 
 	// Filter Rubber Source Families
-	$: rubberSourceFamilies = producerFamilies.filter((f) => f.type === 'rubber_source');
+	let rubberSourceFamilies = $derived(producerFamilies.filter((f) => f.type === 'rubber_source'));
 
-	$: money = game.money;
-	$: buyerHired = game.buyerHired;
-	$: currentBuyerThreshold = game.buyerThreshold;
+	let money = $derived(game.money);
+	let buyerHired = $derived(game.buyerHired);
+	// currentBuyerThreshold is derived from game, different from bound 'buyerThreshold'
+	let currentBuyerThreshold = $derived(game.buyerThreshold);
 
-	$: warningMessage = (() => {
-		const suggestions = [$t('supply_chain_ui.suggestion_increase_production')];
-		if (!game.buyerHired) {
-			suggestions.push($t('supply_chain_ui.suggestion_hire_buyer'));
-		} else if (game.buyerThreshold < GAME_CONSTANTS.MAX_RUBBER_NO_PRODUCTION) {
-			suggestions.push($t('supply_chain_ui.suggestion_increase_auto_buy'));
-		}
+	let warningMessage = $derived(
+		(() => {
+			const suggestions = [$t('supply_chain_ui.suggestion_increase_production')];
+			if (!game.buyerHired) {
+				suggestions.push($t('supply_chain_ui.suggestion_hire_buyer'));
+			} else if (game.buyerThreshold < GAME_CONSTANTS.MAX_RUBBER_NO_PRODUCTION) {
+				suggestions.push($t('supply_chain_ui.suggestion_increase_auto_buy'));
+			}
 
-		const prefix = $t('supply_chain_ui.warning_prefix');
-		const orText = $locale?.startsWith('de') ? 'oder' : $locale?.startsWith('fr') ? 'ou' : 'or';
+			const prefix = $t('supply_chain_ui.warning_prefix');
+			const orText = $locale?.startsWith('de') ? 'oder' : $locale?.startsWith('fr') ? 'ou' : 'or';
 
-		if (suggestions.length > 1) {
-			const last = suggestions.pop();
-			return `${prefix} ${suggestions.join(', ')} ${orText} ${last}.`;
-		}
-		return `${prefix} ${suggestions[0]}.`;
-	})();
+			if (suggestions.length > 1) {
+				const last = suggestions.pop();
+				return `${prefix} ${suggestions.join(', ')} ${orText} ${last}.`;
+			}
+			return `${prefix} ${suggestions[0]}.`;
+		})()
+	);
 
 	const dispatch = createEventDispatcher();
 
 	function handleBuy(familyId: string, tierIndex: number, amount: number = 1) {
-		if (game.buyProducer(familyId, tierIndex, amount)) {
+		if (Actions.buyProducer(familyId, tierIndex, amount)) {
 			dispatch('action');
 		}
 	}
 
 	function handleSell(familyId: string, tierIndex: number, amount: number = 1) {
-		if (game.sellProducer(familyId, tierIndex, amount)) {
+		if (Actions.sellProducer(familyId, tierIndex, amount)) {
 			dispatch('action');
 		}
 	}
 
 	function hireBuyer() {
-		if (game.hireBuyer()) {
+		if (Actions.hireBuyer()) {
 			dispatch('action');
 		}
 	}
 
 	function updateBuyerThreshold() {
-		game.setBuyerThreshold(buyerThreshold);
+		// Here buyerThreshold is bound to input, so it has the new value
+		Actions.setBuyerThreshold(buyerThreshold);
 		dispatch('action');
 	}
 
-	$: autoBuyerActiveParams = {
+	let autoBuyerActiveParams = $derived({
 		amount: formatNumber(currentBuyerThreshold, suffixes)
-	} as any;
+	} as any);
 
 	function tr(key: string, search: string, replace: string) {
 		return ($t(key) as string).replace(search, replace);
@@ -105,7 +109,7 @@
 							<p class="details">{$t('supply_chain_ui.auto_buyer_desc')}</p>
 						</div>
 						<div class="actions">
-							<button class="buy-btn" disabled={money < 1000} on:click={hireBuyer}>
+							<button class="buy-btn" disabled={money < 1000} onclick={hireBuyer}>
 								<span class="action-text">{$t('supply_chain_ui.hire_buyer')}</span>
 								<span class="price-text">{formatMoney(1000, suffixes)}</span>
 							</button>
@@ -128,7 +132,7 @@
 									id="threshold"
 									type="number"
 									bind:value={buyerThreshold}
-									on:input={updateBuyerThreshold}
+									oninput={updateBuyerThreshold}
 									min="0"
 								/>
 							</div>
@@ -141,19 +145,19 @@
 		<div class="plantation-list">
 			{#each rubberSourceFamilies as family}
 				{#each family.tiers as source, index}
-					{#if game.isProducerVisible(source)}
+					{#if Actions.isProducerVisible(source)}
 						{@const owned = game.producers[family.id]?.[index] || 0}
 						{@const purchased = game.purchasedProducers[family.id]?.[index] || 0}
-						{@const max = game.getMaxAffordableProducer(family.id, index, game.money, purchased)}
+						{@const max = Actions.getMaxAffordableProducer(family.id, index, game.money, purchased)}
 						{@const amount = buyAmount === -1 ? Math.max(1, max) : buyAmount}
-						{@const cost = game.getProducerCost(family.id, index, amount, purchased)}
+						{@const cost = Actions.getProducerCost(family.id, index, amount, purchased)}
 						{@const canAfford = game.money >= cost}
-						{@const isBeingProduced = game.isProducerBeingProduced(family.id, index)}
+						{@const isBeingProduced = Actions.isProducerBeingProduced(family.id, index)}
 
 						{@const isDisplayOnly = source.allow_manual_purchase === false}
 						{@const sellPrice =
 							purchased > 0
-								? Math.floor(0.5 * game.getProducerCost(family.id, index, 1, purchased - 1))
+								? Math.floor(0.5 * Actions.getProducerCost(family.id, index, 1, purchased - 1))
 								: 0}
 
 						{@const nextTier = family.tiers[index + 1]}
@@ -171,7 +175,7 @@
 									<div class="stat-block">
 										<span class="stat-label">{$t('common.production')}</span>
 										<span class="stat-value">
-											{formatWeight(game.getProducerOutput(family.id, index))}
+											{formatWeight(Actions.getProducerOutput(family.id, index))}
 											{$t('common.rubber')}/⏱️
 										</span>
 									</div>
@@ -193,7 +197,7 @@
 												disabled={(!canAfford && buyAmount !== -1) ||
 													(buyAmount === -1 && max === 0) ||
 													isBeingProduced}
-												on:click={() => handleBuy(family.id, index, amount)}
+												onclick={() => handleBuy(family.id, index, amount)}
 												title={isBeingProduced
 													? 'Cannot buy while being produced by heavy industry'
 													: ''}
@@ -204,7 +208,7 @@
 											<button
 												class="buy-btn sell-btn"
 												disabled={owned <= 0 || isBeingProduced}
-												on:click={() => handleSell(family.id, index)}
+												onclick={() => handleSell(family.id, index)}
 												title={isBeingProduced
 													? 'Cannot sell while being produced by heavy industry'
 													: ''}

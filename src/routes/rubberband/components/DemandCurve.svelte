@@ -1,36 +1,40 @@
 <script lang="ts">
-	import { Game } from '../game';
+	import { game } from '$lib/state/gameState.svelte';
+	import { calculateDemand } from '$lib/utils/formulas';
 	import { formatMoney, formatNumber } from '../utils';
 	import { createEventDispatcher } from 'svelte';
-	import { t } from 'svelte-i18n';
+	import { t, json } from 'svelte-i18n';
 
-	export let game: Game;
-	export let tick: number; // to trigger updates
-	export let suffixes: string[] = [];
+	// No props needed
+
+	// Helper to get suffixes (previously passed as prop)
+	let suffixes = $derived($json('suffixes') as unknown as string[]);
 
 	const dispatch = createEventDispatcher();
 
-	// ... (rest of script unchanged until template)
-	let points: { x: number; y: number }[] = [];
-	let currentPoint: { x: number; y: number } = { x: 0, y: 0 };
-	let maxDemand = 100;
-	let isDragging = false;
+	// Local helper to wrap pure formula with game state
+	function calculateDemandLocal(price: number) {
+		return calculateDemand(game.marketingLevel, price, game.researched, game.producers);
+	}
+
+	let points = $state<{ x: number; y: number }[]>([]);
+	let currentPoint = $state<{ x: number; y: number }>({ x: 0, y: 0 });
+	let maxDemand = $state(100);
+	let isDragging = $state(false);
 	let svgElement: SVGSVGElement;
-	let hoverPoint: { x: number; y: number; price: number; demand: number } | null = null;
+	let hoverPoint = $state<{ x: number; y: number; price: number; demand: number } | null>(null);
 
 	// Chart dimensions
 	const width = 300;
 	const height = 150;
 	const padding = 20;
 
-	$: {
-		tick;
-		// Only regenerate curve from game state if NOT dragging to prevent jitter/conflict?
-		// Actually we want the curve to reflect reality.
-		// If we drag, we emit price change, parent updates game, game updates price, we re-render.
-		// So it should be fine to always regenerate.
+	$effect(() => {
+		// Trigger regen on tick or price change
+		game.tickCount;
+		game.rubberbandPrice;
 		generateCurve();
-	}
+	});
 
 	function generateCurve() {
 		const currentPrice = game.rubberbandPrice;
@@ -44,39 +48,41 @@
 
 		for (let i = 0; i <= steps; i++) {
 			const x = (i / steps) * maxX; // Price
-			const y = game.calculateDemand(x); // Demand
+			const y = calculateDemandLocal(x); // Demand
 			newPoints.push({ x, y });
 			if (y > maxY) maxY = y;
 		}
 
 		points = newPoints;
 		maxDemand = maxY > 0 ? maxY : 100;
-		currentPoint = { x: currentPrice, y: game.calculateDemand(currentPrice) };
+		currentPoint = { x: currentPrice, y: calculateDemandLocal(currentPrice) };
 	}
 
 	// Scales
-	$: xScale = (x: number) =>
-		(x / Math.max(2, game.rubberbandPrice * 2.5)) * (width - 2 * padding) + padding;
+	let xScale = $derived(
+		(x: number) => (x / Math.max(2, game.rubberbandPrice * 2.5)) * (width - 2 * padding) + padding
+	);
 
-	$: inverseXScale = (pixelX: number) => {
+	let inverseXScale = $derived((pixelX: number) => {
 		const maxX = Math.max(2, game.rubberbandPrice * 2.5);
 		const relativeX = (pixelX - padding) / (width - 2 * padding);
 		// relativeX = price / maxX
 		return relativeX * maxX;
-	};
+	});
 
 	// Y scale inverted (0 at bottom)
-	$: yScale = (y: number) => height - padding - (y / maxDemand) * (height - 2 * padding);
+	let yScale = $derived((y: number) => height - padding - (y / maxDemand) * (height - 2 * padding));
 
 	// SVG path
-	$: pathD =
+	let pathD = $derived(
 		points.length > 0
 			? `M ${xScale(points[0].x)} ${yScale(points[0].y)} ` +
-			  points
-					.slice(1)
-					.map((p) => `L ${xScale(p.x)} ${yScale(p.y)}`)
-					.join(' ')
-			: '';
+					points
+						.slice(1)
+						.map((p) => `L ${xScale(p.x)} ${yScale(p.y)}`)
+						.join(' ')
+			: ''
+	);
 
 	function getInteractionData(event: MouseEvent | TouchEvent) {
 		if (!svgElement) return null;
@@ -87,7 +93,7 @@
 		const localX = (clientX - rect.left) * scaleX;
 
 		const price = Math.max(0.01, inverseXScale(localX));
-		const demand = game.calculateDemand(price);
+		const demand = calculateDemandLocal(price);
 
 		return {
 			x: xScale(price),
@@ -98,6 +104,9 @@
 	}
 
 	function handleStart(event: MouseEvent | TouchEvent) {
+		if (window.TouchEvent && event instanceof TouchEvent) {
+			event.preventDefault();
+		}
 		isDragging = true;
 		handleDrag(event); // Update immediately on click
 	}
@@ -128,10 +137,10 @@
 </script>
 
 <svelte:window
-	on:mouseup={handleEnd}
-	on:touchend={handleEnd}
-	on:mousemove={handleDrag}
-	on:touchmove={handleDrag}
+	onmouseup={handleEnd}
+	ontouchend={handleEnd}
+	onmousemove={handleDrag}
+	ontouchmove={handleDrag}
 />
 
 <div class="demand-curve-container">
@@ -140,10 +149,10 @@
 		{width}
 		{height}
 		viewBox="0 0 {width} {height}"
-		on:mousedown={handleStart}
-		on:touchstart|preventDefault={handleStart}
-		on:mousemove={handleHover}
-		on:mouseleave={handleLeave}
+		onmousedown={handleStart}
+		ontouchstart={handleStart}
+		onmousemove={handleHover}
+		onmouseleave={handleLeave}
 		role="slider"
 		aria-valuenow={currentPoint.x}
 		aria-label={$t('common.price_setting_title')}
@@ -195,7 +204,7 @@
 			font-weight="bold"
 		>
 			{$t('common.current')}: {formatMoney(currentPoint.x, suffixes)} -> {formatNumber(
-				game.calculateDemand(currentPoint.x),
+				calculateDemandLocal(currentPoint.x),
 				suffixes
 			)}/⏱️
 		</text>
@@ -275,8 +284,8 @@
 		<button
 			class="control-btn"
 			aria-label="Decrease Price"
-			on:click={() => {
-				const newPrice = Math.max(1, Math.floor(currentPoint.x) - 1);
+			onclick={() => {
+				const newPrice = Math.max(0.01, currentPoint.x - 0.1);
 				dispatch('priceChange', { price: newPrice });
 			}}
 		>
@@ -286,11 +295,11 @@
 		<input
 			type="range"
 			class="price-slider"
-			min="1"
+			min="0.01"
 			max={Math.max(50, Math.ceil(currentPoint.x * 2))}
-			step="1"
-			value={Math.round(currentPoint.x)}
-			on:input={(e) => {
+			step="0.01"
+			value={currentPoint.x}
+			oninput={(e) => {
 				const val = parseFloat(e.currentTarget.value);
 				dispatch('priceChange', { price: val });
 			}}
@@ -299,8 +308,8 @@
 		<button
 			class="control-btn"
 			aria-label="Increase Price"
-			on:click={() => {
-				const newPrice = Math.floor(currentPoint.x) + 1;
+			onclick={() => {
+				const newPrice = currentPoint.x + 0.1;
 				dispatch('priceChange', { price: newPrice });
 			}}
 		>

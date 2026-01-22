@@ -1,21 +1,15 @@
 <script lang="ts">
-	import type { Game } from '../game';
+	import { game } from '$lib/state/gameState.svelte';
+	import * as Actions from '$lib/services/gameLoop';
 	import { producerFamilies, type Producer } from '../parameters';
 	import { formatNumber, formatMoney } from '../utils';
 	import { createEventDispatcher } from 'svelte';
-	import { t } from 'svelte-i18n';
+	import { t, json } from 'svelte-i18n';
 
-	export let game: Game;
-	export let tick: number;
-	export let suffixes: string[] = [];
+	// Helper to get suffixes (previously passed as prop)
+	$: suffixes = $json('suffixes') as unknown as string[];
 
 	let buyAmount = 1;
-
-	// Reactive trigger
-	$: {
-		tick;
-		game = game;
-	}
 
 	// Filter Production Lines
 	$: productionLineFamilies = producerFamilies.filter((f) => f.type === 'production_line');
@@ -23,13 +17,13 @@
 	const dispatch = createEventDispatcher();
 
 	function handleBuy(familyId: string, tierIndex: number, amount: number = 1) {
-		if (game.buyProducer(familyId, tierIndex, amount)) {
+		if (Actions.buyProducer(familyId, tierIndex, amount)) {
 			dispatch('action');
 		}
 	}
 
 	function handleSell(familyId: string, tierIndex: number, amount: number = 1) {
-		if (game.sellProducer(familyId, tierIndex, amount)) {
+		if (Actions.sellProducer(familyId, tierIndex, amount)) {
 			dispatch('action');
 		}
 	}
@@ -48,7 +42,7 @@
 				{#each family.tiers as line, index}
 					{@const count = game.producers[family.id]?.[index] || 0}
 					<!-- Check visibility: Visible if unlocked OR owned > 0 -->
-					{#if game.isProducerVisible(line) || count > 0}
+					{#if Actions.isProducerVisible(line) || count > 0}
 						<!-- Logic Setup -->
 						{@const isBeingProduced = false}
 
@@ -68,7 +62,7 @@
 								  })()}
 
 						<!-- Stats Logic -->
-						{@const totalOutput = game.getProducerOutput(family.id, index)}
+						{@const totalOutput = Actions.getProducerOutput(family.id, index)}
 						{@const baseOutput = line.production.output.amount}
 						{@const boost = totalOutput - baseOutput}
 
@@ -101,14 +95,14 @@
 							<div class="actions">
 								{#if line.allow_manual_purchase !== false}
 									{@const purchased = game.purchasedProducers[family.id]?.[index] || 0}
-									{@const maxBuy = game.getMaxAffordableProducer(
+									{@const maxBuy = Actions.getMaxAffordableProducer(
 										family.id,
 										index,
 										game.money,
 										purchased
 									)}
 									{@const currentBuyAmount = buyAmount === -1 ? Math.max(1, maxBuy) : buyAmount}
-									{@const buyCost = game.getProducerCost(
+									{@const buyCost = Actions.getProducerCost(
 										family.id,
 										index,
 										currentBuyAmount,
@@ -117,7 +111,7 @@
 									{@const canAffordBuy = game.money >= buyCost}
 									{@const sellPrice =
 										count > 0
-											? Math.floor(0.5 * game.getProducerCost(family.id, index, 1, count - 1))
+											? Math.floor(0.5 * Actions.getProducerCost(family.id, index, 1, count - 1))
 											: 0}
 
 									<div class="action-group">
@@ -125,7 +119,7 @@
 											class="buy-btn"
 											disabled={(!canAffordBuy && buyAmount !== -1) ||
 												(buyAmount === -1 && maxBuy === 0)}
-											on:click={() => handleBuy(family.id, index, currentBuyAmount)}
+											onclick={() => handleBuy(family.id, index, currentBuyAmount)}
 										>
 											<span class="action-text">{$t('common.buy')}</span>
 											<span class="price-text">{formatMoney(buyCost, suffixes)}</span>
@@ -133,7 +127,7 @@
 										<button
 											class="buy-btn sell-btn"
 											disabled={count <= 0}
-											on:click={() => handleSell(family.id, index)}
+											onclick={() => handleSell(family.id, index)}
 										>
 											<span class="action-text">{$t('common.sell')}</span>
 											<span class="price-text">{formatMoney(sellPrice, suffixes)}</span>

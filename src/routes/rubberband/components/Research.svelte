@@ -1,31 +1,32 @@
 <script lang="ts">
-	import type { Game } from '../game';
+	import { game } from '$lib/state/gameState.svelte';
+	import * as Actions from '$lib/services/gameLoop';
 	import { researchList } from '../parameters';
 	import { formatNumber, formatMoney } from '../utils';
 	import { createEventDispatcher } from 'svelte';
-	import { t } from 'svelte-i18n';
+	import { t, json } from 'svelte-i18n';
 
-	export let game: Game;
-	export let tick: number;
-	export let suffixes: string[] = [];
+	// No props needed - accessing global state
+
+	// Helper to get suffixes (previously passed as prop)
+	let suffixes = $derived($json('suffixes') as unknown as string[]);
 
 	const dispatch = createEventDispatcher();
 
-	// Reactive trigger
-	$: {
-		tick;
-		game = game;
-	}
-
 	function buyResearch(researchId: string) {
-		if (game.buyResearch(researchId)) {
+		if (Actions.buyResearch(researchId)) {
 			dispatch('action');
 		}
 	}
 
 	// Reactive filter for visible research
-	$: visibleResearch = researchList.filter(
-		(r) => !r.precondition_research || game.researched.includes(r.precondition_research)
+	// Use game.researched (State)
+	// Reactive filter for visible research
+	// Use game.researched (State)
+	let visibleResearch = $derived(
+		researchList.filter(
+			(r) => !r.precondition_research || game.researched.includes(r.precondition_research)
+		)
 	);
 </script>
 
@@ -46,7 +47,7 @@
 						<button
 							class="buy-btn"
 							disabled={game.money < research.cost}
-							on:click={() => buyResearch(research.id)}
+							onclick={() => buyResearch(research.id)}
 						>
 							<span class="action-text">{$t('research_ui.research_btn')}</span>
 							<span class="price-text">{formatMoney(research.cost, suffixes)}</span>

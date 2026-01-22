@@ -1,0 +1,307 @@
+
+> rubberband@0.0.1 check
+> svelte-kit sync && svelte-check --tsconfig ./tsconfig.json
+
+
+====================================
+Loading svelte-check in workspace: /home/jonas/projects/rubberband
+Getting Svelte diagnostics...
+
+11:04:34 PM [vite-plugin-svelte] You are using Svelte 5.0.0-next.272 with vite-plugin-svelte@3. Active Svelte 5 support has moved to vite-plugin-svelte@4.
+	To receive bug fixes and new features update your devDependencies to "@sveltejs/vite-plugin-svelte": "^4.0.0-next.6" and install.
+	For framework integrations that depend on it, you might have to add an override:
+	"overrides": {"@sveltejs/vite-plugin-svelte": "^4.0.0-next.6"}
+/home/jonas/projects/rubberband/src/lib/state/gameState.svelte.ts:2:37
+Error: Cannot find module '../../routes/rubberband/game' or its corresponding type declarations. 
+import { producerFamilies, GAME_CONSTANTS } from '../../routes/rubberband/parameters';
+import type { NanoAllocation } from '../../routes/rubberband/game';
+import { calculateDemand, getResourceLimit, getStorageLimit, getUsedStorageSpace, getInventoryCost, getMaintenanceCost, getMarketingCost, getEffects } from '../utils/formulas';
+
+
+/home/jonas/projects/rubberband/src/lib/state/gameState.svelte.ts:61:43
+Error: Cannot find name 'getMarketingDecayInterval'. 
+
+    get marketingDecayInterval() { return getMarketingDecayInterval(this.researched, this.producers, this.marketingLevel); }
+
+
+
+/home/jonas/projects/rubberband/src/lib/services/gameLoop.ts:4:37
+Error: Cannot find module '../../routes/rubberband/game' or its corresponding type declarations. 
+import { producerFamilies, GAME_CONSTANTS, researchList, getCost, getMaxAffordable, type ResearchEffect, type Producer } from '../../routes/rubberband/parameters';
+import type { NanoAllocation } from '../../routes/rubberband/game';
+
+
+
+/home/jonas/projects/rubberband/src/routes/+layout.svelte:11:13
+Warn: Component has unused export property 'params'. If it is for external reference only, please consider using `export const params` (svelte)
+
+	export let params = undefined; // Silence unknown prop warning
+</script>
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/components/Marketing.svelte:14:13
+Warn: Properties of objects and arrays are not reactive unless in runes mode. Changes to this property will not cause the reactive statement to update (svelte)
+
+	$: money = game.money;
+	$: marketingLevel = game.marketingLevel;
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/components/Marketing.svelte:15:22
+Warn: Properties of objects and arrays are not reactive unless in runes mode. Changes to this property will not cause the reactive statement to update (svelte)
+	$: money = game.money;
+	$: marketingLevel = game.marketingLevel;
+	$: marketingCost = game.marketingCost;
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/components/Marketing.svelte:16:21
+Warn: Properties of objects and arrays are not reactive unless in runes mode. Changes to this property will not cause the reactive statement to update (svelte)
+	$: marketingLevel = game.marketingLevel;
+	$: marketingCost = game.marketingCost;
+
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/components/Marketing.svelte:25:28
+Warn: Properties of objects and arrays are not reactive unless in runes mode. Changes to this property will not cause the reactive statement to update (svelte)
+	}
+	$: ticksSinceLastUpdate = game.tickCount - game.lastMarketingUpdateTick;
+	// game.marketingDecayInterval is a getter I added to GameState
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/components/Marketing.svelte:25:45
+Warn: Properties of objects and arrays are not reactive unless in runes mode. Changes to this property will not cause the reactive statement to update (svelte)
+	}
+	$: ticksSinceLastUpdate = game.tickCount - game.lastMarketingUpdateTick;
+	// game.marketingDecayInterval is a getter I added to GameState
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/components/Marketing.svelte:27:35
+Warn: Properties of objects and arrays are not reactive unless in runes mode. Changes to this property will not cause the reactive statement to update (svelte)
+	// game.marketingDecayInterval is a getter I added to GameState
+	$: ticksUntilDecay = Math.max(0, game.marketingDecayInterval - ticksSinceLastUpdate);
+
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/components/SupplyChain.svelte:15:2
+Error: `$:` is not allowed in runes mode, use `$derived` or `$effect` instead (svelte)
+	// Helper to get suffixes (previously passed as prop)
+	$: suffixes = $json('suffixes') as unknown as string[];
+
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/components/NanoFactory.svelte:11:2
+Error: `$:` is not allowed in runes mode, use `$derived` or `$effect` instead (svelte)
+	// Helper to get suffixes (previously passed as prop)
+	$: suffixes = $json('suffixes') as unknown as string[];
+
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/components/NanoFactory.svelte:131:28
+Error: Property 'nanobotFactoryCost' does not exist on type 'GameState'. Did you mean 'nanobotFactoryCount'? (ts)
+	$: nanoFactoryCount = game.nanobotFactoryCount;
+	$: nanoFactoryCost = game.nanobotFactoryCost;
+
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/components/DemandCurve.svelte:11:2
+Error: `$:` is not allowed in runes mode, use `$derived` or `$effect` instead (svelte)
+	// Helper to get suffixes (previously passed as prop)
+	$: suffixes = $json('suffixes') as unknown as string[];
+
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/+page.svelte:1:9
+Warn: `context="module"` is deprecated, use the `module` attribute instead (svelte)
+<script context="module" lang="ts">
+	declare const __APP_VERSION__: string;
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/+page.svelte:218:6
+Warn: Buttons and links should either contain text or have an `aria-label` or `aria-labelledby` attribute (svelte)
+				<div class="restart-container">
+					<button
+						class="restart-btn-small"
+						on:click={restartGame}
+						title={$t('common.restart_game')}
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="24"
+							height="24"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+							<path d="M3 3v5h5" />
+						</svg>
+					</button>
+				</div>
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/+page.svelte:220:7
+Warn: Using `on:click` to listen to the click event is deprecated. Use the event attribute `onclick` instead (svelte)
+						class="restart-btn-small"
+						on:click={restartGame}
+						title={$t('common.restart_game')}
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/+page.svelte:292:9
+Warn: Self-closing HTML tags for non-void elements are ambiguous — use `<div ...></div>` rather than `<div ... />` (svelte)
+							<div class="progress-bar-container">
+								<div
+									class="resource-progress-bar"
+									style="width: {Math.min(
+										100,
+										(usedStorageSpace / storageLimit) * 100
+									)}%; background-color: #ff9800;"
+								/>
+								<span class="progress-text"
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/+page.svelte:309:10
+Warn: Self-closing HTML tags for non-void elements are ambiguous — use `<div ...></div>` rather than `<div ... />` (svelte)
+								<div class="progress-bar-container">
+									<div
+										class="resource-progress-bar"
+										style="width: {Math.min(
+											100,
+											(consumedOil / GAME_CONSTANTS.OIL_RESERVES_LIMIT) * 100
+										)}%"
+									/>
+									<span class="progress-text"
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/+page.svelte:328:10
+Warn: Self-closing HTML tags for non-void elements are ambiguous — use `<div ...></div>` rather than `<div ... />` (svelte)
+								<div class="progress-bar-container">
+									<div
+										class="resource-progress-bar"
+										style="width: {Math.min(100, (consumedEarthResources / resourceLimit) * 100)}%"
+									/>
+									<span class="progress-text"
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/+page.svelte:396:11
+Warn: Using `on:click` to listen to the click event is deprecated. Use the event attribute `onclick` instead (svelte)
+										class="action-btn primary"
+										on:click={makeRubberband}
+										disabled={rubber < 1}
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/+page.svelte:405:11
+Warn: Using `on:click` to listen to the click event is deprecated. Use the event attribute `onclick` instead (svelte)
+										class="action-btn secondary"
+										on:click={buyRubber}
+										disabled={money < 100 * game.rubberPrice}
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/+page.svelte:448:47
+Warn: Using `on:click` to listen to the click event is deprecated. Use the event attribute `onclick` instead (svelte)
+						{#if canShare}
+							<button class="share-btn native-share" on:click={shareGame}> Share </button>
+						{:else}
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/+page.svelte:484:33
+Warn: Using `on:click` to listen to the click event is deprecated. Use the event attribute `onclick` instead (svelte)
+
+				<button class="restart-btn" on:click={restartGame}>Restart Game</button>
+			</div>
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/+page.svelte:23:6
+Warn: `canShare` is updated, but is not declared with `$state(...)`. Changing its value will not correctly trigger updates (svelte)
+	let interval: ReturnType<typeof setInterval>;
+	let canShare = false;
+	let scrollY = 0;
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/+page.svelte:24:6
+Warn: `scrollY` is updated, but is not declared with `$state(...)`. Changing its value will not correctly trigger updates (svelte)
+	let canShare = false;
+	let scrollY = 0;
+	let tick = $state(0); // Kept for legacy component prop compatibility if needed, or derived from game.
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/+page.svelte:604:2
+Warn: Unused CSS selector ".economy-content" (svelte)
+	/* Economy Section Redesign Styles */
+	.economy-content {
+		display: flex;
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/+page.svelte:611:2
+Warn: Unused CSS selector ".economy-stats-row" (svelte)
+
+	.economy-stats-row {
+		display: grid;
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/+page.svelte:625:2
+Warn: Unused CSS selector ".financial-details" (svelte)
+	/* Financial Details Column */
+	.financial-details {
+		display: flex;
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/+page.svelte:634:2
+Warn: Unused CSS selector ".detail-row" (svelte)
+
+	.detail-row {
+		display: flex;
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/+page.svelte:909:2
+Warn: Unused CSS selector ".financial-details" (svelte)
+
+	.financial-details {
+		display: flex;
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/+page.svelte:918:2
+Warn: Unused CSS selector ".detail-row" (svelte)
+
+	.detail-row {
+		display: flex;
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/+page.svelte:924:2
+Warn: Unused CSS selector ".detail-label" (svelte)
+
+	.detail-label {
+		color: var(--color-text-muted);
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/+page.svelte:928:2
+Warn: Unused CSS selector ".detail-value.negative" (svelte)
+
+	.detail-value.negative {
+		color: #ff6b6b;
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/+page.svelte:932:2
+Warn: Unused CSS selector ".detail-value.positive" (svelte)
+
+	.detail-value.positive {
+		color: #4caf50;
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/+page.svelte:936:2
+Warn: Unused CSS selector ".profit-row" (svelte)
+
+	.profit-row {
+		border-top: 0.0625rem solid #444;
+
+
+/home/jonas/projects/rubberband/src/routes/rubberband/+page.svelte:1009:3
+Warn: Unused CSS selector ".progress-bar" (svelte)
+
+		.progress-bar {
+			padding: 0.5rem;
+
+
+====================================
+svelte-check found 7 errors and 30 warnings in 8 files

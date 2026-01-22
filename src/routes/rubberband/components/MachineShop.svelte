@@ -1,35 +1,30 @@
 <script lang="ts">
-	import type { Game } from '../game';
+	import { game } from '$lib/state/gameState.svelte';
+	import * as Actions from '$lib/services/gameLoop';
 	import { producerFamilies, type Producer } from '../parameters';
 	import { formatNumber, formatMoney } from '../utils';
 	import { createEventDispatcher } from 'svelte';
-	import { t } from 'svelte-i18n';
+	import { t, json } from 'svelte-i18n';
 
-	export let game: Game;
-	export let tick: number;
-	export let suffixes: string[] = [];
-
+	// No props needed - accessing global state
+	// Local state
 	let buyAmount = 1;
 
-	// Reactive declarations to keep UI in sync with game state
-	$: {
-		tick;
-		game = game;
-	}
+	// Helper to get suffixes (previously passed as prop)
+	$: suffixes = $json('suffixes') as unknown as string[];
 
-	// Filter for Machines
 	$: machineFamilies = producerFamilies.filter((f) => f.type === 'machine');
 
 	const dispatch = createEventDispatcher();
 
 	function handleBuy(familyId: string, tierIndex: number, amount: number = 1) {
-		if (game.buyProducer(familyId, tierIndex, amount)) {
+		if (Actions.buyProducer(familyId, tierIndex, amount)) {
 			dispatch('action');
 		}
 	}
 
 	function handleSell(familyId: string, tierIndex: number, amount: number = 1) {
-		if (game.sellProducer(familyId, tierIndex, amount)) {
+		if (Actions.sellProducer(familyId, tierIndex, amount)) {
 			dispatch('action');
 		}
 	}
@@ -45,14 +40,14 @@
 					<!-- Show tier if it's Research Unlocked OR if we own some (legacy/edge case) -->
 					{@const owned = game.producers[family.id]?.[index] || 0}
 					<!-- Check visibility of the specific machine tier -->
-					{#if game.isProducerVisible(machine) || owned > 0}
+					{#if Actions.isProducerVisible(machine) || owned > 0}
 						{@const purchased = game.purchasedProducers[family.id]?.[index] || 0}
-						{@const isBeingProduced = game.isProducerBeingProduced(family.id, index)}
+						{@const isBeingProduced = Actions.isProducerBeingProduced(family.id, index)}
 						{@const nextTier = family.tiers[index + 1]}
 
 						{@const sellPrice =
 							purchased > 0
-								? Math.floor(0.5 * game.getProducerCost(family.id, index, 1, purchased - 1))
+								? Math.floor(0.5 * Actions.getProducerCost(family.id, index, 1, purchased - 1))
 								: 0}
 
 						<div class="machine-card">
@@ -68,7 +63,7 @@
 									<div class="stat-block">
 										<span class="stat-label">{$t('common.production')}</span>
 										<span class="stat-value">
-											{formatNumber(game.getProducerOutput(family.id, index), suffixes)}/⏱️
+											{formatNumber(Actions.getProducerOutput(family.id, index), suffixes)}/⏱️
 										</span>
 									</div>
 									{#if machine.maintenance_cost && machine.maintenance_cost > 0}
@@ -85,14 +80,14 @@
 							<div class="tier-actions">
 								<!-- Buy / Sell Base Tier -->
 								{#if machine.allow_manual_purchase !== false}
-									{@const maxBuy = game.getMaxAffordableProducer(
+									{@const maxBuy = Actions.getMaxAffordableProducer(
 										family.id,
 										index,
 										game.money,
 										purchased
 									)}
 									{@const currentBuyAmount = buyAmount === -1 ? Math.max(1, maxBuy) : buyAmount}
-									{@const buyCost = game.getProducerCost(
+									{@const buyCost = Actions.getProducerCost(
 										family.id,
 										index,
 										currentBuyAmount,
@@ -106,7 +101,7 @@
 											disabled={(!canAffordBuy && buyAmount !== -1) ||
 												(buyAmount === -1 && maxBuy === 0) ||
 												isBeingProduced}
-											on:click={() => handleBuy(family.id, index, currentBuyAmount)}
+											onclick={() => handleBuy(family.id, index, currentBuyAmount)}
 										>
 											<span class="action-text">{$t('common.buy')}</span>
 											<span class="price-text">{formatMoney(buyCost, suffixes)}</span>
@@ -114,7 +109,7 @@
 										<button
 											class="buy-btn sell-btn"
 											disabled={owned <= 0 || isBeingProduced}
-											on:click={() => handleSell(family.id, index)}
+											onclick={() => handleSell(family.id, index)}
 										>
 											<span class="action-text">{$t('common.sell')}</span>
 											<span class="price-text">{formatMoney(sellPrice, suffixes)}</span>

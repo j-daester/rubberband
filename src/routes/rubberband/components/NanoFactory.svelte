@@ -1,12 +1,14 @@
 <script lang="ts">
-	import type { Game, NanoAllocation } from '../game';
+	import { game } from '$lib/state/gameState.svelte';
+	import * as Actions from '$lib/services/gameLoop';
 	import { formatNumber, formatMoney } from '../utils';
 	import { createEventDispatcher } from 'svelte';
-	import { t } from 'svelte-i18n';
+	import { t, json } from 'svelte-i18n';
 
-	export let game: Game;
-	export let tick: number;
-	export let suffixes: string[] = [];
+	// No props needed - accessing global state
+
+	// Helper to get suffixes (previously passed as prop)
+	let suffixes = $derived($json('suffixes') as unknown as string[]);
 
 	const dispatch = createEventDispatcher();
 
@@ -16,13 +18,10 @@
 	let allocLines = 25;
 	let allocNano = 25;
 
-	// Init from game state once
+	// Init from game state once when available
 	let initialized = false;
 
-	// Reactive trigger
-	$: {
-		tick;
-		game = game;
+	$effect(() => {
 		if (game && !initialized && game.nanoAllocation) {
 			allocRubber = Math.round(game.nanoAllocation.rubber_machines * 100);
 			allocBander = Math.round(game.nanoAllocation.bander_machines * 100);
@@ -35,10 +34,10 @@
 			}
 			initialized = true;
 		}
-	}
+	});
 
 	function buyFactory() {
-		if (game.buyNanobotFactory()) {
+		if (Actions.buyNanobotFactory()) {
 			dispatch('action');
 		}
 	}
@@ -100,13 +99,13 @@
 		allocNano = newAllocations['nano'];
 
 		// Apply to Game
-		const newAlloc: NanoAllocation = {
+		const newAlloc = {
 			rubber_machines: allocRubber / 100,
 			bander_machines: allocBander / 100,
 			production_lines: allocLines / 100,
 			nanobots: allocNano / 100
 		};
-		game.setNanoAllocation(newAlloc);
+		Actions.setNanoAllocation(newAlloc);
 	}
 
 	function resetAllocation() {
@@ -115,44 +114,47 @@
 		allocLines = 25;
 		allocNano = 25;
 
-		const newAlloc: NanoAllocation = {
+		const newAlloc = {
 			rubber_machines: 0.25,
 			bander_machines: 0.25,
 			production_lines: 0.25,
 			nanobots: 0.25
 		};
-		game.setNanoAllocation(newAlloc);
+		Actions.setNanoAllocation(newAlloc);
 	}
 
-	$: isVisible = game.researched.includes('nanotechnology');
+	let isVisible = $derived(game.researched.includes('nanotechnology'));
 
-	$: nanobotCount = game.nanobotCount;
+	let nanobotCount = $derived(game.nanobotCount);
 
-	$: nanoFactoryCount = game.nanobotFactoryCount;
-	$: nanoFactoryCost = game.nanobotFactoryCost;
+	let nanoFactoryCount = $derived(game.nanobotFactoryCount);
+	let nanoFactoryCost = $derived(game.nanobotFactoryCost);
 
-	$: nanobotProduction = game.getNanobotProduction ? game.getNanobotProduction() : 1;
+	let nanobotProduction = $derived(Actions.getNanobotProduction());
 
 	// Calculate Efficiencies for Display
-	$: rubberEfficiency = game.getFamilyNanoEfficiency('rubber_machines', ['rubber_sources']);
-	$: banderEfficiency = game.getFamilyNanoEfficiency('bander_machines', ['bander']);
-	$: linesEfficiency = game.getFamilyNanoEfficiency('production_lines', [
-		'rubber_factory_line',
-		'bander_line'
-	]);
+	let rubberEfficiency = $derived(
+		Actions.getFamilyNanoEfficiency('rubber_machines', ['rubber_sources'])
+	);
+	let banderEfficiency = $derived(Actions.getFamilyNanoEfficiency('bander_machines', ['bander']));
+	let linesEfficiency = $derived(
+		Actions.getFamilyNanoEfficiency('production_lines', ['rubber_factory_line', 'bander_line'])
+	);
 
 	// Helper for Nanobot Efficiency Display
-	$: nanoEfficiency = (() => {
-		const allocated = game.nanobotCount * (allocNano / 100);
-		const denom = game.nanobotFactoryCount * 10;
-		if (denom > 0) return allocated / denom;
-		return 0;
-	})();
+	let nanoEfficiency = $derived(
+		(() => {
+			const allocated = game.nanobotCount * (allocNano / 100);
+			const denom = game.nanobotFactoryCount * 10;
+			if (denom > 0) return allocated / denom;
+			return 0;
+		})()
+	);
 
-	$: tr = (key: string, search: string, replace: string) => {
+	let tr = $derived((key: string, search: string, replace: string) => {
 		const val = $t(key);
 		return (typeof val === 'string' ? val : '').replace(search, replace);
-	};
+	});
 </script>
 
 {#if isVisible}
@@ -174,7 +176,7 @@
 					<h3>Nanobot Allocation</h3>
 					<span class="text-xs text-gray-400">Determines pool size</span>
 				</div>
-				<button class="reset-btn" on:click={resetAllocation} title="Reset to 25% each">
+				<button class="reset-btn" onclick={resetAllocation} title="Reset to 25% each">
 					Reset
 				</button>
 			</div>
@@ -189,7 +191,7 @@
 						min="0"
 						max="100"
 						value={allocRubber}
-						on:input={(e) => updateAllocation('rubber', +e.currentTarget.value)}
+						oninput={(e) => updateAllocation('rubber', +e.currentTarget.value)}
 					/>
 					<span class="perc-value">{allocRubber}%</span>
 					<div class="boost-badge" title="Current Efficiency Boost">
@@ -208,7 +210,7 @@
 						min="0"
 						max="100"
 						value={allocBander}
-						on:input={(e) => updateAllocation('bander', +e.currentTarget.value)}
+						oninput={(e) => updateAllocation('bander', +e.currentTarget.value)}
 					/>
 					<span class="perc-value">{allocBander}%</span>
 					<div class="boost-badge" title="Current Efficiency Boost">
@@ -227,7 +229,7 @@
 						min="0"
 						max="100"
 						value={allocLines}
-						on:input={(e) => updateAllocation('lines', +e.currentTarget.value)}
+						oninput={(e) => updateAllocation('lines', +e.currentTarget.value)}
 					/>
 					<span class="perc-value">{allocLines}%</span>
 					<div class="boost-badge" title="Current Efficiency Boost">
@@ -246,7 +248,7 @@
 						min="0"
 						max="100"
 						value={allocNano}
-						on:input={(e) => updateAllocation('nano', +e.currentTarget.value)}
+						oninput={(e) => updateAllocation('nano', +e.currentTarget.value)}
 					/>
 					<span class="perc-value">{allocNano}%</span>
 					<div class="boost-badge" title="Current Efficiency Boost">
@@ -288,7 +290,7 @@
 					</div>
 				</div>
 				<div class="actions">
-					<button class="buy-btn" disabled={game.money < nanoFactoryCost} on:click={buyFactory}>
+					<button class="buy-btn" disabled={game.money < nanoFactoryCost} onclick={buyFactory}>
 						<span class="action-text">{$t('common.buy')}</span>
 						<span class="price-text">{formatMoney(nanoFactoryCost, suffixes)}</span>
 					</button>
